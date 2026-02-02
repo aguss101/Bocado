@@ -1,0 +1,144 @@
+Table Alimentos [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre text [ not null, unique ]
+	costo decimal [ not null, default: 0 ]
+}
+
+Table Medidas [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre_medida text [ not null, unique ]
+}
+
+Table macro_nutrientes [headercolor: #175e7a] {
+	id serial [ pk, not null ]
+	nombre text [ not null ]
+	calorias decimal [ not null ]
+}
+
+Table Recetas [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre text [ not null ]
+	foto bytea
+	porciones integer [ not null ]
+	Instrucciones text [ not null ]
+	calorias_totales decimal [ not null ]
+}
+
+Table Persona [headercolor: #175e7a] {
+	dni integer [ pk, not null ]
+	id_usuario integer [ increment, not null, unique ]
+	nombre text [ not null ]
+	apellido text [ not null ]
+	id_nacionalidad integer [ not null ]
+	id_genero integer [ not null ]
+	edad integer [ not null ]
+}
+
+Table Nacionalidad [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre_nacionalidad text [ not null ]
+}
+
+Table Genero [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre_genero text [ not null ]
+}
+
+Table Usuario [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	nombre_usuario text [ not null, unique ]
+	correo varchar(255) [ not null ]
+	"contraseña" varchar(255) [ not null ]
+	visibilidad_perfil boolean [ not null ]
+	premium boolean [ not null ]
+}
+
+Table Favoritos [headercolor: #175e7a] {
+	id serial [ pk, not null ]
+	id_usuario integer [ increment, not null, unique ]
+	id_receta integer [ not null ]
+}
+
+Table Comentarios [headercolor: #175e7a] {
+	id serial [ pk, not null ]
+	id_usuario integer [ increment, not null, unique ]
+	id_receta integer [ not null ]
+	texto text [ not null ]
+	calificacion integer [ not null ]
+}
+
+Table Alimentos_Medidas [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	id_alimentos integer [ not null, unique ]
+	id_medida integer [ not null ]
+}
+
+Table composicion [headercolor: #175e7a] {
+	id_composicion serial [ pk, not null ]
+	id_receta integer [ increment, not null, unique ]
+	id_alimento integer [ not null ]
+	id_medida integer [ not null ]
+	cantidad decimal [ not null ]
+}
+
+Table Alimentos_Macros [headercolor: #175e7a] {
+	id serial [ pk, not null, unique ]
+	id_alimento integer [ not null, unique ]
+	id_nutrientes integer [ not null ]
+}
+
+Ref fk_nnn {
+	Nacionalidad.id < Persona.id_nacionalidad [ delete: no action, update: no action ]
+}
+
+Ref fk_rrr {
+	Genero.id < Persona.id_genero [ delete: no action, update: no action ]
+}
+
+Ref fk_nmn {
+	Persona.id_usuario - Usuario.id [ delete: no action, update: no action ]
+}
+
+Ref fk_nmnn {
+	Comentarios.id_usuario - Usuario.id [ delete: no action, update: no action ]
+}
+
+Ref fk_nbn {
+	Comentarios.id_receta - Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref fk_mnm {
+	Favoritos.id_usuario - Usuario.id [ delete: no action, update: no action ]
+}
+
+Ref fk_mnn {
+	Favoritos.id_receta - Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref fk_Medidas {
+	Medidas.id < Alimentos_Medidas.id_medida [ delete: no action, update: no action ]
+}
+
+Ref fk_Alimentos {
+	Alimentos.id - Alimentos_Medidas.id_alimentos [ delete: no action, update: no action ]
+}
+
+Ref fk_Alimento {
+	Alimentos.id - composicion.id_alimento [ delete: no action, update: no action ]
+}
+
+Ref fk_Recetas {
+	Recetas.id - composicion.id_receta [ delete: no action, update: no action ]
+}
+
+Ref fk_composicion {
+	composicion.id_medida > Medidas.id [ delete: no action, update: no action ]
+}
+
+Ref fk_Aliments {
+	Alimentos_Macros.id_nutrientes < macro_nutrientes.id [ delete: no action, update: no action ]
+}
+
+Ref "." {
+	Alimentos_Macros.id_alimento - Alimentos.id [ delete: no action, update: no action ]
+}
