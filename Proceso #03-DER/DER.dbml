@@ -1,0 +1,242 @@
+Table Usuarios [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	id_cuenta integer [ not null ]
+	id_nacion integer [ not null ]
+	id_genero integer [ not null ]
+	nombre text [ not null ]
+	apellido text [ not null ]
+	correo text [ not null ]
+	usuario text [ not null ]
+	contrasena text [ not null ]
+	fecha_nacimiento timestamp [ not null ]
+	fecha_creacion timestamp [ not null ]
+	fecha_acceso timestamp [ not null ]
+	activo boolean [ not null ]
+	visibilidad boolean [ not null ]
+	foto byte [ not null ]
+	banner byte [ not null ]
+}
+
+Table Cuentas [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+}
+
+Table Naciones [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+}
+
+Table Generos [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+}
+
+Table Alimentos [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+	id_usuario integer [ not null ]
+	id_medida integer [ not null ]
+}
+
+Table Nutrientes [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+	esMacro boolean [ not null ]
+	id_medida int [ not null ]
+}
+
+Table Alimentos_Nutrientes [headercolor: #175e7a] {
+	id_alimento integer [ pk ]
+	id_nutriente integer [ pk ]
+	valor100gr integer
+
+	indexes {
+		(id_alimento, id_nutriente) [ name: 'Alimentos_Nutrientes_index_0' ]
+	}
+}
+
+Table Medidas [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+	tipo integer [ not null ]
+}
+
+Table Medidas_Tipos [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	nombre text [ not null ]
+}
+
+Table Medidas_Conversiones [headercolor: #175e7a] {
+	id_medida1 integer [ pk ]
+	id_medida2 integer [ pk ]
+	factor decimal [ not null ]
+
+	indexes {
+		(id_medida1, id_medida2) [ name: 'Medidas_Conversiones_index_1' ]
+	}
+}
+
+Table Recetas [headercolor: #175e7a] {
+	id serial [ pk, increment, not null, unique ]
+	id_usuario integer [ not null ]
+	nombre text [ not null ]
+	foto byte
+	calorias_totales decimal
+	porciones integer
+	porciones_peso decimal
+	instrucciones text [ not null ]
+	fecha_creacion datetime
+	visibilidad bool [ not null ]
+	activo bool [ not null ]
+	precio decimal [ not null ]
+}
+
+Table Recetas_Alimentos [headercolor: #175e7a] {
+	id_receta integer [ pk, not null ]
+	id_alimento integer [ pk, not null ]
+	cantidad decimal [ not null ]
+	precio decimal [ not null ]
+
+	indexes {
+		(id_receta, id_alimento) [ name: 'Recetas_Alimentos_index_2' ]
+	}
+}
+
+Table Comentarios [headercolor: #175e7a] {
+	id_comentario int [ pk, unique ]
+	id_comentario_padre int
+	id_receta integer
+	id_comentarista integer
+	comentario text [ not null ]
+}
+
+Table Calificaciones [headercolor: #175e7a] {
+	id_receta integer [ pk ]
+	id_usuario integer [ pk ]
+	calificacion decimal
+
+	indexes {
+		(id_receta, id_usuario) [ name: 'Calificaciones_index_3' ]
+	}
+}
+
+Table Favoritos [headercolor: #175e7a] {
+	id_receta integer [ pk ]
+	id_usuario integer [ pk ]
+
+	indexes {
+		(id_receta, id_usuario) [ name: 'Favoritos_index_4' ]
+	}
+}
+
+Table Etiquetas [headercolor: #175e7a] {
+	id_etiqueta int [ pk, unique ]
+	nombre text
+	id_usuario int
+}
+
+Table Etiquetas_Recetas [headercolor: #175e7a] {
+	id_recetas int [ pk ]
+	id_etiquetas int [ pk ]
+
+	indexes {
+		(id_recetas, id_etiquetas) [ name: 'Etiquetas_Recetas_index_5' ]
+	}
+}
+
+Ref CU {
+	Usuarios.id_cuenta > Cuentas.id [ delete: no action, update: no action ]
+}
+
+Ref NU {
+	Usuarios.id_nacion > Naciones.id [ delete: no action, update: no action ]
+}
+
+Ref GU {
+	Usuarios.id_genero > Generos.id [ delete: no action, update: no action ]
+}
+
+Ref UA {
+	Alimentos.id_usuario > Usuarios.id [ delete: no action, update: no action ]
+}
+
+Ref MA {
+	Alimentos.id_medida > Medidas.id [ delete: no action, update: no action ]
+}
+
+Ref MTM {
+	Medidas.tipo > Medidas_Tipos.id [ delete: no action, update: no action ]
+}
+
+Ref MMC {
+	Medidas_Conversiones.id_medida1 > Medidas.id [ delete: no action, update: no action ]
+}
+
+Ref MMC2 {
+	Medidas_Conversiones.id_medida2 > Medidas.id [ delete: no action, update: no action ]
+}
+
+Ref MN {
+	Nutrientes.id_medida > Medidas.id [ delete: no action, update: no action ]
+}
+
+Ref AAN {
+	Alimentos_Nutrientes.id_alimento > Alimentos.id [ delete: no action, update: no action ]
+}
+
+Ref NAN {
+	Alimentos_Nutrientes.id_nutriente > Nutrientes.id [ delete: no action, update: no action ]
+}
+
+Ref UR {
+	Recetas.id_usuario > Usuarios.id [ delete: no action, update: no action ]
+}
+
+Ref RRA {
+	Recetas_Alimentos.id_receta > Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref ARA {
+	Recetas_Alimentos.id_alimento > Alimentos.id [ delete: no action, update: no action ]
+}
+
+Ref CC {
+	Comentarios.id_comentario_padre > Comentarios.id_comentario [ delete: no action, update: no action ]
+}
+
+Ref RC {
+	Comentarios.id_receta > Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref UC {
+	Comentarios.id_comentarista > Usuarios.id [ delete: no action, update: no action ]
+}
+
+Ref RC2 {
+	Calificaciones.id_receta > Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref UC2 {
+	Calificaciones.id_usuario > Usuarios.id [ delete: no action, update: no action ]
+}
+
+Ref RF {
+	Favoritos.id_receta > Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref UF {
+	Favoritos.id_usuario > Usuarios.id [ delete: no action, update: no action ]
+}
+
+Ref RER {
+	Etiquetas_Recetas.id_recetas > Recetas.id [ delete: no action, update: no action ]
+}
+
+Ref EER {
+	Etiquetas_Recetas.id_etiquetas > Etiquetas.id_etiqueta [ delete: no action, update: no action ]
+}
+
+Ref UE {
+	Etiquetas.id_etiqueta > Usuarios.id [ delete: no action, update: no action ]
+}
