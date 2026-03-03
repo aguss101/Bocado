@@ -1,0 +1,188 @@
+CREATE TABLE "Usuarios" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "id_cuenta" integer NOT NULL,
+  "id_nacion" integer NOT NULL,
+  "id_genero" integer NOT NULL,
+  "nombre" text NOT NULL,
+  "apellido" text NOT NULL,
+  "correo" text NOT NULL,
+  "usuario" text NOT NULL,
+  "contrasena" text NOT NULL,
+  "fecha_nacimiento" timestamp NOT NULL,
+  "fecha_creacion" timestamp NOT NULL,
+  "fecha_acceso" timestamp NOT NULL,
+  "activo" boolean NOT NULL,
+  "visibilidad" boolean NOT NULL,
+  "foto" bytea NOT NULL,
+  "banner" bytea NOT NULL
+);
+
+CREATE TABLE "Cuentas" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL
+);
+
+CREATE TABLE "Naciones" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL
+);
+
+CREATE TABLE "Generos" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL
+);
+
+CREATE TABLE "Alimentos" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL,
+  "id_usuario" integer NOT NULL,
+  "id_medida" integer NOT NULL
+);
+
+CREATE TABLE "Nutrientes" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL,
+  "esMacro" boolean NOT NULL,
+  "id_medida" int NOT NULL
+);
+
+CREATE TABLE "Alimentos_Nutrientes" (
+  "id_alimento" integer,
+  "id_nutriente" integer,
+  "valor100gr" integer,
+  PRIMARY KEY ("id_alimento", "id_nutriente")
+);
+
+CREATE TABLE "Medidas" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL,
+  "tipo" integer NOT NULL
+);
+
+CREATE TABLE "Medidas_Tipos" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "nombre" text NOT NULL
+);
+
+CREATE TABLE "Medidas_Conversiones" (
+  "id_medida1" integer,
+  "id_medida2" integer,
+  "factor" decimal NOT NULL,
+  PRIMARY KEY ("id_medida1", "id_medida2")
+);
+
+CREATE TABLE "Recetas" (
+  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
+  "id_usuario" integer NOT NULL,
+  "nombre" text NOT NULL,
+  "foto" bytea,
+  "calorias_totales" decimal,
+  "porciones" integer,
+  "porciones_peso" decimal,
+  "instrucciones" text NOT NULL,
+  "fecha_creacion" timestamp,
+  "visibilidad" bool NOT NULL,
+  "activo" bool NOT NULL,
+  "precio" decimal NOT NULL
+);
+
+CREATE TABLE "Recetas_Alimentos" (
+  "id_receta" integer NOT NULL,
+  "id_alimento" integer NOT NULL,
+  "cantidad" decimal NOT NULL,
+  "precio" decimal NOT NULL,
+  PRIMARY KEY ("id_receta", "id_alimento")
+);
+
+CREATE TABLE "Comentarios" (
+  "id_comentario" int UNIQUE PRIMARY KEY,
+  "id_comentario_padre" int,
+  "id_receta" integer,
+  "id_comentarista" integer,
+  "comentario" text NOT NULL
+);
+
+CREATE TABLE "Calificaciones" (
+  "id_receta" integer,
+  "id_usuario" integer,
+  "calificacion" decimal,
+  PRIMARY KEY ("id_receta", "id_usuario")
+);
+
+CREATE TABLE "Favoritos" (
+  "id_receta" integer,
+  "id_usuario" integer,
+  PRIMARY KEY ("id_receta", "id_usuario")
+);
+
+CREATE TABLE "Etiquetas" (
+  "id_etiqueta" int UNIQUE PRIMARY KEY,
+  "nombre" text,
+  "id_usuario" int
+);
+
+CREATE TABLE "Etiquetas_Recetas" (
+  "id_recetas" int,
+  "id_etiquetas" int,
+  PRIMARY KEY ("id_recetas", "id_etiquetas")
+);
+
+CREATE INDEX "Alimentos_Nutrientes_index_0" ON "Alimentos_Nutrientes" ("id_alimento", "id_nutriente");
+
+CREATE INDEX "Medidas_Conversiones_index_1" ON "Medidas_Conversiones" ("id_medida1", "id_medida2");
+
+CREATE INDEX "Recetas_Alimentos_index_2" ON "Recetas_Alimentos" ("id_receta", "id_alimento");
+
+CREATE INDEX "Calificaciones_index_3" ON "Calificaciones" ("id_receta", "id_usuario");
+
+CREATE INDEX "Favoritos_index_4" ON "Favoritos" ("id_receta", "id_usuario");
+
+CREATE INDEX "Etiquetas_Recetas_index_5" ON "Etiquetas_Recetas" ("id_recetas", "id_etiquetas");
+
+ALTER TABLE "Usuarios" ADD CONSTRAINT "CU" FOREIGN KEY ("id_cuenta") REFERENCES "Cuentas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Usuarios" ADD CONSTRAINT "NU" FOREIGN KEY ("id_nacion") REFERENCES "Naciones" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Usuarios" ADD CONSTRAINT "GU" FOREIGN KEY ("id_genero") REFERENCES "Generos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Alimentos" ADD CONSTRAINT "UA" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Alimentos" ADD CONSTRAINT "MA" FOREIGN KEY ("id_medida") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Medidas" ADD CONSTRAINT "MTM" FOREIGN KEY ("tipo") REFERENCES "Medidas_Tipos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Medidas_Conversiones" ADD CONSTRAINT "MMC" FOREIGN KEY ("id_medida1") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Medidas_Conversiones" ADD CONSTRAINT "MMC2" FOREIGN KEY ("id_medida2") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Nutrientes" ADD CONSTRAINT "MN" FOREIGN KEY ("id_medida") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Alimentos_Nutrientes" ADD CONSTRAINT "AAN" FOREIGN KEY ("id_alimento") REFERENCES "Alimentos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Alimentos_Nutrientes" ADD CONSTRAINT "NAN" FOREIGN KEY ("id_nutriente") REFERENCES "Nutrientes" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Recetas" ADD CONSTRAINT "UR" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Recetas_Alimentos" ADD CONSTRAINT "RRA" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Recetas_Alimentos" ADD CONSTRAINT "ARA" FOREIGN KEY ("id_alimento") REFERENCES "Alimentos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Comentarios" ADD CONSTRAINT "CC" FOREIGN KEY ("id_comentario_padre") REFERENCES "Comentarios" ("id_comentario") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Comentarios" ADD CONSTRAINT "RC" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Comentarios" ADD CONSTRAINT "UC" FOREIGN KEY ("id_comentarista") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Calificaciones" ADD CONSTRAINT "RC2" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Calificaciones" ADD CONSTRAINT "UC2" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Favoritos" ADD CONSTRAINT "RF" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Favoritos" ADD CONSTRAINT "UF" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Etiquetas_Recetas" ADD CONSTRAINT "RER" FOREIGN KEY ("id_recetas") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Etiquetas_Recetas" ADD CONSTRAINT "EER" FOREIGN KEY ("id_etiquetas") REFERENCES "Etiquetas" ("id_etiqueta") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "Etiquetas" ADD CONSTRAINT "UE" FOREIGN KEY ("id_etiqueta") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
