@@ -1,4 +1,5 @@
-package DAO;
+package com.example.bocado;
+
 import java.sql.*;
 public class ConexionDB {
     private static Connection conexion = null;
@@ -7,7 +8,7 @@ public class ConexionDB {
 
     public static void Conectar() throws SQLException
     {
-        conexion = DriverManager.getConnection("postgresql://postgres:Salami23738_19#msN@db.sosbomunpwbgcezgfgzs.supabase.co:5432/postgres");
+        conexion = DriverManager.getConnection("jdbc:postgresql://db.sosbomunpwbgcezgfgzs.supabase.co:5432/postgres?user=postgres&password=Salami23738_19#msN");
     }
     public static void Consultar(String sql) throws SQLException
     {
@@ -42,7 +43,7 @@ public class ConexionDB {
 
         try
         {
-         if(comando != null) comando.close();
+            if(comando != null) comando.close();
         }catch (Exception e){}
 
         try
