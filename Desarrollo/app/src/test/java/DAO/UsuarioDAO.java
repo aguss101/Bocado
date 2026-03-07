@@ -10,13 +10,12 @@ public class UsuarioDAO
     private static ConexionDB acceso = null;
     public static List<Usuario> Listar() throws SQLException
     {
-        List<Usuario> usuarios = new ArrayList<Usuario>();
+        List<Usuario> usuarios = new ArrayList<>();
         acceso = new ConexionDB();
         try
         {
             acceso.Conectar();
-            acceso.Consultar("SELECT id,id_cuenta,id_nacion,id_genero,nombre,apellido,correo,usuario,contrasena,fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner FROM Usuarios");
-            acceso.Leer();
+            acceso.Consultar("SELECT id,id_cuenta,id_nacion,id_genero,nombre,apellido,correo,usuario,contrasena,fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner FROM \"Usuarios\"");            acceso.Leer();
             while(acceso.getLector().next())
             {
                 Usuario aux = new Usuario();

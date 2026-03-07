@@ -29,11 +29,11 @@ public class ExampleUnitTest {
 
             for(Usuario aux : lista)
             {
-                System.out.println(aux.getNombre() + "\r\n");
+                System.out.print(aux.getNombre() + "\r\n");
             }
         } catch(Exception e)
         {
-
+            e.printStackTrace();
         }
 
         System.out.println("--- Prueba finalizada ---");
