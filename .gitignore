@@ -1,17 +1,22 @@
-# Gradle files
+# --- ARCHIVOS TEMPORALES Y CACHÉ (Gradle/IDE) ---
 .gradle/
 **/build/
-**/.gradle/
 build/
+*.bin
+*.lock
+*.probe
+*.log
+*.html
 
-# IntelliJ IDEA
+# --- INTELLIJ IDEA ---
 .idea/
 **/.idea/
 *.iml
 *.iws
 *.ipr
 
-# Android Studio / Android
+# --- CONFIGURACIÓN LOCAL Y ANDROID ---
+# Ignora local.properties para no subir la ruta de tu SDK personal
 local.properties
 **/local.properties
 .cxx/
@@ -19,9 +24,14 @@ captures/
 .externalNativeBuild
 .navigation/
 
-# Mac OS
+# --- SISTEMA OPERATIVO ---
 .DS_Store
 
-# Log files
-*.log
-*.xml
+# --- EXCEPCIONES: ARCHIVOS QUE SÍ SE SUBEN ---
+# Esto garantiza que tu código y la estructura del proyecto se mantengan
+!*.java
+!*.xml
+!*.gradle
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.properties
