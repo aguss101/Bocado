@@ -1,5 +1,5 @@
-package DAO;
-import Model.Usuario;
+package com.example.bocado.DAO;
+import com.example.bocado.entidades.Usuario;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -7,11 +7,10 @@ import java.util.List;
 
 public class UsuarioDAO
 {
-    private static ConexionDB acceso = null;
     public static List<Usuario> Listar() throws SQLException
     {
         List<Usuario> usuarios = new ArrayList<>();
-        acceso = new ConexionDB();
+        ConexionDB acceso = new ConexionDB(); //creemos una de estas para cada vez que un metodo necesita conexion a la DB. Asi no se pisa con otras conexiones.
         try
         {
             acceso.Conectar();

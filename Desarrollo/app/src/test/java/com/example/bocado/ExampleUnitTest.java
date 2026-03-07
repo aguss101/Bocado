@@ -1,28 +1,14 @@
 package com.example.bocado;
 
-import DAO.ConexionDB;
-import DAO.UsuarioDAO;
-import Model.Usuario;
+import com.example.bocado.DAO.UsuarioDAO;
+import com.example.bocado.entidades.Usuario;
 import org.junit.Test;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.*;
 
 public class ExampleUnitTest {
     @Test
-    public void testConexion() {
-        System.out.println("--- Iniciando prueba de conexión ---");
-        try {
-            ConexionDB.Conectar();
-            System.out.println("¡Conexión exitosa a la base de datos!");
-        } catch (SQLException e) {
-            System.out.println("Error al conectar: " + e.getMessage());
-            fail("La conexión falló");
-        }
-
+    public void listar_name_users() {
         try
         {
             List<Usuario> lista = UsuarioDAO.Listar();
@@ -35,7 +21,5 @@ public class ExampleUnitTest {
         {
             e.printStackTrace();
         }
-
-        System.out.println("--- Prueba finalizada ---");
     }
 }

@@ -1,7 +1,7 @@
-package Model;
+package com.example.bocado.entidades;
 
+import java.sql.Timestamp;
 import java.util.Date;
-
 public class Usuario
 {
     private int id;
@@ -14,8 +14,8 @@ public class Usuario
     private String usuario;
     private String contraseña;
     private Date fecha_Nacimiento;
-    private Date fecha_Creacion;
-    private Date fecha_Acceso;
+    private Timestamp fecha_Creacion;
+    private Timestamp fecha_Acceso;
     private boolean activo;
     private boolean visibilidad;
     private byte[] foto;
@@ -100,19 +100,19 @@ public class Usuario
         this.fecha_Nacimiento = fecha_Nacimiento;
     }
 
-    public Date getFecha_Creacion() {
+    public Timestamp getFecha_Creacion() {
         return fecha_Creacion;
     }
 
-    public void setFecha_Creacion(Date fecha_Creacion) {
+    public void setFecha_Creacion(Timestamp fecha_Creacion) {
         this.fecha_Creacion = fecha_Creacion;
     }
 
-    public Date getFecha_Acceso() {
+    public Timestamp getFecha_Acceso() {
         return fecha_Acceso;
     }
 
-    public void setFecha_Acceso(Date fecha_Acceso) {
+    public void setFecha_Acceso(Timestamp fecha_Acceso) {
         this.fecha_Acceso = fecha_Acceso;
     }
 
