@@ -1,0 +1,150 @@
+package Model;
+
+import java.util.Date;
+
+public class Usuario
+{
+    private int id;
+    private int id_Cuenta;
+    private int id_Nacion;
+    private int id_Genero;
+    private String nombre;
+    private String apellido;
+    private String correo;
+    private String usuario;
+    private String contraseña;
+    private Date fecha_Nacimiento;
+    private Date fecha_Creacion;
+    private Date fecha_Acceso;
+    private boolean activo;
+    private boolean visibilidad;
+    private byte[] foto;
+    private byte[] banner;
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId_Cuenta() {
+        return id_Cuenta;
+    }
+
+    public void setId_Cuenta(int id_Cuenta) {
+        this.id_Cuenta = id_Cuenta;
+    }
+
+    public int getId_Nacion() {
+        return id_Nacion;
+    }
+
+    public void setId_Nacion(int id_Nacion) {
+        this.id_Nacion = id_Nacion;
+    }
+
+    public int getId_Genero() {
+        return id_Genero;
+    }
+
+    public void setId_Genero(int id_Genero) {
+        this.id_Genero = id_Genero;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
+    public String getCorreo() {
+        return correo;
+    }
+
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getContraseña() {
+        return contraseña;
+    }
+
+    public void setContraseña(String contraseña) {
+        this.contraseña = contraseña;
+    }
+
+    public Date getFecha_Nacimiento() {
+        return fecha_Nacimiento;
+    }
+
+    public void setFecha_Nacimiento(Date fecha_Nacimiento) {
+        this.fecha_Nacimiento = fecha_Nacimiento;
+    }
+
+    public Date getFecha_Creacion() {
+        return fecha_Creacion;
+    }
+
+    public void setFecha_Creacion(Date fecha_Creacion) {
+        this.fecha_Creacion = fecha_Creacion;
+    }
+
+    public Date getFecha_Acceso() {
+        return fecha_Acceso;
+    }
+
+    public void setFecha_Acceso(Date fecha_Acceso) {
+        this.fecha_Acceso = fecha_Acceso;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    public boolean isVisibilidad() {
+        return visibilidad;
+    }
+
+    public void setVisibilidad(boolean visibilidad) {
+        this.visibilidad = visibilidad;
+    }
+
+    public byte[] getFoto() {
+        return foto;
+    }
+
+    public void setFoto(byte[] foto) {
+        this.foto = foto;
+    }
+
+    public byte[] getBanner() {
+        return banner;
+    }
+
+    public void setBanner(byte[] banner) {
+        this.banner = banner;
+    }
+}

@@ -1,4 +1,4 @@
-package com.example.bocado;
+package DAO;
 
 import java.sql.*;
 public class ConexionDB {
