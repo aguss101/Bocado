@@ -1,55 +1,52 @@
-# --- ARCHIVOS TEMPORALES Y CACHÉ (Gradle/IDE) ---
+# ── GRADLE ────────────────────────────────────────────
 .gradle/
 **/build/
 build/
-*.bin
-*.lock
-*.probe
-*.log
-*.html
+gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
-# --- INTELLIJ IDEA ---
+# ── CHECKSUMS / HASHES (generados por Gradle) ─────────
+*.lock
+*.bin
+*.probe
+*-checksums.*
+fileHashes.*
+
+# ── REPORTES GENERADOS ────────────────────────────────
+*.html
+*.log
+problems-report.*
+
+# ── ANDROID / NDK ─────────────────────────────────────
+local.properties
+**/local.properties
+.cxx/
+captures/
+.externalNativeBuild/
+.navigation/
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+
+# ── INTELLIJ / ANDROID STUDIO ─────────────────────────
 .idea/
 **/.idea/
 *.iml
 *.iws
 *.ipr
+out/
 
-# --- CONFIGURACIÓN LOCAL Y ANDROID ---
-# Ignora local.properties para no subir la ruta de tu SDK personal
-local.properties
-**/local.properties
-.cxx/
-captures/
-.externalNativeBuild
-.navigation/
-
-# --- SISTEMA OPERATIVO ---
+# ── OS ────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
 
-# --- EXCEPCIONES: ARCHIVOS QUE SÍ SE SUBEN ---
-# Esto garantiza que tu código y la estructura del proyecto se mantengan
+# ── EXCEPCIONES EXPLÍCITAS ────────────────────────────
 !*.java
+!*.kt
 !*.xml
 !*.gradle
+!*.kts
 !gradlew
 !gradlew.bat
-!gradle/wrapper/gradle-wrapper.properties
-.idea/misc.xml
-Desarrollo/.gradle/8.13/checksums/checksums.lock
-Desarrollo/.gradle/8.13/checksums/md5-checksums.bin
-.idea/misc.xml
-Desarrollo/.gradle/8.13/checksums/checksums.lock
-Desarrollo/.gradle/8.13/checksums/md5-checksums.bin
-Desarrollo/.gradle/8.13/checksums/sha1-checksums.bin
-Desarrollo/.gradle/8.13/executionHistory/executionHistory.bin
-Desarrollo/.gradle/8.13/executionHistory/executionHistory.lock
-Desarrollo/.gradle/8.13/fileHashes/fileHashes.bin
-Desarrollo/.gradle/8.13/fileHashes/fileHashes.lock
-Desarrollo/.gradle/buildOutputCleanup/buildOutputCleanup.lock
-Desarrollo/.gradle/buildOutputCleanup/outputFiles.bin
-Desarrollo/.gradle/file-system.probe
-Desarrollo/.idea/gradle.xml
-Desarrollo/.idea/misc.xml
-Desarrollo/build/reports/problems/problems-report.html
-Desarrollo/local.properties
