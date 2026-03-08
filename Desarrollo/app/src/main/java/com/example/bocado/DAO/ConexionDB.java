@@ -1,4 +1,5 @@
 package com.example.bocado.DAO;
+import com.example.bocado.BuildConfig;
 
 import java.sql.*;
 
@@ -7,11 +8,9 @@ public class ConexionDB {
     private PreparedStatement comando;
     private ResultSet lector;
 
-    private static final String URL="jdbc:postgresql://db.sosbomunpwbgcezgfgzs.supabase.co:5432/postgres?user=postgres&password=Salami23738_19#msN";
-
     public void Conectar() throws SQLException
     {
-        conexion = DriverManager.getConnection(URL);
+        conexion = DriverManager.getConnection(BuildConfig.SUPABASE_URL);
     }
     public void Consultar(String sql) throws SQLException
     {
