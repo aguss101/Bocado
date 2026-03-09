@@ -1,22 +1,38 @@
 package com.example.bocado;
 
+import com.example.bocado.DAO.ConexionDB;
 import com.example.bocado.DAO.UsuarioDAO;
+import com.example.bocado.Estaticos.Query;
 import com.example.bocado.entidades.Usuario;
 
 import org.junit.Test;
+
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.util.List;
 
 
 public class ExampleUnitTest {
     @Test
     public void listar_name_users() {
+
         try
         {
-            List<Usuario> lista = UsuarioDAO.Listar();
+            ConexionDB cdb = new ConexionDB();
+            cdb.Conectar();
+            cdb.Consultar(Query.getFoods(null));
+            cdb.Leer();
+            ResultSet rs = cdb.getLector();
+            ResultSetMetaData md = rs.getMetaData();
+            int columnCount = md.getColumnCount();
+            while(cdb.getLector().next()){
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = md.getColumnName(i);
+                    Object value = rs.getObject(i);
 
-            for(Usuario aux : lista)
-            {
-                System.out.print(aux.getNombre() + "\r\n");
+                    System.out.println(columnName + ": " + value);
+                }
+                System.out.println("----");
             }
         } catch(Exception e)
         {
