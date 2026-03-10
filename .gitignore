@@ -45,9 +45,13 @@ Thumbs.db
 # ── EXCEPCIONES EXPLÍCITAS ────────────────────────────
 !*.java
 !*.kt
-!*.xml
 !*.gradle
 !*.kts
+!*.gradle.kts
 !gradlew
 !gradlew.bat
-local.properties
+
+# XML solo en fuentes, no en .idea
+!app/src/**/*.xml
+!app/src/**/*.xml
+!*.gradle.xml
