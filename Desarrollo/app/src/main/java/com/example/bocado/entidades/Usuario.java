@@ -1,7 +1,6 @@
 package com.example.bocado.entidades;
 
 import java.sql.Timestamp;
-import java.util.Date;
 public class Usuario
 {
     private int id;
@@ -13,7 +12,7 @@ public class Usuario
     private String correo;
     private String usuario;
     private String contraseña;
-    private Date fecha_Nacimiento;
+    private Timestamp fecha_Nacimiento;
     private Timestamp fecha_Creacion;
     private Timestamp fecha_Acceso;
     private boolean activo;
@@ -92,11 +91,11 @@ public class Usuario
         this.contraseña = contraseña;
     }
 
-    public Date getFecha_Nacimiento() {
+    public Timestamp getFecha_Nacimiento() {
         return fecha_Nacimiento;
     }
 
-    public void setFecha_Nacimiento(Date fecha_Nacimiento) {
+    public void setFecha_Nacimiento(Timestamp fecha_Nacimiento) {
         this.fecha_Nacimiento = fecha_Nacimiento;
     }
 
