@@ -20,7 +20,7 @@ public class ExampleUnitTest {
         {
             ConexionDB cdb = new ConexionDB();
             cdb.Conectar();
-            cdb.Consultar(Query.getFoods(null));
+            cdb.Consultar(Query.getRecipes(null, null));
             cdb.Leer();
             ResultSet rs = cdb.getLector();
             ResultSetMetaData md = rs.getMetaData();

@@ -1,6 +1,6 @@
 package com.example.bocado.Estaticos;
 public class Query {
-    public static String getUsers(Integer userID){
+    public static String getUsers(Integer userID, Integer accountID){
         String query = """
                 SELECT
                     usuarios.id AS id,
@@ -18,10 +18,12 @@ public class Query {
         """;
         if(userID != null){
             query += " WHERE usuarios.id = " + userID;
+        }else if(accountID != null){
+            query += " WHERE usuarios.id_cuenta = " + accountID;
         }
         return query;
     }
-    public static String getFoods(Integer foodID){
+    public static String getFoods(Integer foodID, Integer userID){
         String query = """
                 SELECT
                 alimentos.id AS id,
@@ -40,9 +42,49 @@ public class Query {
             """;
         if(foodID != null){
             query += "WHERE alimentos.id = " + foodID + " ";
+        }else if(userID != null){
+            query += "WHERE alimentos.id_usuario = " + userID + " ";
         }
 
         query += "GROUP BY alimentos.id, alimentos.nombre, usuarios.usuario";
+
+        return query;
+    }
+    public static String getRecipes(Integer recipeID, Integer userID){
+        String query = """
+            SELECT
+            recetas.id AS id,
+            usuarios.usuario AS usuario,
+            recetas.nombre AS nombre,
+            recetas.calorias_totales AS calorias,
+            recetas.porciones AS cantidad_porciones,
+            recetas.porciones_peso AS peso_porcion,
+            recetas.instrucciones AS instrucciones,
+            recetas.precio AS costo,
+            recetas.fecha_creacion AS fecha,
+            recetas.visibilidad AS visibilidad,
+            STRING_AGG(
+                '[' || alimentos.nombre || ',' || recetas_alimentos.cantidad || ',' || recetas_alimentos.precio || ']',
+                ','
+            ) AS alimentos,
+            STRING_AGG(
+                '[' || etiquetas.nombre || ']', ','
+            ) AS etiquetas
+            FROM recetas
+            JOIN usuarios ON usuarios.id = recetas.id_usuario
+            JOIN recetas_alimentos ON recetas.id = recetas_alimentos.id_receta
+            JOIN alimentos ON alimentos.id = recetas_alimentos.id_alimento
+            JOIN etiquetas_recetas ON recetas.id = etiquetas_recetas.id_recetas
+            JOIN etiquetas ON etiquetas.id_etiqueta = etiquetas_recetas.id_etiquetas
+            """;
+
+        if(recipeID != null){
+            query += " WHERE recetas.id = " + recipeID + " ";
+        }else if(userID != null){
+            query += " WHERE recetas.id_usuario = " + userID + " ";
+        }
+
+        query += " GROUP BY recetas.id, usuarios.usuario";
 
         return query;
     }

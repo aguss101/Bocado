@@ -2,6 +2,7 @@ package com.example.bocado.DAO;
 import com.example.bocado.entidades.Usuario;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class UsuarioDAO
                 aux.setCorreo(acceso.getLector().getString("correo"));
                 aux.setUsuario(acceso.getLector().getString("usuario"));
                 aux.setContraseña(acceso.getLector().getString("contrasena"));
-                aux.setFecha_Nacimiento(acceso.getLector().getDate("fecha_nacimiento"));
+                aux.setFecha_Nacimiento(new Timestamp(acceso.getLector().getDate("fecha_nacimiento").getTime()));
                 aux.setFecha_Creacion(acceso.getLector().getTimestamp("fecha_creacion"));
                 aux.setFecha_Acceso(acceso.getLector().getTimestamp("fecha_acceso"));
                 aux.setActivo(acceso.getLector().getBoolean("activo"));
