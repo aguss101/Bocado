@@ -17,6 +17,25 @@ public class Receta
     private boolean visibilidad;
     private boolean activo;
     private BigDecimal precio;
+
+    public Receta(int id, int id_Usuario, String nombre, byte[] foto, BigDecimal calorias_Totales, int porciones, BigDecimal porciones_Peso, String instrucciones, Timestamp fecha_Creacion, boolean visibilidad, boolean activo, BigDecimal precio) {
+        this.id = id;
+        this.id_Usuario = id_Usuario;
+        this.nombre = nombre;
+        this.foto = foto;
+        this.calorias_Totales = calorias_Totales;
+        this.porciones = porciones;
+        this.porciones_Peso = porciones_Peso;
+        this.instrucciones = instrucciones;
+        this.fecha_Creacion = fecha_Creacion;
+        this.visibilidad = visibilidad;
+        this.activo = activo;
+        this.precio = precio;
+    }
+
+    public Receta() {
+    }
+
     public int getId() {
         return id;
     }

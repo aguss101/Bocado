@@ -1,20 +1,49 @@
 package com.example.bocado.Estaticos;
 public class Query {
+    ///Inserts
+
+    /// Listados
+    public static String getUsersComplete(Integer userID, Integer accountID){
+        String query = """
+                SELECT
+                    u.id AS id,
+                    cuentas.nombre AS cuenta,
+                    cuentas.id AS id_cuenta,
+                    naciones.nombre AS pais,
+                    naciones.id AS id_nacion,
+                    generos.nombre AS genero,
+                    generos.id AS id_genero,
+                    u.nombre, u.apellido,
+                    u.correo, u.usuario, u.contrasena,
+                    u.fecha_nacimiento, u.fecha_creacion, u.fecha_acceso,
+                    u.activo, u.visibilidad, u.foto, u.banner
+                FROM usuarios u
+                JOIN cuentas ON u.id_cuenta = cuentas.id
+                JOIN naciones ON u.id_nacion = naciones.id
+                JOIN generos ON u.id_genero = generos.id
+        """;
+        if(userID != null){
+            query += " WHERE usuarios.id = " + userID;
+        }else if(accountID != null){
+            query += " WHERE usuarios.id_cuenta = " + accountID;
+        }
+        return query;
+    }
     public static String getUsers(Integer userID, Integer accountID){
         String query = """
                 SELECT
-                    usuarios.id AS id,
+                    u.id AS id,
                     cuentas.nombre AS cuenta,
                     naciones.nombre AS pais,
                     generos.nombre AS genero,
-                    usuarios.nombre, usuarios.apellido,
-                    usuarios.correo, usuarios.usuario, usuarios.contrasena,
-                    usuarios.fecha_nacimiento, usuarios.fecha_creacion, usuarios.fecha_acceso,
-                    usuarios.activo, usuarios.visibilidad, usuarios.foto, usuarios.banner
-                FROM usuarios
-                JOIN cuentas ON usuarios.id_cuenta = cuentas.id
-                JOIN naciones ON usuarios.id_nacion = naciones.id
-                JOIN generos ON usuarios.id_genero = generos.id
+                    u.nombre, u.apellido,
+                    u.correo, u.usuario, u.contrasena,
+                    u.fecha_nacimiento, u.fecha_creacion, u.fecha_acceso,
+                    u.activo, u.visibilidad, u.foto, u.banner
+                FROM usuarios u
+                JOIN cuentas ON u.id_cuenta = cuentas.id
+                JOIN naciones ON u.id_nacion = naciones.id
+                JOIN generos ON u.id_genero = generos.id
         """;
         if(userID != null){
             query += " WHERE usuarios.id = " + userID;
@@ -88,4 +117,7 @@ public class Query {
 
         return query;
     }
+    /// Modifys
+
+    /// Deletes
 }

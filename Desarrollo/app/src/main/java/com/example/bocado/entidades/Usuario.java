@@ -11,7 +11,7 @@ public class Usuario
     private String apellido;
     private String correo;
     private String usuario;
-    private String contraseña;
+    private String contrasena;
     private Timestamp fecha_Nacimiento;
     private Timestamp fecha_Creacion;
     private Timestamp fecha_Acceso;
@@ -19,6 +19,29 @@ public class Usuario
     private boolean visibilidad;
     private byte[] foto;
     private byte[] banner;
+
+    public Usuario() {
+    }
+
+    public Usuario(int id, int id_Cuenta, int id_Nacion, int id_Genero, String nombre, String apellido, String correo, String usuario, String contrasena, Timestamp fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, byte[] foto, byte[] banner) {
+        this.id = id;
+        this.id_Cuenta = id_Cuenta;
+        this.id_Nacion = id_Nacion;
+        this.id_Genero = id_Genero;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.correo = correo;
+        this.usuario = usuario;
+        this.contrasena = contrasena;
+        this.fecha_Nacimiento = fecha_Nacimiento;
+        this.fecha_Creacion = fecha_Creacion;
+        this.fecha_Acceso = fecha_Acceso;
+        this.activo = activo;
+        this.visibilidad = visibilidad;
+        this.foto = foto;
+        this.banner = banner;
+    }
+
     public int getId() {
         return id;
     }
@@ -84,11 +107,11 @@ public class Usuario
     }
 
     public String getContraseña() {
-        return contraseña;
+        return contrasena;
     }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
+    public void setContrasena(String contraseña) {
+        this.contrasena = contraseña;
     }
 
     public Timestamp getFecha_Nacimiento() {

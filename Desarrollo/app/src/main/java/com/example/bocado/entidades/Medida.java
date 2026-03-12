@@ -6,6 +6,15 @@ public class Medida
     private String nombre;
     private int tipo;
 
+    public Medida() {
+    }
+
+    public Medida(int id, String nombre, int tipo) {
+        this.id = id;
+        this.nombre = nombre;
+        this.tipo = tipo;
+    }
+
     public int getId() {
         return id;
     }

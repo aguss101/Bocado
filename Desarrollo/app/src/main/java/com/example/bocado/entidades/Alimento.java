@@ -10,6 +10,18 @@ public class Alimento
     private Medida medida;
     private List<Alimento_Nutriente> listaNutrientes; ///Capaz podemos hacer un DTO aparte de Alimento?
 
+    public Alimento(int id, String nombre, Usuario usuario, Medida medida, List<Alimento_Nutriente> listaNutrientes) {
+        this.id = id;
+        this.nombre = nombre;
+        this.usuario = usuario;
+        this.medida = medida;
+        this.listaNutrientes = listaNutrientes;
+    }
+
+    public Alimento() {
+    }
+
+
     public int getId() {
         return id;
     }

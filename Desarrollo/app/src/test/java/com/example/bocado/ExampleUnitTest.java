@@ -20,7 +20,7 @@ public class ExampleUnitTest {
         {
             ConexionDB cdb = new ConexionDB();
             cdb.Conectar();
-            cdb.Consultar(Query.getRecipes(null, null));
+            cdb.Consultar(Query.getUsersComplete(null, null));
             cdb.Leer();
             ResultSet rs = cdb.getLector();
             ResultSetMetaData md = rs.getMetaData();
@@ -34,6 +34,11 @@ public class ExampleUnitTest {
                 }
                 System.out.println("----");
             }
+            /*
+            List<Usuario> usuarios = UsuarioDAO.Listar();
+            for(Usuario u : usuarios) {
+                System.out.println(u.getUsuario() + " - " + u.getNombre());
+            }*/
         } catch(Exception e)
         {
             e.printStackTrace();

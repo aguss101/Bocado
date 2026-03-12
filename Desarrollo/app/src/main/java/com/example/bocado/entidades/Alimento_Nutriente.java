@@ -6,6 +6,15 @@ public class Alimento_Nutriente
     private Nutriente nutriente;
     private int valor100gr;
 
+    public Alimento_Nutriente(Alimento alimento, Nutriente nutriente, int valor100gr) {
+        this.alimento = alimento;
+        this.nutriente = nutriente;
+        this.valor100gr = valor100gr;
+    }
+
+    public Alimento_Nutriente() {
+    }
+
     public Alimento getAlimento() {
         return alimento;
     }

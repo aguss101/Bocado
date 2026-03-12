@@ -7,6 +7,16 @@ public class Nutriente
     private boolean esMacro;
     private Medida medida;
 
+    public Nutriente(int id, String nombre, boolean esMacro, Medida medida) {
+        this.id = id;
+        this.nombre = nombre;
+        this.esMacro = esMacro;
+        this.medida = medida;
+    }
+
+    public Nutriente() {
+    }
+
     public int getId() {
         return id;
     }
