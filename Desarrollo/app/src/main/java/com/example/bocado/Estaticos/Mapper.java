@@ -7,6 +7,25 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 public class Mapper {
+
+    public static void createUsuario(ConexionDB acceso, Usuario u) throws SQLException
+    {
+        acceso.SetearParametro(u.getId_Cuenta(),1);
+        acceso.SetearParametro(u.getId_Nacion(),2);
+        acceso.SetearParametro(u.getId_Genero(),3);
+        acceso.SetearParametro(u.getNombre(),4);
+        acceso.SetearParametro(u.getApellido(),5);
+        acceso.SetearParametro(u.getCorreo(),6);
+        acceso.SetearParametro(u.getUsuario(),7);
+        acceso.SetearParametro(u.getContraseña(),8);
+        acceso.SetearParametro(u.getFecha_Nacimiento(),9);
+        acceso.SetearParametro(u.getFecha_Creacion(),10);
+        acceso.SetearParametro(u.getFecha_Acceso(),11);
+        acceso.SetearParametro(u.isActivo(),12);
+        acceso.SetearParametro(u.isVisibilidad(),13);
+        acceso.SetearParametro(u.getFoto(),14);
+        acceso.SetearParametro(u.getBanner(),15);
+    }
     public static Usuario getUsuario(ConexionDB acceso) throws SQLException {
 
         return new Usuario(
@@ -66,5 +85,14 @@ public class Mapper {
                 u.setFoto(acceso.getLector().getBytes("foto"));
                 u.setBanner(acceso.getLector().getBytes("banner"));
     }*/
+    //Alimento
+    public static void createAlimento (ConexionDB acceso, Alimento a) throws SQLException
+    {
+        acceso.SetearParametro(a.getId(),1);
+        acceso.SetearParametro(a.getNombre(),2);
+        acceso.SetearParametro(a.getUsuario(),3);
+        acceso.SetearParametro(a.getMedida(),4);
+
+    }
     // Mapeo de todas las entidades
 }

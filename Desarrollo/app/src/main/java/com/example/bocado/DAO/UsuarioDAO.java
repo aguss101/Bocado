@@ -10,6 +10,25 @@ import java.util.List;
 public class UsuarioDAO
 {
     ///Inserts
+    public static void Crear(Usuario u)throws SQLException
+    {
+        ConexionDB acceso = new ConexionDB();
+        try
+        {
+            acceso.Conectar();
+            acceso.Consultar(Query.createUsers(u));
+            Mapper.createUsuario(acceso, u);
+            acceso.EjecutarAcccion();
+        }
+        catch(SQLException e)
+        {
+            throw e;
+        }
+        finally
+        {
+            acceso.Cerrar();
+        }
+    }
     /// Listados
     public static List<Usuario> Listar() throws SQLException
     {
@@ -18,7 +37,7 @@ public class UsuarioDAO
         try
         {
             acceso.Conectar();
-            acceso.Consultar(Query.getUsersComplete(null,null));
+            acceso.Consultar(Query.getUsers(null,null));
             acceso.Leer();
             while(acceso.getLector().next())
             {

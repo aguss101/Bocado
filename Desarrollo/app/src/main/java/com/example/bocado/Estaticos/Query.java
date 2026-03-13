@@ -1,7 +1,18 @@
 package com.example.bocado.Estaticos;
+
+import com.example.bocado.entidades.*;
+
 public class Query {
     ///Inserts
+    public static String createUsers(Usuario u){
+        String query = """
+                INSERT INTO "Usuarios" (id_cuenta, id_nacion, id_genero, nombre, apellido, correo, usuario, contrasena, 
+                fecha_nacimiento, fecha_creacion, fecha_acceso, activo, visibilidad, foto, banner) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
+        return query;
+    }
     /// Listados
     public static String getUsersComplete(Integer userID, Integer accountID){
         String query = """
@@ -52,7 +63,15 @@ public class Query {
         }
         return query;
     }
-    public static String getFoods(Integer foodID, Integer userID){
+    public static String createAlimento(Alimento a){
+        String query = """
+                INSERT INTO "Alimentos" (id, nombre, id_usuario, id_medida) 
+                VALUES (?, ?, ?, ?)
+        """;
+
+        return query;
+    }
+    public static String getAlimento(Integer foodID, Integer userID){
         String query = """
                 SELECT
                 alimentos.id AS id,

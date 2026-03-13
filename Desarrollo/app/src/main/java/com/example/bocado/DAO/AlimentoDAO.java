@@ -1,5 +1,7 @@
 package com.example.bocado.DAO;
 
+import com.example.bocado.Estaticos.Mapper;
+import com.example.bocado.Estaticos.Query;
 import com.example.bocado.entidades.*;
 
 import java.sql.SQLException;
@@ -9,7 +11,26 @@ import java.util.List;
 public class AlimentoDAO
 {
     ///Inserts
-    ///
+    public static void Crear(Alimento a)throws SQLException
+    {
+        ConexionDB acceso = new ConexionDB();
+        try
+        {
+            acceso.Conectar();
+            acceso.Consultar(Query.createAlimento(a));
+            Mapper.createAlimento(acceso, a);
+            acceso.EjecutarAcccion();
+        }
+        catch(SQLException e)
+        {
+            throw e;
+        }
+        finally
+        {
+            acceso.Cerrar();
+        }
+    }
+
     /// Listados
         public List<Alimento> Listar() throws SQLException
     {
@@ -19,6 +40,7 @@ public class AlimentoDAO
         try
         {
             acceso.Conectar();
+//            acceso.Consultar(Query.getAlimento(null, null));
             acceso.Consultar("SELECT a.id, a.nombre as nombre_Alimento, u.medida as user_Usuario, " +
                     "m.nombre as nombre_Medida, n.nombre as nombre_Nutriente, an.valor100gr FROM Alimentos a " +
                     "INNER JOIN Usuarios u ON a.id_usuario = u.id " +
