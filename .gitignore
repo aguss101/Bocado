@@ -4,6 +4,7 @@
 build/
 gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+**/cache.properties
 
 # ── CHECKSUMS / HASHES (generados por Gradle) ─────────
 *.lock
