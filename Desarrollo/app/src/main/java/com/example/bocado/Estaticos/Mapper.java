@@ -10,14 +10,14 @@ public class Mapper {
 
     public static void createUsuario(ConexionDB acceso, Usuario u) throws SQLException
     {
-        acceso.SetearParametro(u.getId_Cuenta(),1);
-        acceso.SetearParametro(u.getId_Nacion(),2);
-        acceso.SetearParametro(u.getId_Genero(),3);
+        acceso.SetearParametro(u.getCuenta(),1);
+        acceso.SetearParametro(u.getNacion(),2);
+        acceso.SetearParametro(u.getGenero(),3);
         acceso.SetearParametro(u.getNombre(),4);
         acceso.SetearParametro(u.getApellido(),5);
         acceso.SetearParametro(u.getCorreo(),6);
         acceso.SetearParametro(u.getUsuario(),7);
-        acceso.SetearParametro(u.getContraseña(),8);
+        acceso.SetearParametro(u.getContrasena(),8);
         acceso.SetearParametro(u.getFecha_Nacimiento(),9);
         acceso.SetearParametro(u.getFecha_Creacion(),10);
         acceso.SetearParametro(u.getFecha_Acceso(),11);
@@ -30,9 +30,9 @@ public class Mapper {
 
         return new Usuario(
                 acceso.getLector().getInt("id"),
-                acceso.getLector().getInt("id_cuenta"),
-                acceso.getLector().getInt("id_nacion"),
-                acceso.getLector().getInt("id_genero"),
+                acceso.getLector().getString("cuenta_Nombre"),
+                acceso.getLector().getString("nacion_Nombre"),
+                acceso.getLector().getString("genero_Nombre"),
                 acceso.getLector().getString("nombre"),
                 acceso.getLector().getString("apellido"),
                 acceso.getLector().getString("correo"),
@@ -50,9 +50,9 @@ public class Mapper {
 
     public static void setUsuario(ConexionDB acceso, Usuario u) throws SQLException {
                 u.setId(acceso.getLector().getInt("id"));
-                u.setId_Cuenta(acceso.getLector().getInt("id_cuenta"));
-                u.setId_Nacion(acceso.getLector().getInt("id_nacion"));
-                u.setId_Genero(acceso.getLector().getInt("id_genero"));
+                u.setCuenta(acceso.getLector().getString("cuenta_Nombre"));
+                u.setNacion(acceso.getLector().getString("nacion_Nombre"));
+                u.setGenero(acceso.getLector().getString("genero_Nombre"));
                 u.setNombre(acceso.getLector().getString("nombre"));
                 u.setApellido(acceso.getLector().getString("apellido"));
                 u.setCorreo(acceso.getLector().getString("correo"));

@@ -4,9 +4,9 @@ import java.sql.Timestamp;
 public class Usuario
 {
     private int id;
-    private int id_Cuenta;
-    private int id_Nacion;
-    private int id_Genero;
+    private String cuenta;
+    private String nacion;
+    private String genero;
     private String nombre;
     private String apellido;
     private String correo;
@@ -23,11 +23,11 @@ public class Usuario
     public Usuario() {
     }
 
-    public Usuario(int id, int id_Cuenta, int id_Nacion, int id_Genero, String nombre, String apellido, String correo, String usuario, String contrasena, Timestamp fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, byte[] foto, byte[] banner) {
+    public Usuario(int id, String cuenta, String nacion, String genero, String nombre, String apellido, String correo, String usuario, String contrasena, Timestamp fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, byte[] foto, byte[] banner) {
         this.id = id;
-        this.id_Cuenta = id_Cuenta;
-        this.id_Nacion = id_Nacion;
-        this.id_Genero = id_Genero;
+        this.cuenta = cuenta;
+        this.nacion = nacion;
+        this.genero = genero;
         this.nombre = nombre;
         this.apellido = apellido;
         this.correo = correo;
@@ -50,28 +50,28 @@ public class Usuario
         this.id = id;
     }
 
-    public int getId_Cuenta() {
-        return id_Cuenta;
+    public String getCuenta() {
+        return cuenta;
     }
 
-    public void setId_Cuenta(int id_Cuenta) {
-        this.id_Cuenta = id_Cuenta;
+    public void setCuenta(String cuenta) {
+        this.cuenta = cuenta;
     }
 
-    public int getId_Nacion() {
-        return id_Nacion;
+    public String getNacion() {
+        return nacion;
     }
 
-    public void setId_Nacion(int id_Nacion) {
-        this.id_Nacion = id_Nacion;
+    public void setNacion(String nacion) {
+        this.nacion = nacion;
     }
 
-    public int getId_Genero() {
-        return id_Genero;
+    public String getGenero() {
+        return genero;
     }
 
-    public void setId_Genero(int id_Genero) {
-        this.id_Genero = id_Genero;
+    public void setGenero(String genero) {
+        this.genero = genero;
     }
 
     public String getNombre() {
@@ -106,12 +106,12 @@ public class Usuario
         this.usuario = usuario;
     }
 
-    public String getContraseña() {
+    public String getContrasena() {
         return contrasena;
     }
 
-    public void setContrasena(String contraseña) {
-        this.contrasena = contraseña;
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
     }
 
     public Timestamp getFecha_Nacimiento() {
