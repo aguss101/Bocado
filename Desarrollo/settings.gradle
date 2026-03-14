@@ -1,26 +1,26 @@
-pluginManagement {
-    repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
+    pluginManagement {
+        repositories {
+            google {
+                content {
+                    includeGroupByRegex("com\\.android.*")
+                    includeGroupByRegex("com\\.google.*")
+                    includeGroupByRegex("androidx.*")
+                }
             }
+            mavenCentral()
+            gradlePluginPortal()
         }
-        mavenCentral()
-        gradlePluginPortal()
     }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
+    dependencyResolutionManagement {
+        repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+        repositories {
+            google()
+            mavenCentral()
+        }
     }
-}
 
-rootProject.name = "Bocado"
-include ':app'
+    rootProject.name = "Bocado"
+    include ':app'
 
-setBinding(new Binding([gradle: this]))
-evaluate(new File(rootDir, 'flutter_module/.android/include_flutter.groovy'))
+    setBinding(new Binding([gradle: this]))
+    evaluate(new File(rootDir, 'flutter_module/.android/include_flutter.groovy'))
