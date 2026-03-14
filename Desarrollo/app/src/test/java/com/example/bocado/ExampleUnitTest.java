@@ -16,6 +16,7 @@ public class ExampleUnitTest {
     @Test
     public void listar_name_users() {
 
+        System.out.println(System.getProperty("user.dir"));
         try
         {
             ConexionDB cdb = new ConexionDB();
