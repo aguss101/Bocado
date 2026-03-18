@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/register_screen.dart';
+import 'screens/login_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
@@ -17,7 +18,7 @@ class BocadoApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
-      home: const RegisterScreen(),
+      home: const LoginScreen(),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'feed_screen.dart';
 import 'register_screen.dart';
+import 'package:flutter/services.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,7 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         Positioned(
-          top: MediaQuery.of(context).size.height * 0.5,
+          top: MediaQuery
+              .of(context)
+              .size
+              .height * 0.5,
           right: -60,
           child: Container(
             width: 200,
@@ -91,14 +95,25 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: BoxDecoration(
             color: _primary,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: _primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
+            boxShadow: [
+              BoxShadow(color: _primary.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8))
+            ],
           ),
-          child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 32),
+          child: const Icon(
+              Icons.restaurant_menu, color: Colors.white, size: 32),
         ),
         const SizedBox(height: 12),
-        const Text('Bocado', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+        const Text('Bocado', style: TextStyle(fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: -0.5)),
         const SizedBox(height: 6),
-        Text('Fine dining experiences, curated for you.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w500)),
+        Text('Fine dining experiences, curated for you.', style: TextStyle(
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w500)),
       ],
     );
   }
@@ -114,9 +129,11 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Bienvenido de nuevo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+          const Text('Bienvenido de nuevo', style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 6),
-          Text('Ingresá tus datos para iniciar sesión.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
+          Text('Ingresá tus datos para iniciar sesión.', style: TextStyle(
+              fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
           const SizedBox(height: 28),
           _buildLabel('Usuario o Email'),
           const SizedBox(height: 8),
@@ -132,21 +149,35 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildLabel('Contraseña'),
               GestureDetector(
                 onTap: () {},
-                child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF38BDF8))),
+                child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF38BDF8))),
               ),
             ],
           ),
           const SizedBox(height: 8),
           _buildPasswordField(),
           const SizedBox(height: 28),
-          _buildPrimaryButton('Iniciar Sesión', () {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const FeedScreen()));
+          _buildPrimaryButton('Iniciar Sesión', () async {
+            print("Clic en Iniciar Sesión");
+
+              const platform = MethodChannel('com.example.bocado/login');
+              try {
+                final String resultado = await platform.invokeMethod('loginJava');
+                print('JavaResponse:  $resultado');
+              } on PlatformException catch (e) {
+                print('javaError: ${e.message}');
+                //los prints los muestra en la consola de Flutter: ALT+4 -> Open logcat panel for emulator
+              }
           }),
+
           const SizedBox(height: 16),
           _buildDivider(),
           const SizedBox(height: 16),
           _buildSecondaryButton('Crear cuenta nueva', () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RegisterScreen()));
           }),
         ],
       ),
@@ -154,22 +185,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLabel(String text) {
-    return Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.7)));
+    return Text(text, style: TextStyle(fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: Colors.white.withValues(alpha: 0.7)));
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon}) {
+  Widget _buildTextField(
+      {required TextEditingController controller, required String hint, required IconData icon}) {
     return TextField(
       controller: controller,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
+        prefixIcon: Icon(
+            icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.05),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _primary)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: _primary)),
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
     );
@@ -183,16 +223,25 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: InputDecoration(
         hintText: 'Ingresá tu contraseña',
         hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-        prefixIcon: Icon(Icons.lock_outline, color: Colors.white.withValues(alpha: 0.4), size: 20),
+        prefixIcon: Icon(
+            Icons.lock_outline, color: Colors.white.withValues(alpha: 0.4),
+            size: 20),
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.white.withValues(alpha: 0.4), size: 20),
+          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons
+              .visibility_off_outlined,
+              color: Colors.white.withValues(alpha: 0.4), size: 20),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.05),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _primary)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: _primary)),
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
     );
@@ -207,10 +256,12 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: _primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
           elevation: 0,
         ),
-        child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        child: Text(label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -224,10 +275,12 @@ class _LoginScreenState extends State<LoginScreen> {
           foregroundColor: const Color(0xFF38BDF8),
           side: const BorderSide(color: Color(0x3338BDF8)),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
           backgroundColor: Colors.white.withValues(alpha: 0.03),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        child: Text(label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -238,7 +291,10 @@ class _LoginScreenState extends State<LoginScreen> {
         Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('o', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3), letterSpacing: 1)),
+          child: Text('o', style: TextStyle(fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.3),
+              letterSpacing: 1)),
         ),
         Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
       ],
@@ -259,6 +315,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _footerLink(String text) {
-    return Text(text, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.3), fontWeight: FontWeight.w500));
+    return Text(text, style: TextStyle(fontSize: 11,
+        color: Colors.white.withValues(alpha: 0.3),
+        fontWeight: FontWeight.w500));
   }
 }
