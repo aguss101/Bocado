@@ -24,7 +24,7 @@ public class UsuarioDAO2 {
 
                 String url = SUPABASE_URL +
                         "/rest/v1/usuarios" +
-                        "?or=(usuario.eq." + usuarioEncoded + ",correo.eq." + usuarioEncoded + ")" +
+                        "?usuario=eq." + usuarioEncoded +
                         "&contrasena=eq." + passwordEncoded;
 
                 android.util.Log.d("LOGIN_DEBUG", "URL: " + url);
@@ -46,7 +46,7 @@ public class UsuarioDAO2 {
                 String body = response.body() != null ? response.body().string() : "[]";
 
                 System.out.println("RESPONSE CODE: " + response.code());
-                System.out.println("BODY: " + body);
+                android.util.Log.d("LOGIN_DEBUG", "BODY: " + body);
 
                 JSONArray array = new JSONArray(body);
 
