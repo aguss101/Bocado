@@ -3,6 +3,29 @@ package com.example.bocado.Estaticos;
 import com.example.bocado.entidades.*;
 
 public class Query {
+    public static String loginUsuario(String usuarioOEmail, String contrasena) {
+        // Nota: los valores reales se setean como parámetros PreparedStatement (?)
+        // Esta query acepta login tanto por "usuario" como por "correo"
+        return """
+                SELECT
+                    u.id AS id,
+                    cuentas.nombre AS cuenta_Nombre,
+                    naciones.nombre AS nacion_Nombre,
+                    generos.nombre AS genero_Nombre,
+                    u.nombre, u.apellido,
+                    u.correo, u.usuario, u.contrasena,
+                    u.fecha_nacimiento, u.fecha_creacion, u.fecha_acceso,
+                    u.activo, u.visibilidad, u.foto, u.banner
+                FROM usuarios u
+                JOIN cuentas ON u.id_cuenta = cuentas.id
+                JOIN naciones ON u.id_nacion = naciones.id
+                JOIN generos ON u.id_genero = generos.id
+                WHERE (u.usuario = ? OR u.correo = ?)
+                  AND u.contrasena = ?
+                  AND u.activo = true
+                LIMIT 1
+                """;
+    }
     ///Inserts
     public static String createUsers(Usuario u){
         String query = """

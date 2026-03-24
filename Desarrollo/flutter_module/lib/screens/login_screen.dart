@@ -1,322 +1,338 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'feed_screen.dart';
-import 'register_screen.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
+import '../widgets/auth_scaffold.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
+import 'feed_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+final ThemeNotifier themeNotifier;
+const LoginScreen({super.key, required this.themeNotifier});
 
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+@override
+State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+final _emailController = TextEditingController();
+final _passwordController = TextEditingController();
+bool _obscurePassword = true;
+bool _rememberMe = false;
+bool _isLoading = false;
+String? _errorMessage;
 
-  static const _primary = Color(0xFFEE7C2B);
-  static const _bgDark = Color(0xFF221810);
+static const _channel = MethodChannel('com.example.bocado/login');
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
+/// Login usando Java → Supabase (HTTP)
+Future<void> _login() async {
+final usuario = _emailController.text.trim();
+final contrasena = _passwordController.text;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgDark,
-      body: Stack(
-        children: [
-          _buildBackground(),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  _buildLogo(),
-                  const SizedBox(height: 40),
-                  _buildCard(),
-                  const SizedBox(height: 24),
-                  _buildFooterLinks(),
-                ],
-              ),
-            ),
-          ),
-        ],
+if (usuario.isEmpty || contrasena.isEmpty) {
+setState(() => _errorMessage = 'Completá todos los campos.');
+return;
+}
+
+setState(() {
+_isLoading = true;
+_errorMessage = null;
+});
+
+try {
+  final String response = await _channel.invokeMethod(
+    'loginJava',
+    {'usuario': usuario, 'contrasena': contrasena},
+  );
+
+  final data = jsonDecode(response);
+
+  if (mounted) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FeedScreen(
+          themeNotifier: widget.themeNotifier,
+          usuarioId: data['id'],
+          usuarioNombre: data['nombre'] ?? data['username'],
+        ),
       ),
     );
   }
 
-  Widget _buildBackground() {
-    return Stack(
-      children: [
-        Positioned(
-          top: -80,
-          left: -80,
-          child: Container(
-            width: 300,
-            height: 300,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _primary.withValues(alpha: 0.08),
-            ),
-          ),
-        ),
-        Positioned(
-          top: MediaQuery
-              .of(context)
-              .size
-              .height * 0.5,
-          right: -60,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue.withValues(alpha: 0.06),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+} on PlatformException catch (e) {
+  setState(() {
+    switch (e.code) {
+      case 'CREDENCIALES_INVALIDAS':
+        _errorMessage = 'Usuario o contraseña incorrectos.';
+        break;
+      case 'NETWORK_ERROR':
+        _errorMessage = 'Error de conexión con el servidor.';
+        break;
+      default:
+        _errorMessage = 'Error inesperado.';
+    }
+  });
+} catch (e) {
+setState(() {
+_errorMessage = 'Error procesando la respuesta.';
+});
+} finally {
+if (mounted) setState(() => _isLoading = false);
+}
+}
 
-  Widget _buildLogo() {
-    return Column(
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: _primary,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(color: _primary.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8))
-            ],
-          ),
-          child: const Icon(
-              Icons.restaurant_menu, color: Colors.white, size: 32),
-        ),
-        const SizedBox(height: 12),
-        const Text('Bocado', style: TextStyle(fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: -0.5)),
-        const SizedBox(height: 6),
-        Text('Fine dining experiences, curated for you.', style: TextStyle(
-            fontSize: 13,
-            color: Colors.white.withValues(alpha: 0.5),
-            fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
+@override
+void dispose() {
+_emailController.dispose();
+_passwordController.dispose();
+super.dispose();
+}
 
-  Widget _buildCard() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Bienvenido de nuevo', style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 6),
-          Text('Ingresá tus datos para iniciar sesión.', style: TextStyle(
-              fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
-          const SizedBox(height: 28),
-          _buildLabel('Usuario o Email'),
-          const SizedBox(height: 8),
-          _buildTextField(
-            controller: _emailController,
-            hint: 'Ingresá tu email',
-            icon: Icons.person_outline,
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildLabel('Contraseña'),
-              GestureDetector(
-                onTap: () {},
-                child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF38BDF8))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildPasswordField(),
-          const SizedBox(height: 28),
-          _buildPrimaryButton('Iniciar Sesión', () async {
-            print("Clic en Iniciar Sesión");
+@override
+Widget build(BuildContext context) {
+final isDark = Theme.of(context).brightness == Brightness.dark;
+final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
+final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
 
-              const platform = MethodChannel('com.example.bocado/login');
-              try {
-                final String resultado = await platform.invokeMethod('loginJava');
-                print('JavaResponse:  $resultado');
-              } on PlatformException catch (e) {
-                print('javaError: ${e.message}');
-                //los prints los muestra en la consola de Flutter: ALT+4 -> Open logcat panel for emulator
-              }
-          }),
+return AuthScaffold(
+themeNotifier: widget.themeNotifier,
+child: Center(
+child: AuthCard(
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.stretch,
+children: [
+const Center(
+child: Icon(
+Icons.restaurant_menu,
+color: AppTheme.primary,
+size: 40,
+),
+),
+const SizedBox(height: 4),
+const Center(
+child: Text(
+'PLATAFORMA GOURMET PRO',
+style: TextStyle(
+fontSize: 10,
+fontWeight: FontWeight.w700,
+color: AppTheme.primary,
+letterSpacing: 2,
+),
+),
+),
+const SizedBox(height: 24),
 
-          const SizedBox(height: 16),
-          _buildDivider(),
-          const SizedBox(height: 16),
-          _buildSecondaryButton('Crear cuenta nueva', () {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const RegisterScreen()));
-          }),
-        ],
-      ),
-    );
-  }
+Text(
+'Bienvenido de nuevo',
+style: TextStyle(
+fontSize: 24,
+fontWeight: FontWeight.w800,
+color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+),
+),
+const SizedBox(height: 6),
+Text(
+'Ingresá tus credenciales para acceder.',
+style: TextStyle(fontSize: 13, color: secondary),
+),
+const SizedBox(height: 28),
 
-  Widget _buildLabel(String text) {
-    return Text(text, style: TextStyle(fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: Colors.white.withValues(alpha: 0.7)));
-  }
+const AuthFieldLabel('Correo electrónico o usuario'),
+const SizedBox(height: 8),
+AuthTextField(
+controller: _emailController,
+hint: 'chef@bocado.app',
+prefixIcon: Icons.person_outline,
+keyboardType: TextInputType.emailAddress,
+),
+const SizedBox(height: 20),
 
-  Widget _buildTextField(
-      {required TextEditingController controller, required String hint, required IconData icon}) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-        prefixIcon: Icon(
-            icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _primary)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-    );
-  }
+Row(
+mainAxisAlignment: MainAxisAlignment.spaceBetween,
+children: [
+const AuthFieldLabel('Contraseña'),
+GestureDetector(
+onTap: () => Navigator.push(
+context,
+MaterialPageRoute(
+builder: (_) => ForgotPasswordScreen(
+themeNotifier: widget.themeNotifier,
+),
+),
+),
+child: const Text(
+'¿Olvidaste tu contraseña?',
+style: TextStyle(
+fontSize: 11,
+fontWeight: FontWeight.w700,
+color: AppTheme.primary,
+),
+),
+),
+],
+),
+const SizedBox(height: 8),
+AuthTextField(
+controller: _passwordController,
+hint: '••••••••',
+prefixIcon: Icons.lock_outline,
+obscure: _obscurePassword,
+suffix: IconButton(
+icon: Icon(
+_obscurePassword
+? Icons.visibility_outlined
+    : Icons.visibility_off_outlined,
+size: 20,
+color: secondary,
+),
+onPressed: () =>
+setState(() => _obscurePassword = !_obscurePassword),
+),
+),
+const SizedBox(height: 16),
 
-  Widget _buildPasswordField() {
-    return TextField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: 'Ingresá tu contraseña',
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-        prefixIcon: Icon(
-            Icons.lock_outline, color: Colors.white.withValues(alpha: 0.4),
-            size: 20),
-        suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons
-              .visibility_off_outlined,
-              color: Colors.white.withValues(alpha: 0.4), size: 20),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _primary)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-    );
-  }
+Row(
+children: [
+SizedBox(
+width: 20,
+height: 20,
+child: Checkbox(
+value: _rememberMe,
+onChanged: (v) => setState(() => _rememberMe = v ?? false),
+activeColor: AppTheme.primary,
+side: BorderSide(color: outline),
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(4)),
+),
+),
+const SizedBox(width: 10),
+Text(
+'Recordar sesión en este equipo',
+style: TextStyle(fontSize: 13, color: secondary),
+),
+],
+),
+const SizedBox(height: 20),
 
-  Widget _buildPrimaryButton(String label, VoidCallback onTap) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-          elevation: 0,
-        ),
-        child: Text(label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-      ),
-    );
-  }
+if (_errorMessage != null) ...[
+Container(
+padding: const EdgeInsets.symmetric(
+horizontal: 14, vertical: 12),
+decoration: BoxDecoration(
+color: Colors.red.withValues(alpha: 0.1),
+borderRadius: BorderRadius.circular(10),
+border: Border.all(
+color: Colors.red.withValues(alpha: 0.3)),
+),
+child: Row(
+children: [
+const Icon(Icons.error_outline,
+color: Colors.red, size: 16),
+const SizedBox(width: 8),
+Expanded(
+child: Text(
+_errorMessage!,
+style: const TextStyle(
+color: Colors.red, fontSize: 13),
+),
+),
+],
+),
+),
+const SizedBox(height: 16),
+],
 
-  Widget _buildSecondaryButton(String label, VoidCallback onTap) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF38BDF8),
-          side: const BorderSide(color: Color(0x3338BDF8)),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-          backgroundColor: Colors.white.withValues(alpha: 0.03),
-        ),
-        child: Text(label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-      ),
-    );
-  }
+SizedBox(
+width: double.infinity,
+height: 56,
+child: ElevatedButton(
+onPressed: _isLoading ? null : _login,
+child: _isLoading
+? const SizedBox(
+width: 22,
+height: 22,
+child: CircularProgressIndicator(
+color: Colors.white,
+strokeWidth: 2.5,
+),
+)
+    : const Row(
+mainAxisAlignment: MainAxisAlignment.center,
+children: [
+Text('INICIAR SESIÓN',
+style: TextStyle(
+fontWeight: FontWeight.w700,
+letterSpacing: 1)),
+SizedBox(width: 8),
+Icon(Icons.arrow_forward, size: 18),
+],
+),
+),
+),
+const SizedBox(height: 20),
 
-  Widget _buildDivider() {
-    return Row(
-      children: [
-        Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('o', style: TextStyle(fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: 0.3),
-              letterSpacing: 1)),
-        ),
-        Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-      ],
-    );
-  }
+const AuthDivider(label: 'O'),
+const SizedBox(height: 20),
 
-  Widget _buildFooterLinks() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _footerLink('Privacidad'),
-        const SizedBox(width: 20),
-        _footerLink('Términos'),
-        const SizedBox(width: 20),
-        _footerLink('Ayuda'),
-      ],
-    );
-  }
+GoogleButton(onTap: () {}),
+const SizedBox(height: 28),
 
-  Widget _footerLink(String text) {
-    return Text(text, style: TextStyle(fontSize: 11,
-        color: Colors.white.withValues(alpha: 0.3),
-        fontWeight: FontWeight.w500));
-  }
+Divider(color: outline),
+const SizedBox(height: 16),
+Row(
+mainAxisAlignment: MainAxisAlignment.center,
+children: [
+Text(
+'¿No tenés una cuenta? ',
+style: TextStyle(fontSize: 13, color: secondary),
+),
+GestureDetector(
+onTap: () => Navigator.push(
+context,
+MaterialPageRoute(
+builder: (_) => RegisterScreen(
+themeNotifier: widget.themeNotifier,
+),
+),
+),
+child: const Text(
+'Registrate gratis',
+style: TextStyle(
+fontSize: 13,
+fontWeight: FontWeight.w800,
+color: AppTheme.primary,
+),
+),
+),
+],
+),
+const SizedBox(height: 16),
+
+Center(
+child: Row(
+mainAxisSize: MainAxisSize.min,
+children: [
+Icon(Icons.shield_outlined, size: 12, color: secondary),
+const SizedBox(width: 4),
+Text(
+'BOCADO SECURE AUTHENTICATION V2.5',
+style: TextStyle(
+fontSize: 9,
+fontWeight: FontWeight.w700,
+color: secondary,
+letterSpacing: 1,
+),
+),
+],
+),
+),
+],
+),
+),
+),
+);
+}
 }

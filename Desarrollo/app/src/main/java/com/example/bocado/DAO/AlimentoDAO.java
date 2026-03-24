@@ -41,7 +41,7 @@ public class AlimentoDAO
         {
             acceso.Conectar();
 //            acceso.Consultar(Query.getAlimento(null, null));
-            acceso.Consultar("SELECT a.id, a.nombre as nombre_Alimento, u.medida as user_Usuario, " +
+            acceso.Consultar("SELECT a.id, a.nombre as nombre_Alimento, u.nombre as user_Usuario, " +
                     "m.nombre as nombre_Medida, n.nombre as nombre_Nutriente, an.valor100gr FROM Alimentos a " +
                     "INNER JOIN Usuarios u ON a.id_usuario = u.id " +
                     "INNER JOIN Medidas m ON a.id_medida = m.id " +
