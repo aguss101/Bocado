@@ -11,6 +11,7 @@ import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.entidades.Usuario;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,22 +27,62 @@ public class MainActivity extends FlutterActivity {
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "com.example.bocado/login")
                 .setMethodCallHandler((call, result) -> {
 
-                    if (call.method.equals("loginJava")) {
+                    switch (call.method){
+                        case "loginJava":
+                            String usuario = call.argument("usuario");
+                            String contrasena = call.argument("contrasena");
 
-                        String usuario = call.argument("usuario");
-                        String contrasena = call.argument("contrasena");
+                            UsuarioDAO2.login(usuario, contrasena, new LoginCallback() {
+                                @Override
+                                public void onSuccess(String response) {
+                                    runOnUiThread(() -> result.success(response));
+                                }
+                                @Override
+                                public void onError(String code, String message, Object details) {
+                                    runOnUiThread(() -> result.error(code, message, details));
+                                }
+                            });
+                            break;
 
-                        UsuarioDAO2.login(usuario, contrasena, new LoginCallback() {
-                            @Override
-                            public void onSuccess(String response) {
-                                runOnUiThread(() -> result.success(response));
-                            }
+                        case "registerJava":
+                            Integer idNacion = call.argument("nacion");
+                            Integer idGenero = call.argument("genero");
+                            String nombre = call.argument("nombre");
+                            String apellido = call.argument("apellido");
+                            String email = call.argument("email");
+                            String user = call.argument("usuario");
+                            String password = call.argument("password");
+                            String fechaNacimiento = call.argument("fechaNacimiento");
 
-                            @Override
-                            public void onError(String code, String message, Object details) {
-                                runOnUiThread(() -> result.error(code, message, details));
-                            }
-                        });
+                            UsuarioDAO2.register(idNacion, idGenero, nombre, apellido, email, user, password, fechaNacimiento, new LoginCallback() {
+                                @Override
+                                public void onSuccess(String responseData) { runOnUiThread(() -> result.success(responseData)); }
+                                @Override
+                                public void onError(String code, String message, Object details) { runOnUiThread(() -> result.error(code, message, details)); }
+                            });
+                            break;
+
+                        case "getNaciones":
+                            UsuarioDAO2.trearTabla("naciones", new LoginCallback() {
+                                @Override
+                                public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
+                                @Override
+                                public void onError(String code, String message, Object details) {runOnUiThread(() -> result.error(code, message, details));}
+                            });
+                            break;
+
+                        case "getGeneros":
+                            UsuarioDAO2.trearTabla("generos", new LoginCallback() {
+                                @Override
+                                public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
+                                @Override
+                                public void onError(String code, String message, Object details) {runOnUiThread(() -> result.error(code, message, details));}
+                            });
+                            break;
+
+                        default:
+                            result.notImplemented();
+                            break;
                     }
                 });
     }
