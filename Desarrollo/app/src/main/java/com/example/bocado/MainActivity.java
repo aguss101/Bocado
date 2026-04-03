@@ -39,7 +39,7 @@ public class MainActivity extends FlutterActivity {
                             String usuario = call.argument("usuario");
                             String contrasena = call.argument("contrasena");
 
-                            UsuarioManager.login(usuario, contrasena, new LoginCallback() {
+                            usuarioManager.login(usuario, contrasena, new LoginCallback() {
                                 @Override
                                 public void onSuccess(String response) {
                                     runOnUiThread(() -> result.success(response));
@@ -62,7 +62,7 @@ public class MainActivity extends FlutterActivity {
                             nuevoU.setGenero(String.valueOf(call.argument("genero")));
                             nuevoU.setFecha_Nacimiento(call.argument("fechaNacimiento"));
 
-                            UsuarioManager.registrar(nuevoU, new LoginCallback() {
+                            usuarioManager.registrar(nuevoU, new LoginCallback() {
                                 @Override
                                 public void onSuccess(String responseData) {
                                     runOnUiThread(() -> result.success(responseData));
@@ -110,7 +110,7 @@ public class MainActivity extends FlutterActivity {
                             break;
                     }
                 });
-        
+
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_RECETAS)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {
