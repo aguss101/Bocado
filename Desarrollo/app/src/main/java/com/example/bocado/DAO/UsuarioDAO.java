@@ -1,160 +1,118 @@
 package com.example.bocado.DAO;
 
-import okhttp3.*;
+import com.example.bocado.Estaticos.Mapper;
+import com.example.bocado.Managers.HttpClientManager;
+import com.example.bocado.entidades.Usuario;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.net.URLEncoder;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+import java.io.IOException;
 
-public class UsuarioDAO {
+public class UsuarioDAO implements IUsuarioDAO {
 
-    private static final String SUPABASE_URL = "https://sosbomunpwbgcezgfgzs.supabase.co";
-    private static final String API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvc2JvbXVucHdiZ2NlemdmZ3pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MTY0MjQsImV4cCI6MjA4NzI5MjQyNH0._qPPTLykjx2sxlfutCG8Wwpjm5j7wf5P2TdKHE7y26w";
+    @Override
+    public void registrar(Usuario u, LoginCallback cb) {
+        try {
+            JSONObject jsonBody = Mapper.usuarioToJson(u);
 
-    public static void login(String usuario, String password, LoginCallback callback) {
-
-        new Thread(() -> {
-            try {
-                OkHttpClient client = new OkHttpClient();
-
-                String usuarioClean = usuario.trim();
-                String passwordClean = password.trim();
-
-                String usuarioEncoded = URLEncoder.encode(usuarioClean, "UTF-8");
-                String passwordEncoded = URLEncoder.encode(passwordClean, "UTF-8");
-
-                String url = SUPABASE_URL +
-                        "/rest/v1/usuarios" +
-                        "?usuario=eq." + usuarioEncoded +
-                        "&contrasena=eq." + passwordEncoded;
-
-                android.util.Log.d("LOGIN_DEBUG", "URL: " + url);
-                android.util.Log.d("LOGIN_DEBUG", "USUARIO: " + usuarioClean);
-                android.util.Log.d("LOGIN_DEBUG", "PASSWORD: " + passwordClean);
-
-                Request request = new Request.Builder()
-                        .url(url)
-                        .get()
-                        .addHeader("apikey", API_KEY)
-                        .addHeader("Authorization", "Bearer " + API_KEY)
-                        .addHeader("Content-Type", "application/json")
-                        .addHeader("Accept", "application/json")
-                        .build();
-
-                Response response = client.newCall(request).execute();
-                android.util.Log.d("LOGIN_DEBUG", "CODE: " + response.code());
-
-                String body = response.body() != null ? response.body().string() : "[]";
-
-                System.out.println("RESPONSE CODE: " + response.code());
-                android.util.Log.d("LOGIN_DEBUG", "BODY: " + body);
-
-                JSONArray array = new JSONArray(body);
-
-                if (array.length() > 0) {
-                    JSONObject user = array.getJSONObject(0);
-                    callback.onSuccess(user.toString());
-                } else {
-                    callback.onError("CREDENCIALES_INVALIDAS", "Usuario o contraseña incorrectos", null);
+            HttpClientManager.getInstance().post("/rest/v1/usuarios", jsonBody.toString(), new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
-                android.util.Log.e("LOGIN_ERROR", e.toString());
-                callback.onError("NETWORK_ERROR", e.getMessage(), null);
-            }
-        }).start();
-    }
-    public static void register(Integer idNacion, Integer idGenero, String nombre, String apellido, String correo, String usuario, String contrasena, String fechaNacimiento, LoginCallback callback){
-        new Thread(() -> {
-            try{
-                OkHttpClient client = new OkHttpClient();
-                String url = SUPABASE_URL + "/rest/v1/usuarios";
-
-                String nombreClean = nombre.trim();
-                String apellidoClean = apellido.trim();
-                String correoClean = correo.trim();
-                String usuarioClean = usuario.trim();
-                String contrasenaClean = contrasena.trim();
-
-                android.util.Log.d("REGISTER_DEBUG", "URL" + url);
-                android.util.Log.d("REGISTER_DEBUG", "URL" + usuarioClean);
-
-                JSONObject jsonBody = new JSONObject();
-                jsonBody.put("id_nacion", idNacion);
-                jsonBody.put("id_genero", idGenero);
-                jsonBody.put("nombre", nombreClean);
-                jsonBody.put("apellido", apellidoClean);
-                jsonBody.put("correo", correoClean);
-                jsonBody.put("usuario", usuarioClean);
-                jsonBody.put("contrasena", contrasenaClean);
-                jsonBody.put("fecha_nacimiento",fechaNacimiento);
-
-                RequestBody body = RequestBody.create(jsonBody.toString(),okhttp3.MediaType.parse("application/json; charset=utf-8"));
-
-                Request request = new Request.Builder()
-                        .url(url)
-                        .post(body)
-                        .addHeader("apikey", API_KEY)
-                        .addHeader("Authorization", "Bearer " + API_KEY)
-                        .addHeader("Content-Type", "application/json")
-                        .addHeader("Accept", "application/json")
-                        .addHeader("Prefer", "return=representation")
-                        .build();
-
-                Response response = client.newCall(request).execute();
-                android.util.Log.d("REGISTER_DEBUG", "CODE: " + response.code());
-
-                String responseBody = response.body() != null ? response.body().string() : "[]";
-                android.util.Log.d("REGISTER_DEBUG", "BODY: " + responseBody);
-
-                if(response.isSuccessful()){
-                    JSONArray array = new JSONArray(responseBody);
-
-                    if(array.length() > 0){
-                        JSONObject newUser = array.getJSONObject(0);
-                        callback.onSuccess(newUser.toString());
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String body = response.body() != null ? response.body().string() : "[]";
+                    if (response.isSuccessful()) {
+                        cb.onSuccess(body); // Devuelve el usuario creado
                     } else {
-                        callback.onError("REGISTRO_VACIO", "Se creó pero no devolvio datos",  null);
+                        cb.onError("ERROR_API", "Fallo al registrar: " + body, null);
                     }
-                } else {
-                    callback.onError("ERROR_REGISTRO", "Fallo al crear el usuario: " + responseBody, null);
                 }
-            } catch(Exception e){
-                e.printStackTrace();
-                android.util.Log.e("REGISTER_ERROR", e.toString());
-                callback.onError("NETWORK_ERROR", e.getMessage(), null);
-            }
-        }).start();
+            });
+        } catch (Exception e) {
+            cb.onError("ERROR_JSON", "Error armando datos: " + e.getMessage(), null);
+        }
     }
 
-    /// Habria que moverlo a otro lado porque no creo que corresponda estrictamente a Usuarios.
-    public static void trearTabla (String tabla, LoginCallback callback){
-        new Thread(()-> {
-                try{
-                    OkHttpClient client = new OkHttpClient();
+    @Override
+    public void login(String usuario, String contrasena, LoginCallback cb) {
+        String endpoint = "/rest/v1/usuarios?or=(usuario.eq." + usuario + ",correo.eq." + usuario + ")&contrasena=eq." + contrasena + "&activo=eq.true";
+        HttpClientManager.getInstance().get(endpoint, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
+            }
 
-                    String url = SUPABASE_URL + "/rest/v1/" + tabla + "?select=*";
-
-                    Request request = new Request.Builder()
-                            .url(url)
-                            .get()
-                            .addHeader("apikey", API_KEY)
-                            .addHeader("Authorization", "Bearer" + API_KEY)
-                            .addHeader("Accept", "application/json")
-                            .build();
-
-                    Response response = client.newCall(request).execute();
-                    String responseBody = response.body() != null ? response.body().string() : "[]";
-
-                    if(response.isSuccessful()){
-                        callback.onSuccess(responseBody);
-                    } else{
-                        callback.onError("ERROR_GET", "Fallo al traer" + tabla, null);
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                if (response.isSuccessful()) {
+                    try {
+                        JSONArray array = new JSONArray(body);
+                        if (array.length() > 0) {
+                            cb.onSuccess(array.getJSONObject(0).toString()); // Login exitoso
+                        } else {
+                            cb.onError("CRED_INVALIDAS", "Usuario o contraseña incorrectos", null);
+                        }
+                    } catch (Exception e) {
+                        cb.onError("ERROR_PARSE", "Error leyendo respuesta", null);
                     }
-                }catch (Exception e){
-                    callback.onError("NETWORK_ERROR", e.getMessage(), null);
+                } else {
+                    cb.onError("ERROR_API", "Fallo en el servidor: " + body, null);
                 }
             }
-        ).start();
+        });
+    }
+
+    @Override
+    public void actualizar(int idUsuario, JSONObject actualizaciones, LoginCallback cb) {
+        String endpoint = "/rest/v1/usuarios?id=eq." + idUsuario;
+
+        HttpClientManager.getInstance().patch(endpoint, actualizaciones.toString(), new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                if (response.isSuccessful()) {
+                    cb.onSuccess(body);
+                } else {
+                    cb.onError("ERROR_API", "Fallo al actualizar: " + body, null);
+                }
+            }
+        });
+    }
+    @Override
+    public void eliminar(int idUsuario, LoginCallback cb) {
+        try {
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("activo", false);
+            String endpoint = "/rest/v1/usuarios?id=eq." + idUsuario;
+
+            HttpClientManager.getInstance().patch(endpoint, jsonBody.toString(), new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (response.isSuccessful()) {
+                        cb.onSuccess("Usuario eliminado exitosamente");
+                    } else {
+                        cb.onError("ERROR_API", "Fallo al eliminar", null);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            cb.onError("ERROR_JSON", "Error eliminando al usuario: " + e.getMessage(), null);
+        }
     }
 }

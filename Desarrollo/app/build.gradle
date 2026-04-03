@@ -22,7 +22,7 @@ android {
         def localProperties = new Properties()
         localProperties.load(new FileInputStream(rootProject.file("local.properties")))
         buildConfigField "String", "SUPABASE_URL", "\"${localProperties['supabase.url']}\""
-        buildConfigField "String", "SUPABASE_KEY", "\"${localProperties['supabase.key']}\""
+        buildConfigField "String", "SUPABASE_KEY", "\"${localProperties['supabase.api']}\""
     }
 
     buildTypes {
