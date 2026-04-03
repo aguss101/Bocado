@@ -1,21 +1,37 @@
 package com.example.bocado;
 
+import com.example.bocado.DAO.AlimentoDAO;
 import com.example.bocado.DAO.LoginCallback;
+import com.example.bocado.DAO.RecetaDAO;
 import com.example.bocado.DAO.UsuarioDAO;
+import com.example.bocado.entidades.Usuario;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 import androidx.annotation.NonNull;
+import com.example.bocado.Managers.UsuarioManager;
+import com.example.bocado.Managers.HttpClientManager;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+import java.io.IOException;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class MainActivity extends FlutterActivity {
 
-    private static final String CHANNEL = "com.example.bocado/access";
+    private static final String CHANNEL_ACCESS = "com.example.bocado/access";
+    private static final String CHANNEL_RECETAS = "com.example.bocado/recetas";
+    private final UsuarioManager usuarioManager = new UsuarioManager(new UsuarioDAO());
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
-        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "com.example.bocado/access")
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_ACCESS)
                 .setMethodCallHandler((call, result) -> {
 
                     switch (call.method){
@@ -23,7 +39,7 @@ public class MainActivity extends FlutterActivity {
                             String usuario = call.argument("usuario");
                             String contrasena = call.argument("contrasena");
 
-                            UsuarioDAO.login(usuario, contrasena, new LoginCallback() {
+                            UsuarioManager.login(usuario, contrasena, new LoginCallback() {
                                 @Override
                                 public void onSuccess(String response) {
                                     runOnUiThread(() -> result.success(response));
@@ -36,38 +52,56 @@ public class MainActivity extends FlutterActivity {
                             break;
 
                         case "registerJava":
-                            Integer idNacion = call.argument("nacion");
-                            Integer idGenero = call.argument("genero");
-                            String nombre = call.argument("nombre");
-                            String apellido = call.argument("apellido");
-                            String email = call.argument("email");
-                            String user = call.argument("usuario");
-                            String password = call.argument("password");
-                            String fechaNacimiento = call.argument("fechaNacimiento");
+                            Usuario nuevoU = new Usuario();
+                            nuevoU.setNombre(call.argument("nombre"));
+                            nuevoU.setApellido(call.argument("apellido"));
+                            nuevoU.setCorreo(call.argument("email"));
+                            nuevoU.setUsuario(call.argument("usuario"));
+                            nuevoU.setContrasena(call.argument("password"));
+                            nuevoU.setNacion(String.valueOf(call.argument("nacion")));
+                            nuevoU.setGenero(String.valueOf(call.argument("genero")));
+                            nuevoU.setFecha_Nacimiento(call.argument("fechaNacimiento"));
 
-                            UsuarioDAO.register(idNacion, idGenero, nombre, apellido, email, user, password, fechaNacimiento, new LoginCallback() {
+                            UsuarioManager.registrar(nuevoU, new LoginCallback() {
                                 @Override
-                                public void onSuccess(String responseData) { runOnUiThread(() -> result.success(responseData)); }
+                                public void onSuccess(String responseData) {
+                                    runOnUiThread(() -> result.success(responseData));
+                                }
+
                                 @Override
-                                public void onError(String code, String message, Object details) { runOnUiThread(() -> result.error(code, message, details)); }
+                                public void onError(String code, String message, Object details) {
+                                    runOnUiThread(() -> result.error(code, message, details));
+                                }
                             });
                             break;
 
                         case "getNaciones":
-                            UsuarioDAO.trearTabla("naciones", new LoginCallback() {
+                            HttpClientManager.getInstance().get("/rest/v1/naciones?select=*", new okhttp3.Callback() {
                                 @Override
-                                public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
+                                public void onFailure(Call call1, IOException e) {
+                                    runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                                }
+
                                 @Override
-                                public void onError(String code, String message, Object details) {runOnUiThread(() -> result.error(code, message, details));}
+                                public void onResponse(Call call1, Response response) throws IOException {
+                                    String body = response.body() != null ? response.body().string() : "[]";
+                                    runOnUiThread(() -> result.success(body));
+                                }
                             });
                             break;
 
                         case "getGeneros":
-                            UsuarioDAO.trearTabla("generos", new LoginCallback() {
+                            HttpClientManager.getInstance().get("/rest/v1/generos?select=*", new okhttp3.Callback() {
                                 @Override
-                                public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
+                                public void onFailure(Call call1, IOException e) {
+                                    runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                                }
+
                                 @Override
-                                public void onError(String code, String message, Object details) {runOnUiThread(() -> result.error(code, message, details));}
+                                public void onResponse(Call call1, Response response) throws IOException {
+                                    String body = response.body() != null ? response.body().string() : "[]";
+                                    runOnUiThread(() -> result.success(body));
+                                }
                             });
                             break;
 
@@ -76,5 +110,69 @@ public class MainActivity extends FlutterActivity {
                             break;
                     }
                 });
+        
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_RECETAS)
+                .setMethodCallHandler((call, result) -> {
+                    switch (call.method) {
+
+                        // ── getAlimentos ─────────────────────────────────────
+                        case "getAlimentos":
+                            new Thread(() -> {
+                                try {
+                                    java.util.List<Map<String, Object>> lista = AlimentoDAO.ListarParaFlutter();
+                                    runOnUiThread(() -> result.success(lista));
+                                } catch (SQLException e) {
+                                    runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }).start();
+                            break;
+
+                        // ── addAlimento ──────────────────────────────────────
+                        case "addAlimento":
+                            String nombre    = call.argument("nombre");
+                            Integer idUsuario = call.argument("id_usuario");
+                            new Thread(() -> {
+                                try {
+                                    int nuevoId = AlimentoDAO.CrearSimple(nombre, idUsuario);
+                                    Map<String, Object> res = new HashMap<>();
+                                    res.put("id", nuevoId);
+                                    runOnUiThread(() -> result.success(res));
+                                } catch (SQLException e) {
+                                    runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }).start();
+                            break;
+
+                        // ── saveReceta ───────────────────────────────────────
+                        case "saveReceta":
+                            new Thread(() -> {
+                                try {
+                                    RecetaDAO.Crear(call.arguments(), new LoginCallback() {
+                                        @Override
+                                        public void onSuccess(String result) {
+
+                                        }
+
+                                        @Override
+                                        public void onError(String code, String message, Object details) {
+
+                                        }
+                                    });
+                                    runOnUiThread(() -> result.success("OK"));
+                                } catch (Exception e) {
+                                    runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
+                                }
+                            }).start();
+                            break;
+
+                        default:
+                            result.notImplemented();
+                    }
+                });
     }
+
 }

@@ -159,7 +159,26 @@ public class Query {
 
         return query;
     }
-    /// Modifys
+    public static String createAlimentoSimple() {
+        return """
+                INSERT INTO alimentos (nombre, id_usuario, id_medida)
+                VALUES (?, ?, ?)
+                """;
+    }
 
-    /// Deletes
+    public static String createReceta() {
+        return """
+                INSERT INTO recetas
+                    (id_usuario, nombre, calorias_totales, porciones,
+                     instrucciones, visibilidad, activo, fecha_creacion)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                """;
+    }
+
+    public static String addIngredienteReceta() {
+        return """
+                INSERT INTO recetas_alimentos (id_receta, id_alimento, cantidad)
+                VALUES (?, ?, ?)
+                """;
+    }
 }

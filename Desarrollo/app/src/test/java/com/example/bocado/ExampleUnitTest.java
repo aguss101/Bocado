@@ -42,17 +42,6 @@ public class ExampleUnitTest {
 //        {
 //            e.printStackTrace();
 //        }
-        try
-        {
-            List<Alimento> lista = new AlimentoDAO().Listar();
-            for(Alimento aux : listaqr){
-                System.out.println(aux.getNombre() + ", ");
-                for(Alimento_Nutriente nt : aux.getListaNutrientes()){
-                    System.out.println(nt.getNutriente().getNombre());
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
     }
 }

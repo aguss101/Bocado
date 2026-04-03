@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_notifier.dart';
 import 'screens/login_screen.dart';
+import 'screens/recipe_editor_screen.dart';
+
+
+
+
+// ── Modo debug ─────────────────────────────────────────────────────────────────
+// Cambiá kDebugSkipLogin a true para entrar directo al editor sin pasar por login.
+// Acordate de volver a false antes de hacer build de producción.
+const bool kDebugSkipLogin = true;
+const int kDebugUsuarioId = 1;
+const String kDebugUsuarioNombre = 'Dev User';
+// ──────────────────────────────────────────────────────────────────────────────
 
 void main() {
   runApp(const BocadoApp());
 }
 
-class BocadoApp extends StatelessWidget {
+class BocadoApp extends StatefulWidget {
   const BocadoApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return _BocadoAppWithTheme();
-  }
+  State<BocadoApp> createState() => _BocadoAppState();
 }
 
-class _BocadoAppWithTheme extends StatefulWidget {
-  @override
-  State<_BocadoAppWithTheme> createState() => _BocadoAppWithThemeState();
-}
-
-class _BocadoAppWithThemeState extends State<_BocadoAppWithTheme> {
+class _BocadoAppState extends State<BocadoApp> {
   final ThemeNotifier _themeNotifier = ThemeNotifier();
 
   @override
@@ -42,7 +46,13 @@ class _BocadoAppWithThemeState extends State<_BocadoAppWithTheme> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          home: LoginScreen(themeNotifier: _themeNotifier),
+          home: kDebugSkipLogin
+              ? RecipeEditorScreen(
+            themeNotifier: _themeNotifier,
+            usuarioId: kDebugUsuarioId,
+            usuarioNombre: kDebugUsuarioNombre,
+          )
+              : LoginScreen(themeNotifier: _themeNotifier),
         );
       },
     );
