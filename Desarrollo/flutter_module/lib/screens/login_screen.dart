@@ -24,7 +24,7 @@ bool _rememberMe = false;
 bool _isLoading = false;
 String? _errorMessage;
 
-static const _channel = MethodChannel('com.example.bocado/login');
+static const _channel = MethodChannel('com.example.bocado/access');
 
 /// Login usando Java → Supabase (HTTP)
 Future<void> _login() async {

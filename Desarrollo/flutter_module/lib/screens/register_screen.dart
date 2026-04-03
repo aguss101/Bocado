@@ -34,7 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int? _idNacionSeleccionada;
   int? _idGeneroSeleccionado;
 
-  static const _channel = MethodChannel('com.example.bocado/login');
+  static const _channel = MethodChannel('com.example.bocado/access');
 
   Future <void> _register() async{
     final nombre = _nombreController.text;

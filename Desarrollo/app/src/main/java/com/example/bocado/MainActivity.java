@@ -1,30 +1,21 @@
 package com.example.bocado;
 
 import com.example.bocado.DAO.LoginCallback;
-import com.example.bocado.DAO.UsuarioDAO2;
+import com.example.bocado.DAO.UsuarioDAO;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 import androidx.annotation.NonNull;
 
-import com.example.bocado.DAO.UsuarioDAO;
-import com.example.bocado.entidades.Usuario;
-
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class MainActivity extends FlutterActivity {
 
-    private static final String CHANNEL = "com.example.bocado/login";
+    private static final String CHANNEL = "com.example.bocado/access";
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
-        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "com.example.bocado/login")
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "com.example.bocado/access")
                 .setMethodCallHandler((call, result) -> {
 
                     switch (call.method){
@@ -32,7 +23,7 @@ public class MainActivity extends FlutterActivity {
                             String usuario = call.argument("usuario");
                             String contrasena = call.argument("contrasena");
 
-                            UsuarioDAO2.login(usuario, contrasena, new LoginCallback() {
+                            UsuarioDAO.login(usuario, contrasena, new LoginCallback() {
                                 @Override
                                 public void onSuccess(String response) {
                                     runOnUiThread(() -> result.success(response));
@@ -54,7 +45,7 @@ public class MainActivity extends FlutterActivity {
                             String password = call.argument("password");
                             String fechaNacimiento = call.argument("fechaNacimiento");
 
-                            UsuarioDAO2.register(idNacion, idGenero, nombre, apellido, email, user, password, fechaNacimiento, new LoginCallback() {
+                            UsuarioDAO.register(idNacion, idGenero, nombre, apellido, email, user, password, fechaNacimiento, new LoginCallback() {
                                 @Override
                                 public void onSuccess(String responseData) { runOnUiThread(() -> result.success(responseData)); }
                                 @Override
@@ -63,7 +54,7 @@ public class MainActivity extends FlutterActivity {
                             break;
 
                         case "getNaciones":
-                            UsuarioDAO2.trearTabla("naciones", new LoginCallback() {
+                            UsuarioDAO.trearTabla("naciones", new LoginCallback() {
                                 @Override
                                 public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
                                 @Override
@@ -72,7 +63,7 @@ public class MainActivity extends FlutterActivity {
                             break;
 
                         case "getGeneros":
-                            UsuarioDAO2.trearTabla("generos", new LoginCallback() {
+                            UsuarioDAO.trearTabla("generos", new LoginCallback() {
                                 @Override
                                 public void onSuccess(String responseData) {runOnUiThread(() -> result.success(responseData));}
                                 @Override

@@ -1,18 +1,11 @@
 package com.example.bocado;
 
 import com.example.bocado.DAO.AlimentoDAO;
-import com.example.bocado.DAO.ConexionDB;
-import com.example.bocado.DAO.UsuarioDAO;
-import com.example.bocado.Estaticos.Query;
 import com.example.bocado.entidades.Alimento;
 import com.example.bocado.entidades.Alimento_Nutriente;
-import com.example.bocado.entidades.Nutriente;
-import com.example.bocado.entidades.Usuario;
 
 import org.junit.Test;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
