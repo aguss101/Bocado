@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
+import '../models/Receta.dart';
 
 // Ajustá estos imports si el nombre de tus archivos es ligeramente distinto
 import 'recipe_detail.dart'; // O recipe_detail_screen.dart (donde esté RecipeDetailScreen y RecipeDetailData)
@@ -8,7 +12,7 @@ import 'shared_drawer.dart';
 
 /// Pantalla principal post-login.
 /// Recibe los datos básicos del usuario autenticado.
-class FeedScreen extends StatelessWidget {
+class FeedScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final int usuarioId;
   final String usuarioNombre;
@@ -19,6 +23,40 @@ class FeedScreen extends StatelessWidget {
     required this.usuarioId,
     required this.usuarioNombre,
   });
+
+  @override
+  State<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends State<FeedScreen> {
+  List<Receta> RecipesFeed = [];
+  bool _estaCargando = true;
+
+  static const _channel = MethodChannel('com.example.bocado/recetas');
+
+  @override
+  void initState(){
+    super.initState();
+    _traerRecetas();
+  }
+
+  Future<void> _traerRecetas() async{
+    try{
+      final recipesJson = await _channel.invokeMethod('getRecetas');
+      final List<dynamic> listDynamic = jsonDecode(recipesJson);
+      final List<Receta> listRecipes = listDynamic.map((item) => Receta.fromJson(item)).toList();
+
+      if(mounted){
+        setState(() {
+          RecipesFeed = listRecipes;
+          _estaCargando = false;
+        });
+      }
+    } catch (e){
+      print(e);
+      if(mounted) setState(() {_estaCargando = false;});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +70,9 @@ class FeedScreen extends StatelessWidget {
 
       // ── 1. EL MENÚ LATERAL COMPARTIDO ──
       endDrawer: SharedDrawer(
-        usuarioId: usuarioId,
-        usuarioNombre: usuarioNombre,
-        themeNotifier: themeNotifier,
+        usuarioId: widget.usuarioId,
+        usuarioNombre: widget.usuarioNombre,
+        themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
       ),
 
@@ -63,9 +101,9 @@ class FeedScreen extends StatelessWidget {
         ),
         actions: [
           ValueListenableBuilder<ThemeMode>(
-            valueListenable: themeNotifier,
+            valueListenable: widget.themeNotifier,
             builder: (_, mode, __) => IconButton(
-              onPressed: themeNotifier.toggle,
+              onPressed: widget.themeNotifier.toggle,
               icon: Icon(
                 mode == ThemeMode.dark
                     ? Icons.light_mode_outlined
@@ -74,7 +112,6 @@ class FeedScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Botón del perfil que abre el menú lateral
           Builder(
             builder: (context) => GestureDetector(
               onTap: () {
@@ -86,7 +123,7 @@ class FeedScreen extends StatelessWidget {
                   radius: 16,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                   child: Text(
-                    usuarioNombre.isNotEmpty ? usuarioNombre[0].toUpperCase() : '?',
+                    widget.usuarioNombre.isNotEmpty ? widget.usuarioNombre[0].toUpperCase() : '?',
                     style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.primary, fontSize: 14),
                   ),
                 ),
@@ -96,97 +133,102 @@ class FeedScreen extends StatelessWidget {
         ],
       ),
 
-      // ── 3. EL CUERPO DE LA PANTALLA ──
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          // Buscador Móvil
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                icon: Icon(Icons.search, color: secondary, size: 20),
-                hintText: 'Buscar recetas, chefs...',
-                hintStyle: TextStyle(color: secondary, fontSize: 14),
-                border: InputBorder.none,
-                suffixIcon: Icon(Icons.tune, color: secondary, size: 20),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Tabs
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.only(bottom: 8),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: AppTheme.primary, width: 2)),
-                ),
-                child: const Text(
-                  'Para vos',
-                  style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-              ),
-              const SizedBox(width: 24),
-              Text(
-                'Siguiendo',
-                style: TextStyle(color: secondary, fontWeight: FontWeight.w500, fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Tarjeta Principal clickeable
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RecipeDetailScreen(
-                    themeNotifier: themeNotifier,
-                    data: const RecipeDetailData(
-                      title: 'Salmón a la plancha',
-                      category: 'Almuerzo',
-                      imageUrl: 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
-                      calories: 420,
-                      protein: '32g',
-                      carbs: '12g',
-                      fats: '22g',
-                      duration: '25 min',
-                      servings: '1 porción',
-                      ingredients: [
-                        IngredientItem(name: 'Filet de salmón fresco', amount: '200g', highlighted: true),
-                        IngredientItem(name: 'Aceite de oliva', amount: '1 cda'),
-                        IngredientItem(name: 'Limón y especias', amount: 'A gusto'),
-                      ],
-                      steps: [
-                        PreparationStep(
-                          number: 1,
-                          title: 'Sazonar',
-                          description: 'Marinar el salmón con el aceite de oliva, jugo de limón, sal y pimienta negra.',
-                        ),
-                        PreparationStep(
-                          number: 2,
-                          title: 'Cocinar',
-                          description: 'Cocinar en la plancha a fuego medio-alto por 4 minutos de cada lado.',
-                          duration: '8 min',
-                        ),
-                      ],
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      icon: Icon(Icons.search, color: secondary, size: 20),
+                      hintText: 'Buscar recetas, chefs...',
+                      hintStyle: TextStyle(color: secondary, fontSize: 14),
+                      border: InputBorder.none,
+                      suffixIcon: Icon(Icons.tune, color: secondary, size: 20),
                     ),
                   ),
                 ),
-              );
-            },
-            child: _FeedArticleCard(
-              surfaceColor: surfaceColor,
-              borderColor: borderColor,
-              secondary: secondary,
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      decoration: const BoxDecoration(
+                        border: Border(bottom: BorderSide(color: AppTheme.primary, width: 2)),
+                      ),
+                      child: const Text(
+                        'Para vos',
+                        style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Text(
+                      'Siguiendo',
+                      style: TextStyle(color: secondary, fontWeight: FontWeight.w500, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: _estaCargando
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 20),
+              itemCount: RecipesFeed.length,
+              itemBuilder: (context, index) {
+                final recetaActual = RecipesFeed[index];
+
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecipeDetailScreen(
+                          themeNotifier: widget.themeNotifier,
+                          data: RecipeDetailData(
+                            title: recetaActual.nombre,
+                            calories: recetaActual.caloriasTotales.toInt(),
+                            servings: '${recetaActual.porciones} porciones',
+                            imageUrl: recetaActual.foto ?? 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=600&auto=format&fit=crop',
+                            steps: [
+                              PreparationStep(
+                                number: 1,
+                                title: 'Preparación',
+                                description: recetaActual.instrucciones,
+                              ),
+                            ],
+                            category: 'General',
+                            duration: 'N/A',
+                            protein: '--',
+                            carbs: '--',
+                            fats: '--',
+                            ingredients: [
+                              IngredientItem(name: 'Ver ingredientes completos', amount: '${recetaActual.porcionesPeso}g total', highlighted: true),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: _FeedArticleCard(
+                    surfaceColor: surfaceColor,
+                    borderColor: borderColor,
+                    secondary: secondary,
+                    receta: recetaActual,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -200,11 +242,13 @@ class _FeedArticleCard extends StatefulWidget {
   final Color surfaceColor;
   final Color borderColor;
   final Color secondary;
+  final Receta receta;
 
   const _FeedArticleCard({
     required this.surfaceColor,
     required this.borderColor,
     required this.secondary,
+    required this.receta,
   });
 
   @override
@@ -228,12 +272,14 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Imagen y Badges
+          Text(widget.receta.nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Rinde ${widget.receta.porciones} porciones', style: TextStyle(fontSize: 12, color: widget.secondary)),
           Stack(
             children: [
               AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Image.network(
-                  'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
+                  widget.receta.foto ?? 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
                   fit: BoxFit.cover,
                 ),
               ),
@@ -279,8 +325,15 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
               children: [
                 // Cabecera del autor
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
+                    _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', widget.secondary),
+                    _buildDivider(widget.borderColor),
+                    _buildNutriCol('PROTEÍNAS', '32g', widget.secondary, valueColor: AppTheme.primary),
+                    _buildDivider(widget.borderColor),
+                    _buildNutriCol('CARBOS', '12g', widget.secondary),
+                    _buildDivider(widget.borderColor),
+                    _buildNutriCol('GRASAS', '22g', widget.secondary),
                     Row(
                       children: [
                         const CircleAvatar(

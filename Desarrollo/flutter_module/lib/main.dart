@@ -10,7 +10,7 @@ import 'screens/recipe_editor_screen.dart';
 // ── Modo debug ─────────────────────────────────────────────────────────────────
 // Cambiá kDebugSkipLogin a true para entrar directo al editor sin pasar por login.
 // Acordate de volver a false antes de hacer build de producción.
-const bool kDebugSkipLogin = true;
+const bool kDebugSkipLogin = false;
 const int kDebugUsuarioId = 1;
 const String kDebugUsuarioNombre = 'Dev User';
 // ──────────────────────────────────────────────────────────────────────────────

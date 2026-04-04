@@ -168,7 +168,20 @@ public class MainActivity extends FlutterActivity {
                                 }
                             }).start();
                             break;
+                        case "getRecetas":
+                            HttpClientManager.getInstance().get("/rest/v1/recetas?select=*", new okhttp3.Callback() {
+                                @Override
+                                public void onFailure(Call call1, IOException e) {
+                                    runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                                }
 
+                                @Override
+                                public void onResponse(Call call1, Response response) throws IOException {
+                                    String body = response.body() != null ? response.body().string() : "[]";
+                                    runOnUiThread(() -> result.success(body));
+                                }
+                            });
+                            break;
                         default:
                             result.notImplemented();
                     }

@@ -65,7 +65,7 @@ try {
 } on PlatformException catch (e) {
   setState(() {
     switch (e.code) {
-      case 'CREDENCIALES_INVALIDAS':
+      case 'CRED_INVALIDAS':
         _errorMessage = 'Usuario o contraseña incorrectos.';
         break;
       case 'NETWORK_ERROR':
