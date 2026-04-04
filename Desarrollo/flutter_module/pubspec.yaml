@@ -87,3 +87,5 @@ flutter:
     androidX: true
     androidPackage: com.example.flutter_module
     iosBundleIdentifier: com.example.flutterModule
+dependency_overrides:
+  path_provider_android: 2.2.21

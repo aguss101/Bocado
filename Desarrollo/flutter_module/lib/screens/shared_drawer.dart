@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'feed_screen.dart';
 import 'my_recipes_screen.dart';
 import 'profile_screen.dart';
+import 'recipe_editor_screen.dart';
 
 class SharedDrawer extends StatelessWidget {
   final int usuarioId;
@@ -97,14 +98,21 @@ class SharedDrawer extends StatelessWidget {
                       }
                   ),
 
-                  // Botón Crear Receta (igual que antes)
+                  // Botón Crear Receta
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                     decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
                     child: ListTile(
                       leading: const Icon(Icons.add_circle, color: Colors.white),
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      onTap: () {}, // Lógica para crear receta
+                      onTap: () {
+                        Navigator.pop(context); // Cerramos el menú
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(
+                          themeNotifier: themeNotifier,
+                          usuarioId: usuarioId,
+                          usuarioNombre: usuarioNombre,
+                        )));
+                      },
                     ),
                   ),
 
