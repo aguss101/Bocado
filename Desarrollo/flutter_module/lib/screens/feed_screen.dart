@@ -1,17 +1,12 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
-import '../models/Receta.dart';
-
-// Ajustá estos imports si el nombre de tus archivos es ligeramente distinto
-import 'recipe_detail.dart'; // O recipe_detail_screen.dart (donde esté RecipeDetailScreen y RecipeDetailData)
+import '../models/receta_feed.dart';
+import 'recipe_detail.dart';
 import 'shared_drawer.dart';
 
-/// Pantalla principal post-login.
-/// Recibe los datos básicos del usuario autenticado.
 class FeedScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final int usuarioId;
@@ -29,7 +24,7 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  List<Receta> RecipesFeed = [];
+  List<RecetaFeed> recipesFeed = [];
   bool _estaCargando = true;
 
   static const _channel = MethodChannel('com.example.bocado/recetas');
@@ -44,11 +39,11 @@ class _FeedScreenState extends State<FeedScreen> {
     try{
       final recipesJson = await _channel.invokeMethod('getRecetas');
       final List<dynamic> listDynamic = jsonDecode(recipesJson);
-      final List<Receta> listRecipes = listDynamic.map((item) => Receta.fromJson(item)).toList();
+      final List<RecetaFeed> listRecipes = listDynamic.map((item) => RecetaFeed.fromJson(item)).toList();
 
       if(mounted){
         setState(() {
-          RecipesFeed = listRecipes;
+          recipesFeed = listRecipes;
           _estaCargando = false;
         });
       }
@@ -67,16 +62,12 @@ class _FeedScreenState extends State<FeedScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0D0701) : Colors.grey.shade50,
-
-      // ── 1. EL MENÚ LATERAL COMPARTIDO ──
       endDrawer: SharedDrawer(
         usuarioId: widget.usuarioId,
         usuarioNombre: widget.usuarioNombre,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
       ),
-
-      // ── 2. LA BARRA SUPERIOR ──
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF0D0701).withValues(alpha: 0.9) : Colors.white,
         elevation: 0,
@@ -105,18 +96,14 @@ class _FeedScreenState extends State<FeedScreen> {
             builder: (_, mode, __) => IconButton(
               onPressed: widget.themeNotifier.toggle,
               icon: Icon(
-                mode == ThemeMode.dark
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
+                mode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
                 color: AppTheme.primary,
               ),
             ),
           ),
           Builder(
             builder: (context) => GestureDetector(
-              onTap: () {
-                Scaffold.of(context).openEndDrawer();
-              },
+              onTap: () => Scaffold.of(context).openEndDrawer(),
               child: Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: CircleAvatar(
@@ -132,62 +119,16 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         ],
       ),
-
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      icon: Icon(Icons.search, color: secondary, size: 20),
-                      hintText: 'Buscar recetas, chefs...',
-                      hintStyle: TextStyle(color: secondary, fontSize: 14),
-                      border: InputBorder.none,
-                      suffixIcon: Icon(Icons.tune, color: secondary, size: 20),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: AppTheme.primary, width: 2)),
-                      ),
-                      child: const Text(
-                        'Para vos',
-                        style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Text(
-                      'Siguiendo',
-                      style: TextStyle(color: secondary, fontWeight: FontWeight.w500, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
           Expanded(
             child: _estaCargando
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 20),
-              itemCount: RecipesFeed.length,
+              itemCount: recipesFeed.length,
               itemBuilder: (context, index) {
-                final recetaActual = RecipesFeed[index];
+                final recetaActual = recipesFeed[index];
 
                 return GestureDetector(
                   onTap: () {
@@ -196,27 +137,12 @@ class _FeedScreenState extends State<FeedScreen> {
                       MaterialPageRoute(
                         builder: (context) => RecipeDetailScreen(
                           themeNotifier: widget.themeNotifier,
-                          data: RecipeDetailData(
-                            title: recetaActual.nombre,
-                            calories: recetaActual.caloriasTotales.toInt(),
-                            servings: '${recetaActual.porciones} porciones',
-                            imageUrl: recetaActual.foto ?? 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=600&auto=format&fit=crop',
-                            steps: [
-                              PreparationStep(
-                                number: 1,
-                                title: 'Preparación',
-                                description: recetaActual.instrucciones,
-                              ),
-                            ],
-                            category: 'General',
-                            duration: 'N/A',
-                            protein: '--',
-                            carbs: '--',
-                            fats: '--',
-                            ingredients: [
-                              IngredientItem(name: 'Ver ingredientes completos', amount: '${recetaActual.porcionesPeso}g total', highlighted: true),
-                            ],
-                          ),
+                          usuarioId: widget.usuarioId,
+                          usuarioNombre: widget.usuarioNombre,
+                          idReceta: recetaActual.idReceta,
+                          protFeed: recetaActual.proteinasTotales,
+                          carbFeed: recetaActual.carbohidratosTotales,
+                          grasFeed: recetaActual.grasasTotales,
                         ),
                       ),
                     );
@@ -242,7 +168,7 @@ class _FeedArticleCard extends StatefulWidget {
   final Color surfaceColor;
   final Color borderColor;
   final Color secondary;
-  final Receta receta;
+  final RecetaFeed receta;
 
   const _FeedArticleCard({
     required this.surfaceColor,
@@ -261,7 +187,19 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
 
   @override
   Widget build(BuildContext context) {
+    final String fotoUrl = widget.receta.foto ?? '';
+    final Widget imageHeader = AspectRatio(
+      aspectRatio: 16 / 9,
+      child: fotoUrl.startsWith('http')
+          ? Image.network(fotoUrl, fit: BoxFit.cover)
+          : Image.network(
+        'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
+        fit: BoxFit.cover,
+      ),
+    );
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: widget.surfaceColor,
         borderRadius: BorderRadius.circular(16),
@@ -271,23 +209,16 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen y Badges
-          Text(widget.receta.nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Rinde ${widget.receta.porciones} porciones', style: TextStyle(fontSize: 12, color: widget.secondary)),
+          // IMAGEN Y BADGES
           Stack(
             children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  widget.receta.foto ?? 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
-                  fit: BoxFit.cover,
-                ),
-              ),
+              imageHeader,
               Positioned(
                 top: 12,
                 left: 12,
                 child: Row(
                   children: [
+                    // PRECIO DINÁMICO
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -295,60 +226,69 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.attach_money, color: AppTheme.primary, size: 14),
-                          Text('4.50 / porción', style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                          const Icon(Icons.attach_money, color: AppTheme.primary, size: 14),
+                          Text(
+                              '${widget.receta.precioPorcion.toStringAsFixed(2)} / porción',
+                              style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(8),
+
+                    if (widget.receta.etiquetas.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                            widget.receta.etiquetas.first,
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                        ),
                       ),
-                      child: const Text('Alto en Proteínas', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
                   ],
                 ),
               ),
             ],
           ),
 
-          // Contenido Inferior
+          // CONTENIDO
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cabecera del autor
+                // CABECERA NOMBRE Y PERFIL
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', widget.secondary),
-                    _buildDivider(widget.borderColor),
-                    _buildNutriCol('PROTEÍNAS', '32g', widget.secondary, valueColor: AppTheme.primary),
-                    _buildDivider(widget.borderColor),
-                    _buildNutriCol('CARBOS', '12g', widget.secondary),
-                    _buildDivider(widget.borderColor),
-                    _buildNutriCol('GRASAS', '22g', widget.secondary),
-                    Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 20,
-                          backgroundImage: NetworkImage('https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop'),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Salmón a la plancha', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('Por Sarah Jenkins • 25 mins', style: TextStyle(fontSize: 12, color: widget.secondary)),
-                          ],
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.receta.nombre,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Rinde ${widget.receta.porciones} porciones',
+                            style: TextStyle(fontSize: 12, color: widget.secondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // FOTO DE PERFIL DEL USUARIO CREADOR
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundImage: NetworkImage(
+                          widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+                      ),
                     ),
                     IconButton(
                       icon: Icon(Icons.more_horiz, color: widget.secondary),
@@ -358,7 +298,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                 ),
                 const SizedBox(height: 16),
 
-                // Grilla Nutricional
+                // GRILLA NUTRICIONAL CON VARIABLES DE LA BD
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -369,19 +309,19 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildNutriCol('CALORÍAS', '420', widget.secondary),
+                      _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', widget.secondary),
                       _buildDivider(widget.borderColor),
-                      _buildNutriCol('PROTEÍNAS', '32g', widget.secondary, valueColor: AppTheme.primary),
+                      _buildNutriCol('PROTEÍNAS', '${widget.receta.proteinasTotales}g', widget.secondary, valueColor: AppTheme.primary),
                       _buildDivider(widget.borderColor),
-                      _buildNutriCol('CARBOS', '12g', widget.secondary),
+                      _buildNutriCol('CARBOS', '${widget.receta.carbohidratosTotales}g', widget.secondary),
                       _buildDivider(widget.borderColor),
-                      _buildNutriCol('GRASAS', '22g', widget.secondary),
+                      _buildNutriCol('GRASAS', '${widget.receta.grasasTotales}g', widget.secondary),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Botones de Acción
+                // BOTONES DE ACCIÓN SOCIALES
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -389,14 +329,24 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                       children: [
                         _buildActionButton(
                           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                          label: '2.4k',
+                          label: '${widget.receta.cantidadFavoritos}', // Dinámico
                           color: _isLiked ? AppTheme.primary : widget.secondary,
-                          onTap: () => setState(() => _isLiked = !_isLiked),
+                          onTap: () => setState(() { _isLiked = !_isLiked; }),
                         ),
                         const SizedBox(width: 20),
-                        _buildActionButton(icon: Icons.chat_bubble_outline, label: '128', color: widget.secondary, onTap: () {}),
+                        _buildActionButton(
+                          icon: Icons.chat_bubble_outline,
+                          label: '${widget.receta.cantidadComentarios}', // Dinámico
+                          color: widget.secondary,
+                          onTap: () {},
+                        ),
                         const SizedBox(width: 20),
-                        _buildActionButton(icon: Icons.share_outlined, label: 'Compartir', color: widget.secondary, onTap: () {}),
+                        _buildActionButton(
+                          icon: Icons.share_outlined,
+                          label: 'Compartir',
+                          color: widget.secondary,
+                          onTap: () {},
+                        ),
                       ],
                     ),
                     GestureDetector(
@@ -410,18 +360,18 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                         child: Row(
                           children: [
                             Icon(
-                                _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                                color: _isSaved ? Colors.white : AppTheme.primary,
-                                size: 16
+                              _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                              color: _isSaved ? Colors.white : AppTheme.primary,
+                              size: 16,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                                'Guardar',
-                                style: TextStyle(
-                                    color: _isSaved ? Colors.white : AppTheme.primary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold
-                                )
+                              'Guardar',
+                              style: TextStyle(
+                                color: _isSaved ? Colors.white : AppTheme.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -437,7 +387,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     );
   }
 
-  // ── Métodos Auxiliares de Diseño ──
   Widget _buildNutriCol(String label, String value, Color secondary, {Color? valueColor}) {
     return Column(
       children: [

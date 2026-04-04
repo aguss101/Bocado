@@ -1,75 +1,136 @@
+import 'dart:convert';
+import 'dart:core';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_module/screens/feed_screen.dart';
+import 'package:flutter_module/screens/shared_drawer.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
-// ── Data model ────────────────────────────────────────────────────────────────
-
 class RecipeDetailData {
-  final String title;
-  final String category;
+  final String titulo;
+  final String categoria;
   final String imageUrl;
-  final int calories;
-  final String protein;
-  final String carbs;
-  final String fats;
-  final String duration;
-  final String servings;
-  final List<IngredientItem> ingredients;
-  final List<PreparationStep> steps;
+  final double calorias;
+  final String proteina;
+  final String carbos;
+  final String grasas;
+  final String duracion;
+  final String porciones;
+  final List<IngredientItem> ingredientes;
+  final List<PreparationStep> pasos;
 
   const RecipeDetailData({
-    required this.title,
-    required this.category,
+    required this.titulo,
+    required this.categoria,
     required this.imageUrl,
-    required this.calories,
-    required this.protein,
-    required this.carbs,
-    required this.fats,
-    required this.duration,
-    required this.servings,
-    required this.ingredients,
-    required this.steps,
+    required this.calorias,
+    required this.proteina,
+    required this.carbos,
+    required this.grasas,
+    required this.duracion,
+    required this.porciones,
+    required this.ingredientes,
+    required this.pasos,
   });
+
+  factory RecipeDetailData.fromJson(Map<String, dynamic> json, double _prot, double _carb, double _gras) {
+    return RecipeDetailData(
+      titulo: json['nombre'] ?? '',
+      categoria: 'General', ///Usar etiquetas???
+      imageUrl: json['foto'] ?? '',
+      calorias: (json['calorias_totales'] ?? 0).toDouble(),
+      proteina: _prot.toStringAsFixed(1),
+      carbos: _carb.toStringAsFixed(1),
+      grasas: _gras.toStringAsFixed(1),
+      duracion: 'N/A', /// Que hacemos con esto? lo sacamos directamente de las instrucciones y hacemos que lo puedan elegir desde las pantallas de crearReceta?
+      porciones: '${json['porciones'] ?? 0} porciones',
+      ingredientes: (json['recetas_alimentos'] as List? ?? [])
+          .map((item) => IngredientItem.fromJson(item))
+          .toList(),
+      pasos: PreparationStep.parsearInstrucciones(json['instrucciones'] ?? ''),
+    );
+  }
 }
 
 class IngredientItem {
-  final String name;
-  final String amount;
-  final bool highlighted;
+  final String nombre;
+  final String cantidad;
+  final bool resaltado;
 
   const IngredientItem({
-    required this.name,
-    required this.amount,
-    this.highlighted = false,
+    required this.nombre,
+    required this.cantidad,
+    this.resaltado = false,
   });
+
+  factory IngredientItem.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> alimento = json['alimentos'] ?? {};
+    return IngredientItem(
+      nombre: alimento['nombre'] ?? 'Ingrediente desconocido',
+      cantidad: '${json['cantidad'] ?? 0}g',
+      resaltado: false,
+    );
+  }
 }
 
 class PreparationStep {
-  final int number;
-  final String title;
-  final String description;
-  final List<String> imageUrls;
-  final String? duration;
+  final int numeroPaso;
+  final String titulo;
+  final String descripcion;
+  final String? duracion;
+  final List<String> imagenes;
 
   const PreparationStep({
-    required this.number,
-    required this.title,
-    required this.description,
-    this.imageUrls = const [],
-    this.duration,
+    required this.numeroPaso,
+    required this.titulo,
+    required this.descripcion,
+    this.duracion,
+    this.imagenes = const [],
   });
-}
 
-// ── Screen ────────────────────────────────────────────────────────────────────
+  static List<PreparationStep> parsearInstrucciones(String cadena) {
+    if (cadena.isEmpty) return [];
+
+    List<String> fragmentos = cadena.split('|');
+    List<PreparationStep> pasos = [];
+
+    for (int i = 0; i < fragmentos.length; i++) {
+      String pasoTrim = fragmentos[i].trim();
+
+      if (pasoTrim.isNotEmpty) {
+        pasos.add(
+            PreparationStep(
+              numeroPaso: i + 1,
+              titulo: 'Paso ${i + 1}',
+              descripcion: pasoTrim,
+            )
+        );
+      }
+    }
+    return pasos;
+  }
+}
 
 class RecipeDetailScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
-  final RecipeDetailData data;
+  final int usuarioId;
+  final String usuarioNombre;
+  final int idReceta;
+  final double protFeed;
+  final double carbFeed;
+  final double grasFeed;
 
   const RecipeDetailScreen({
     super.key,
     required this.themeNotifier,
-    required this.data,
+    required this.usuarioId,
+    required this.usuarioNombre,
+    required this.idReceta,
+    required this.protFeed,
+    required this.carbFeed,
+    required this.grasFeed,
   });
 
   @override
@@ -78,6 +139,41 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isFavorite = false;
+  bool _isLoading = true;
+  RecipeDetailData? _data;
+
+  static const _channel = MethodChannel('com.example.bocado/recetas');
+
+  @override
+  void initState() {
+    super.initState();
+    _traerDetalleDeLaReceta();
+  }
+
+  Future<void> _traerDetalleDeLaReceta() async {
+      try{
+        final jsonString = await _channel.invokeMethod('getRecetaDetalle', {'id': widget.idReceta});
+        final List<dynamic> jsonList = jsonDecode(jsonString);
+        if(jsonList.isNotEmpty){
+          final Map<String, dynamic> recetaJson = jsonList.first;
+          if(mounted){
+            setState(() {
+              _data = RecipeDetailData.fromJson(
+                recetaJson,
+                widget.protFeed,
+                widget.carbFeed,
+                widget.grasFeed,
+              );
+              _isLoading = false;
+            });
+          }
+        }
+      } catch (e){
+        print ("Error del traer de java: $e");
+        if(mounted) setState(() {_isLoading = false;});
+      }
+    }
+
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +182,40 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final surface = isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight;
     final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
 
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
+      );
+    }
+
+    if (_data == null) {
+      return Scaffold(
+        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              const Text("¡Ups! Error al cargar la receta", style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Volver al Feed")
+              )
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // ── Hero AppBar ──────────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
@@ -117,10 +243,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Imagen hero
-                  widget.data.imageUrl.startsWith('http')
+                  _data!.imageUrl.startsWith('http')
                       ? Image.network(
-                    widget.data.imageUrl,
+                    _data!.imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: AppTheme.surfaceContainerDark,
@@ -133,8 +258,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: const Icon(Icons.restaurant_menu,
                         size: 64, color: AppTheme.primary),
                   ),
-
-                  // Gradiente inferior
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -144,8 +267,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ),
                   ),
-
-                  // Título y categoría sobre la imagen
                   Positioned(
                     bottom: 16,
                     left: 16,
@@ -161,7 +282,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            widget.data.category.toUpperCase(),
+                            _data!.categoria.toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -172,7 +293,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          widget.data.title,
+                          _data!.titulo,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -183,8 +304,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ],
                     ),
                   ),
-
-                  // Botón favorito
                   Positioned(
                     bottom: 16,
                     right: 16,
@@ -200,8 +319,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         child: Icon(
                           _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color:
-                          _isFavorite ? Colors.red : Colors.white,
+                          color: _isFavorite ? Colors.red : Colors.white,
                           size: 24,
                         ),
                       ),
@@ -211,32 +329,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ),
             ),
           ),
-
-          // ── Body ─────────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Info rápida ────────────────────────────────────────
                   Row(
                     children: [
                       _QuickInfo(
                         icon: Icons.schedule_outlined,
-                        label: widget.data.duration,
+                        label: _data!.duracion,
                       ),
                       const SizedBox(width: 24),
                       _QuickInfo(
                         icon: Icons.restaurant_outlined,
-                        label: widget.data.servings,
+                        label: _data!.porciones,
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // ── Información Nutricional ────────────────────────────
-                  _SectionTitle('Información Nutricional'),
+                  const _SectionTitle('Información Nutricional'),
                   const SizedBox(height: 12),
                   GridView.count(
                     shrinkWrap: true,
@@ -244,41 +357,39 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 2.2,
+                    childAspectRatio: 1.8,
                     children: [
                       _NutriCard(
                           label: 'Calorías',
-                          value: '${widget.data.calories}',
+                          value: '${_data!.calorias.toInt()}',
                           sub: 'por porción',
                           surface: surface,
                           outline: outline),
                       _NutriCard(
                           label: 'Proteína',
-                          value: widget.data.protein,
+                          value: _data!.proteina,
                           sub: 'alta calidad',
                           surface: surface,
                           outline: outline),
                       _NutriCard(
                           label: 'Carbohidratos',
-                          value: widget.data.carbs,
+                          value: _data!.carbos,
                           sub: 'complejos',
                           surface: surface,
                           outline: outline),
                       _NutriCard(
                           label: 'Grasas',
-                          value: widget.data.fats,
+                          value: _data!.grasas,
                           sub: 'totales',
                           surface: surface,
                           outline: outline),
                     ],
                   ),
                   const SizedBox(height: 28),
-
-                  // ── Ingredientes ───────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _SectionTitle('Ingredientes'),
+                      const _SectionTitle('Ingredientes'),
                       TextButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.shopping_cart_outlined,
@@ -301,16 +412,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ...widget.data.ingredients
+                  ..._data!.ingredientes
                       .map((i) => _IngredientRow(item: i, outline: outline)),
                   const SizedBox(height: 28),
-
-                  // ── Preparación ────────────────────────────────────────
-                  _SectionTitle('Preparación'),
+                  const _SectionTitle('Preparación'),
                   const SizedBox(height: 16),
-                  ...widget.data.steps.asMap().entries.map((entry) {
-                    final isLast =
-                        entry.key == widget.data.steps.length - 1;
+                  ..._data!.pasos.asMap().entries.map((entry) {
+                    final isLast = entry.key == _data!.pasos.length - 1;
                     return _StepCard(
                       step: entry.value,
                       isLast: isLast,
@@ -318,22 +426,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       surface: surface,
                     );
                   }),
-
-                  const SizedBox(height: 80), // espacio para bottom nav
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ),
         ],
       ),
-
-      // ── Bottom Nav ───────────────────────────────────────────────────────
-      bottomNavigationBar: _BottomNav(),
     );
   }
 }
-
-// ── Componentes privados ──────────────────────────────────────────────────────
 
 class _SectionTitle extends StatelessWidget {
   final String text;
@@ -438,7 +540,7 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = item.highlighted;
+    final highlighted = item.resaltado;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -469,18 +571,17 @@ class _IngredientRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              item.name,
+              item.nombre,
               style: TextStyle(
                 color: highlighted
                     ? AppTheme.primary.withValues(alpha: 0.9)
                     : null,
-                fontWeight:
-                highlighted ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: highlighted ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ),
           Text(
-            item.amount,
+            item.cantidad,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -517,7 +618,6 @@ class _StepCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Línea de tiempo
           SizedBox(
             width: 32,
             child: Column(
@@ -529,19 +629,17 @@ class _StepCard extends StatelessWidget {
                     color: surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: step.number == 1
-                          ? AppTheme.primary
-                          : outline,
+                      color: step.numeroPaso == 1 ? AppTheme.primary : outline,
                       width: 2,
                     ),
                   ),
                   child: Center(
                     child: Text(
-                      '${step.number}',
+                      '${step.numeroPaso}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: step.number == 1
+                        color: step.numeroPaso == 1
                             ? AppTheme.primary
                             : Theme.of(context)
                             .colorScheme
@@ -563,8 +661,6 @@ class _StepCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Contenido del paso
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
@@ -579,7 +675,7 @@ class _StepCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      step.title,
+                      step.titulo,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -587,7 +683,7 @@ class _StepCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      step.description,
+                      step.descripcion,
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.6,
@@ -597,9 +693,7 @@ class _StepCard extends StatelessWidget {
                             .withValues(alpha: 0.7),
                       ),
                     ),
-
-                    // Duración (si existe)
-                    if (step.duration != null) ...[
+                    if (step.duracion != null) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -635,7 +729,7 @@ class _StepCard extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  step.duration!,
+                                  step.duracion!,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -647,21 +741,18 @@ class _StepCard extends StatelessWidget {
                         ),
                       ),
                     ],
-
-                    // Imágenes del paso (si existen)
-                    if (step.imageUrls.isNotEmpty) ...[
+                    if (step.imagenes.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 100,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          itemCount: step.imageUrls.length,
-                          separatorBuilder: (_, __) =>
-                          const SizedBox(width: 8),
+                          itemCount: step.imagenes.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(
-                              step.imageUrls[i],
+                              step.imagenes[i],
                               width: 160,
                               height: 100,
                               fit: BoxFit.cover,
@@ -690,128 +781,3 @@ class _StepCard extends StatelessWidget {
     );
   }
 }
-
-class _BottomNav extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
-    final inactive = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border(top: BorderSide(color: outline)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(icon: Icons.home_outlined, label: 'Inicio', active: false, inactive: inactive),
-          _NavItem(icon: Icons.menu_book_outlined, label: 'Recetas', active: true, inactive: inactive),
-          // FAB central
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 48,
-              height: 48,
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: const BoxDecoration(
-                color: AppTheme.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
-          _NavItem(icon: Icons.favorite_border, label: 'Favoritos', active: false, inactive: inactive),
-          _NavItem(icon: Icons.person_outline, label: 'Perfil', active: false, inactive: inactive),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final Color inactive;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.inactive,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppTheme.primary : inactive;
-    return GestureDetector(
-      onTap: () {},
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 2),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: color,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Ejemplo de uso ────────────────────────────────────────────────────────────
-// Navegación desde otro screen:
-//
-// Navigator.push(context, MaterialPageRoute(
-//   builder: (_) => RecipeDetailScreen(
-//     themeNotifier: widget.themeNotifier,
-//     data: RecipeDetailData(
-//       title: 'Artisan Sourdough',
-//       category: 'Panadería Artesanal',
-//       imageUrl: 'https://...',
-//       calories: 185,
-//       protein: '6.2g',
-//       carbs: '36g',
-//       fats: '0.8g',
-//       duration: '24h 30m',
-//       servings: '12 rebanadas',
-//       ingredients: [
-//         IngredientItem(name: 'Harina de fuerza orgánica', amount: '500g'),
-//         IngredientItem(name: 'Agua filtrada (tibia)', amount: '350ml'),
-//         IngredientItem(name: 'Masa madre activa', amount: '100g', highlighted: true),
-//         IngredientItem(name: 'Sal marina fina', amount: '10g'),
-//       ],
-//       steps: [
-//         PreparationStep(
-//           number: 1,
-//           title: 'Autolisis y Mezcla',
-//           description: 'Mezcla la harina y el agua...',
-//           imageUrls: ['https://...', 'https://...'],
-//         ),
-//         PreparationStep(
-//           number: 2,
-//           title: 'Fermentación en Bloque',
-//           description: 'Realiza 4 series de pliegues...',
-//           duration: '4 - 6 horas',
-//         ),
-//         PreparationStep(
-//           number: 3,
-//           title: 'Formado y Horneado',
-//           description: 'Da forma a la masa...',
-//           imageUrls: ['https://...'],
-//         ),
-//       ],
-//     ),
-//   ),
-// ));

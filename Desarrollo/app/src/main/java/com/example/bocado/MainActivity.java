@@ -169,7 +169,7 @@ public class MainActivity extends FlutterActivity {
                             }).start();
                             break;
                         case "getRecetas":
-                            HttpClientManager.getInstance().get("/rest/v1/recetas?select=*", new okhttp3.Callback() {
+                            HttpClientManager.getInstance().get("/rest/v1/vistas_recetas_macros?select=*", new okhttp3.Callback() {
                                 @Override
                                 public void onFailure(Call call1, IOException e) {
                                     runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
@@ -179,6 +179,26 @@ public class MainActivity extends FlutterActivity {
                                 public void onResponse(Call call1, Response response) throws IOException {
                                     String body = response.body() != null ? response.body().string() : "[]";
                                     runOnUiThread(() -> result.success(body));
+                                }
+                            });
+                            break;
+                        case "getRecetaDetalle":
+                            HttpClientManager.getInstance().get("/rest/v1/recetas?select=*,usuarios!UR(nombre,foto),recetas_alimentos(cantidad,alimentos(nombre))&id=eq." + call.argument("id"), new okhttp3.Callback(){
+                                public void onFailure(Call call1, IOException e) {
+                                    runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                                }
+
+                                @Override
+                                public void onResponse(Call call1, Response response) throws IOException {
+                                    if(response.isSuccessful()){
+                                        String body = response.body() != null ? response.body().string() : "[]";
+                                        runOnUiThread(() -> result.success(body));
+                                    }else {
+                                        String detalleError = response.body() != null ? response.body().string() : "Sin detalles";
+
+                                        final String errorMsg = "Fallo Supabase 300. Detalle: " + detalleError;
+                                        runOnUiThread(() -> result.error("API_ERROR", errorMsg, null));
+                                    }
                                 }
                             });
                             break;

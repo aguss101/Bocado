@@ -10,7 +10,7 @@ class SharedDrawer extends StatelessWidget {
   final int usuarioId;
   final String usuarioNombre;
   final ThemeNotifier themeNotifier;
-  final String rutaActual; // 'inicio', 'recetas', 'perfil', etc.
+  final String rutaActual;
 
   const SharedDrawer({
     super.key,
@@ -73,12 +73,11 @@ class SharedDrawer extends StatelessWidget {
                       isActive: rutaActual == 'inicio',
                       onTap: () {
                         if (rutaActual != 'inicio') {
-                          // Usamos pushReplacement para no apilar pantallas infinitamente
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => FeedScreen(
                               themeNotifier: themeNotifier, usuarioId: usuarioId, usuarioNombre: usuarioNombre
                           )));
                         } else {
-                          Navigator.pop(context); // Solo cierra el cajón si ya estoy ahí
+                          Navigator.pop(context);
                         }
                       }
                   ),
