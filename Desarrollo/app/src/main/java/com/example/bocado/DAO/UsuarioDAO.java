@@ -1,23 +1,24 @@
 package com.example.bocado.DAO;
 
+import com.example.bocado.DAO.Interfaces.IUsuario;
+import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.Mapper;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.entidades.Usuario;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.Response;
 import java.io.IOException;
 
-public class UsuarioDAO implements IUsuarioDAO {
+public class UsuarioDAO implements IUsuario {
 
     @Override
-    public void registrar(Usuario u, LoginCallback cb) {
+    public void registrar(Usuario u, CallbackCB cb) {
         try {
             JSONObject jsonBody = Mapper.usuarioToJson(u);
 
-            HttpClientManager.getInstance().post("/rest/v1/usuarios", jsonBody.toString(), new Callback() {
+            HttpClientManager.getInstance().post("/rest/v1/usuarios", jsonBody.toString(), new okhttp3.Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
@@ -39,10 +40,10 @@ public class UsuarioDAO implements IUsuarioDAO {
     }
 
     @Override
-    public void login(String usuario, String contrasena, LoginCallback cb) {
+    public void login(String usuario, String contrasena, CallbackCB cb) {
         new Thread(() -> {
             String endpoint = "/rest/v1/usuarios?or=(usuario.eq." + usuario + ",correo.eq." + usuario + ")&contrasena=eq." + contrasena + "&activo=eq.true";
-            HttpClientManager.getInstance().get(endpoint, new Callback() {
+            HttpClientManager.getInstance().get(endpoint, new okhttp3.Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
@@ -71,10 +72,10 @@ public class UsuarioDAO implements IUsuarioDAO {
     }
 
     @Override
-    public void actualizar(int idUsuario, JSONObject actualizaciones, LoginCallback cb) {
+    public void actualizar(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
         String endpoint = "/rest/v1/usuarios?id=eq." + idUsuario;
 
-        HttpClientManager.getInstance().patch(endpoint, actualizaciones.toString(), new Callback() {
+        HttpClientManager.getInstance().patch(endpoint, actualizaciones.toString(), new okhttp3.Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
@@ -92,13 +93,13 @@ public class UsuarioDAO implements IUsuarioDAO {
         });
     }
     @Override
-    public void eliminar(int idUsuario, LoginCallback cb) {
+    public void eliminar(int idUsuario, CallbackCB cb) {
         try {
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("activo", false);
             String endpoint = "/rest/v1/usuarios?id=eq." + idUsuario;
 
-            HttpClientManager.getInstance().patch(endpoint, jsonBody.toString(), new Callback() {
+            HttpClientManager.getInstance().patch(endpoint, jsonBody.toString(), new okhttp3.Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);

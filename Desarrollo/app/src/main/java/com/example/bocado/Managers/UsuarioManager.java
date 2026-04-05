@@ -1,17 +1,17 @@
 package com.example.bocado.Managers;
 
-import com.example.bocado.DAO.IUsuarioDAO;
-import com.example.bocado.DAO.LoginCallback;
+import com.example.bocado.DAO.Interfaces.IUsuario;
+import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.entidades.Usuario;
 import org.json.JSONObject;
 
 public class UsuarioManager {
-    private final IUsuarioDAO usuarioDAO;
+    private final IUsuario usuarioDAO;
 
-    public UsuarioManager(IUsuarioDAO usuarioDAO) {
+    public UsuarioManager(IUsuario usuarioDAO) {
         this.usuarioDAO = usuarioDAO;
     }
-    public void registrar(Usuario u, LoginCallback cb) {
+    public void registrar(Usuario u, CallbackCB cb) {
         if (u.getNombre().trim().isEmpty() || u.getCorreo().trim().isEmpty() || u.getContrasena().trim().isEmpty()) {
             cb.onError("NEGOCIO", "El nombre, correo y contraseña son obligatorios.", null);
             return;
@@ -29,7 +29,7 @@ public class UsuarioManager {
 
         usuarioDAO.registrar(u, cb);
     }
-    public void login(String usuario, String contrasena, LoginCallback cb) {
+    public void login(String usuario, String contrasena, CallbackCB cb) {
         if (usuario.trim().isEmpty() || contrasena.trim().isEmpty()) {
             cb.onError("NEGOCIO", "Debe ingresar sus credenciales para continuar.", null);
             return;
@@ -37,7 +37,7 @@ public class UsuarioManager {
 
         usuarioDAO.login(usuario, contrasena, cb);
     }
-    public void actualizar(int idUsuario, JSONObject actualizaciones, LoginCallback cb) {
+    public void actualizar(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
         if (actualizaciones.length() == 0) {
             cb.onError("NEGOCIO", "No hay cambios para guardar.", null);
             return;
@@ -53,7 +53,7 @@ public class UsuarioManager {
 
         usuarioDAO.actualizar(idUsuario, actualizaciones, cb);
     }
-    public void eliminar(int idUsuario, LoginCallback cb) {
+    public void eliminar(int idUsuario, CallbackCB cb) {
         usuarioDAO.eliminar(idUsuario, cb);
     }
 }

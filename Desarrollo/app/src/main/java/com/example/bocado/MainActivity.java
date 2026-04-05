@@ -1,9 +1,10 @@
 package com.example.bocado;
 
 import com.example.bocado.DAO.AlimentoDAO;
-import com.example.bocado.DAO.LoginCallback;
+import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.DAO.RecetaDAO;
 import com.example.bocado.DAO.UsuarioDAO;
+import com.example.bocado.Managers.RecetaManager;
 import com.example.bocado.entidades.Usuario;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -12,7 +13,6 @@ import androidx.annotation.NonNull;
 import com.example.bocado.Managers.UsuarioManager;
 import com.example.bocado.Managers.HttpClientManager;
 import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.Response;
 import java.io.IOException;
 
@@ -39,7 +39,7 @@ public class MainActivity extends FlutterActivity {
                             String usuario = call.argument("usuario");
                             String contrasena = call.argument("contrasena");
 
-                            usuarioManager.login(usuario, contrasena, new LoginCallback() {
+                            usuarioManager.login(usuario, contrasena, new CallbackCB() {
                                 @Override
                                 public void onSuccess(String response) {
                                     runOnUiThread(() -> result.success(response));
@@ -51,7 +51,7 @@ public class MainActivity extends FlutterActivity {
                             });
                             break;
 
-                        case "registerJava":
+                        case "register":
                             Usuario nuevoU = new Usuario();
                             nuevoU.setNombre(call.argument("nombre"));
                             nuevoU.setApellido(call.argument("apellido"));
@@ -62,7 +62,7 @@ public class MainActivity extends FlutterActivity {
                             nuevoU.setGenero(String.valueOf(call.argument("genero")));
                             nuevoU.setFecha_Nacimiento(call.argument("fechaNacimiento"));
 
-                            usuarioManager.registrar(nuevoU, new LoginCallback() {
+                            usuarioManager.registrar(nuevoU, new CallbackCB() {
                                 @Override
                                 public void onSuccess(String responseData) {
                                     runOnUiThread(() -> result.success(responseData));
@@ -149,24 +149,17 @@ public class MainActivity extends FlutterActivity {
 
                         // ── saveReceta ───────────────────────────────────────
                         case "saveReceta":
-                            new Thread(() -> {
-                                try {
-                                    RecetaDAO.Crear(call.arguments(), new LoginCallback() {
+                            Map<String, Object> args = call.arguments();
+                                    RecetaManager.getInstance().crear(args, new MethodChannel.Result() {
                                         @Override
-                                        public void onSuccess(String result) {
-
-                                        }
+                                        public void success(Object data) { runOnUiThread(() -> result.success(data)); }
 
                                         @Override
-                                        public void onError(String code, String message, Object details) {
+                                        public void error( String code, String message, Object details) { runOnUiThread(() -> result.error(code, message, details)); }
 
-                                        }
+                                        @Override
+                                        public void notImplemented() { runOnUiThread(() -> result.notImplemented()); }
                                     });
-                                    runOnUiThread(() -> result.success("OK"));
-                                } catch (Exception e) {
-                                    runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
-                                }
-                            }).start();
                             break;
                         case "getRecetas":
                             HttpClientManager.getInstance().get("/rest/v1/vistas_recetas_macros?select=*", new okhttp3.Callback() {

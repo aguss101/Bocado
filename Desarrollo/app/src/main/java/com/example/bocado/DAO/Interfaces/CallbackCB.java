@@ -1,6 +1,6 @@
-package com.example.bocado.DAO;
+package com.example.bocado.DAO.Interfaces;
 
-public interface LoginCallback {
+public interface CallbackCB {
     void onSuccess(String result);
     void onError(String code, String message, Object details);
 }

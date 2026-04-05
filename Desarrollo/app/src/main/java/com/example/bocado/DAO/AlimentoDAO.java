@@ -1,5 +1,6 @@
 package com.example.bocado.DAO;
 
+import com.example.bocado.DAO.Interfaces.CallbackCB;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -99,7 +100,7 @@ public class AlimentoDAO {
     }
 
     // 🔹 CREAR COMPLETO
-    public static void Crear(JSONObject alimentoJson, LoginCallback callback) {
+    public static void Crear(JSONObject alimentoJson, CallbackCB callbackCB) {
 
         new Thread(() -> {
             try {
@@ -124,14 +125,14 @@ public class AlimentoDAO {
                 String responseBody = response.body() != null ? response.body().string() : "[]";
 
                 if (response.isSuccessful()) {
-                    callback.onSuccess(responseBody);
+                    callbackCB.onSuccess(responseBody);
                 } else {
-                    callback.onError("ERROR_CREATE", responseBody, null);
+                    callbackCB.onError("ERROR_CREATE", responseBody, null);
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                callback.onError("NETWORK_ERROR", e.getMessage(), null);
+                callbackCB.onError("NETWORK_ERROR", e.getMessage(), null);
             }
         }).start();
     }

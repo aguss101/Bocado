@@ -21,7 +21,7 @@ class RecetaDetail {
     return RecetaDetail(
         receta: RecetaFeed.fromJson(json),
         ingredientes: (json['recetas_alimentos']as List? ?? []).map((item) => IngredientItem.fromJson(item)).toList(),
-        pasos: PreparationStep.InstruccionParse(json['instrucciones']),
+        pasos: PreparationStep.parsearInstrucciones(json['instrucciones']),
         tiempoPreparacion: (json['tiempo_preparacion'] ?? 'N/A'));
   }
 }
