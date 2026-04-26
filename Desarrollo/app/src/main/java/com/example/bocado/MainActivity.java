@@ -20,13 +20,19 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.os.Bundle;
+import androidx.core.splashscreen.SplashScreen;
 
 public class MainActivity extends FlutterActivity {
 
     private static final String CHANNEL_ACCESS = "com.example.bocado/access";
     private static final String CHANNEL_RECETAS = "com.example.bocado/recetas";
     private final UsuarioManager usuarioManager = new UsuarioManager(new UsuarioDAO());
-
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
+        super.onCreate(savedInstanceState);
+    }
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
