@@ -25,6 +25,7 @@ import androidx.core.splashscreen.SplashScreen;
 
 public class MainActivity extends FlutterActivity {
 
+
     private static final String CHANNEL_ACCESS = "com.example.bocado/access";
     private static final String CHANNEL_RECETAS = "com.example.bocado/recetas";
     private final UsuarioManager usuarioManager = new UsuarioManager(new UsuarioDAO());

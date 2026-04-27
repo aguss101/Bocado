@@ -22,6 +22,7 @@ public class HttpClientManager {
         return instance;
     }
 
+    // ── Base builder ──────────────────────────────────────────────────────────
     private Request.Builder getBaseBuilder(String endpoint) {
         return new Request.Builder()
                 .url(supaUrl + endpoint)
@@ -32,19 +33,22 @@ public class HttpClientManager {
                 .addHeader("Prefer", "return=representation");
     }
 
+    // ── Async methods (los de siempre) ────────────────────────────────────────
     public void get(String endpoint, Callback callback) {
         Request request = getBaseBuilder(endpoint).get().build();
         client.newCall(request).enqueue(callback);
     }
 
     public void post(String endpoint, String jsonBody, Callback callback) {
-        RequestBody body = RequestBody.create(jsonBody, MediaType.parse("application/json; charset=utf-8"));
+        RequestBody body = RequestBody.create(
+                jsonBody, MediaType.parse("application/json; charset=utf-8"));
         Request request = getBaseBuilder(endpoint).post(body).build();
         client.newCall(request).enqueue(callback);
     }
 
     public void patch(String endpoint, String jsonBody, Callback callback) {
-        RequestBody body = RequestBody.create(jsonBody, MediaType.parse("application/json; charset=utf-8"));
+        RequestBody body = RequestBody.create(
+                jsonBody, MediaType.parse("application/json; charset=utf-8"));
         Request request = getBaseBuilder(endpoint).patch(body).build();
         client.newCall(request).enqueue(callback);
     }
@@ -52,5 +56,23 @@ public class HttpClientManager {
     public void delete(String endpoint, Callback callback) {
         Request request = getBaseBuilder(endpoint).delete().build();
         client.newCall(request).enqueue(callback);
+    }
+
+    // ── Sync helpers (para AlimentoDAO que corre en Thread propio) ────────────
+    // Devuelve el cliente crudo para poder llamar .execute() de forma síncrona
+    public OkHttpClient getRawClient() {
+        return client;
+    }
+
+    // Construye un Request GET ya con los headers de Supabase
+    public Request buildGetRequest(String endpoint) {
+        return getBaseBuilder(endpoint).get().build();
+    }
+
+    // Construye un Request POST ya con los headers de Supabase
+    public Request buildPostRequest(String endpoint, String jsonBody) {
+        RequestBody body = RequestBody.create(
+                jsonBody, MediaType.parse("application/json; charset=utf-8"));
+        return getBaseBuilder(endpoint).post(body).build();
     }
 }
