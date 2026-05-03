@@ -42,32 +42,45 @@ public class UsuarioDAO implements IUsuario {
     @Override
     public void login(String usuario, String contrasena, CallbackCB cb) {
         new Thread(() -> {
-            String endpoint = "/rest/v1/usuarios?or=(usuario.eq." + usuario + ",correo.eq." + usuario + ")&contrasena=eq." + contrasena + "&activo=eq.true";
-            HttpClientManager.getInstance().get(endpoint, new okhttp3.Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
-                }
+            try {
+                String endpoint = "/rest/v1/rpc/login_usuario";
 
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    String body = response.body() != null ? response.body().string() : "[]";
-                    if (response.isSuccessful()) {
-                        try {
-                            JSONArray array = new JSONArray(body);
-                            if (array.length() > 0) {
-                                cb.onSuccess(array.getJSONObject(0).toString()); // Login exitoso
-                            } else {
-                                cb.onError("CRED_INVALIDAS", "Usuario o contraseña incorrectos", null);
-                            }
-                        } catch (Exception e) {
-                            cb.onError("ERROR_PARSE", "Error leyendo respuesta", null);
-                        }
-                    } else {
-                        cb.onError("ERROR_API", "Fallo en el servidor: " + body, null);
+                JSONObject json = new JSONObject();
+                json.put("p_usuario", usuario);
+                json.put("p_contrasena", contrasena);
+
+                HttpClientManager.getInstance().post(endpoint, json.toString(), new okhttp3.Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        cb.onError("NETWORK_ERROR", "Error de red: " + e.getMessage(), null);
                     }
-                }
-            });
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        String body = response.body() != null ? response.body().string() : "[]";
+
+                        if (response.isSuccessful()) {
+                            try {
+                                JSONArray array = new JSONArray(body);
+
+                                if (array.length() > 0) {
+                                    cb.onSuccess(array.getJSONObject(0).toString());
+                                } else {
+                                    cb.onError("CRED_INVALIDAS", "Usuario o contraseña incorrectos", null);
+                                }
+
+                            } catch (Exception e) {
+                                cb.onError("ERROR_PARSE", "Error leyendo respuesta", null);
+                            }
+                        } else {
+                            cb.onError("ERROR_API", "Fallo en el servidor: " + body, null);
+                        }
+                    }
+                });
+
+            } catch (Exception e) {
+                cb.onError("ERROR_INTERNO", e.getMessage(), null);
+            }
         }).start();
     }
 

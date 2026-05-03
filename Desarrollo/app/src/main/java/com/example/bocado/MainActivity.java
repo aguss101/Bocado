@@ -121,7 +121,23 @@ public class MainActivity extends FlutterActivity {
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_RECETAS)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {
-
+                        case "getRecetasUsuario":
+                            Integer usuarioId = call.argument("usuarioId");
+                            HttpClientManager.getInstance().get(
+                                    "/rest/v1/vistas_recetas_macros?select=*&id_usuario=eq." + usuarioId,
+                                    new okhttp3.Callback() {
+                                        @Override
+                                        public void onFailure(Call call1, IOException e) {
+                                            runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                                        }
+                                        @Override
+                                        public void onResponse(Call call1, Response response) throws IOException {
+                                            String body = response.body() != null ? response.body().string() : "[]";
+                                            runOnUiThread(() -> result.success(body));
+                                        }
+                                    }
+                            );
+                            break;
                         // ── getAlimentos ─────────────────────────────────────
                         case "getAlimentos":
                             new Thread(() -> {

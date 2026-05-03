@@ -1,25 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/theme_notifier.dart';
+import '../models/receta_feed.dart';
 import 'shared_drawer.dart';
-
-// Modelo de datos para las recetas
-class RecipePreview {
-  final String title;
-  final String category;
-  final String time;
-  final String level;
-  final String rating;
-  final String imageUrl;
-
-  const RecipePreview({
-    required this.title,
-    required this.category,
-    required this.time,
-    required this.level,
-    required this.rating,
-    required this.imageUrl,
-  });
-}
+import 'recipe_detail.dart';
 
 class MyRecipesScreen extends StatefulWidget {
   final int usuarioId;
@@ -45,53 +30,44 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   static const Color mutedColor = Color(0xFF94A3B8);
   static const Color borderColor = Color(0xFF1E293B);
 
-  // Lista de recetas generada al instante
-  late final List<RecipePreview> _recetasDelUsuario;
+  List<RecetaFeed> _recetas = [];
+  bool _cargando = true;
+
+  static const _channel = MethodChannel('com.example.bocado/recetas');
 
   @override
   void initState() {
     super.initState();
-    // ── Cargamos las recetas de ejemplo INMEDIATAMENTE ──
-    _recetasDelUsuario = [
-      RecipePreview(
-        title: 'Masa Madre de ${widget.usuarioNombre}',
-        category: 'Panadería',
-        time: '18h',
-        level: 'Experto',
-        rating: '4.9',
-        imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=600&auto=format&fit=crop',
-      ),
-      RecipePreview(
-        title: 'Pizza Especial (Receta #${widget.usuarioId})',
-        category: 'Italiana',
-        time: '45m',
-        level: 'Medio',
-        rating: '5.0',
-        imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=600&auto=format&fit=crop',
-      ),
-      RecipePreview(
-        title: 'Salmón del Chef',
-        category: 'Mar',
-        time: '20m',
-        level: 'Fácil',
-        rating: '4.7',
-        imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop',
-      ),
-    ];
+    _cargarRecetas();
+  }
+
+  Future<void> _cargarRecetas() async {
+    try {
+      final jsonString = await _channel.invokeMethod('getRecetasUsuario', {'usuarioId': widget.usuarioId});
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+
+      if (mounted) {
+        setState(() {
+          _recetas = jsonList.map((item) => RecetaFeed.fromJson(item)).toList();
+          _cargando = false;
+        });
+      }
+    } catch (e) {
+      print('Error cargando recetas: $e');
+      if (mounted) setState(() => _cargando = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
-
       endDrawer: SharedDrawer(
         usuarioId: widget.usuarioId,
         usuarioNombre: widget.usuarioNombre,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'recetas',
       ),
-
       appBar: AppBar(
         backgroundColor: bgColor.withValues(alpha: 0.9),
         elevation: 0,
@@ -120,9 +96,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           const SizedBox(width: 8),
         ],
       ),
-
-      // ── El cuerpo ahora se dibuja directo, sin esperas ──
-      body: CustomScrollView(
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          : CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
@@ -132,7 +108,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 children: [
                   const Text('Mis Recetas', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor)),
                   const SizedBox(height: 4),
-                  const Text('Gestiona tu catálogo personal de creaciones culinarias.', style: TextStyle(fontSize: 14, color: mutedColor)),
+                  Text('${_recetas.length} recetas', style: const TextStyle(fontSize: 14, color: mutedColor)),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -156,10 +132,10 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
               ),
               delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                  if (index == _recetasDelUsuario.length) return _buildCreateNewCard();
-                  return _buildRecipeCard(_recetasDelUsuario[index]);
+                  if (index == _recetas.length) return _buildCreateNewCard();
+                  return _buildRecipeCard(_recetas[index]);
                 },
-                childCount: _recetasDelUsuario.length + 1,
+                childCount: _recetas.length + 1,
               ),
             ),
           ),
@@ -174,69 +150,98 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     );
   }
 
-  // ── Componentes de UI Internos ──
-
-  Widget _buildRecipeCard(RecipePreview recipe) {
-    return Container(
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor.withValues(alpha: 0.5)),
+  Widget _buildRecipeCard(RecetaFeed receta) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeDetailScreen(
+            themeNotifier: widget.themeNotifier,
+            usuarioId: widget.usuarioId,
+            usuarioNombre: widget.usuarioNombre,
+            idReceta: receta.idReceta,
+            protFeed: receta.proteinasTotales,
+            carbFeed: receta.carbohidratosTotales,
+            grasFeed: receta.grasasTotales,
+          ),
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.network(recipe.imageUrl, fit: BoxFit.cover),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [bgColor.withValues(alpha: 0.8), Colors.transparent],
+      child: Container(
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor.withValues(alpha: 0.5)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  receta.foto != null && receta.foto!.isNotEmpty
+                      ? Image.network(receta.foto!, fit: BoxFit.cover)
+                      : Image.network('https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=300&auto=format&fit=crop', fit: BoxFit.cover),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [bgColor.withValues(alpha: 0.8), Colors.transparent],
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 8, right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                    child: Text(recipe.category.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(recipe.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildMiniStat('TIEMPO', recipe.time),
-                      Container(height: 20, width: 1, color: borderColor),
-                      _buildMiniStat('NIVEL', recipe.level),
-                      Container(height: 20, width: 1, color: borderColor),
-                      _buildMiniRating(recipe.rating),
-                    ],
-                  ),
+                  if (receta.etiquetas.isNotEmpty)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          receta.etiquetas.first.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      receta.nombre,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildMiniStat('CAL', '${receta.caloriasTotales.toInt()}'),
+                        Container(height: 20, width: 1, color: borderColor),
+                        _buildMiniStat('PROT', '${receta.proteinasTotales.toInt()}g'),
+                        Container(height: 20, width: 1, color: borderColor),
+                        _buildMiniRating('${receta.promedioCalificacion.toStringAsFixed(1)}'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -280,7 +285,8 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: const BoxDecoration(color: borderColor, shape: BoxShape.circle),
             child: const Icon(Icons.add, color: mutedColor),
           ),
