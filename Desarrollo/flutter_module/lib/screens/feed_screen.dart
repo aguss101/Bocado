@@ -43,6 +43,7 @@ class _FeedScreenState extends State<FeedScreen> {
       if(mounted){
         setState(() {
           recipesFeed = listRecipes;
+          recipesFeed.shuffle();
           _estaCargando = false;
         });
       }
