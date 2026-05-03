@@ -3,6 +3,7 @@ import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import 'package:flutter_module/screens/feed_screen.dart';
 import 'package:flutter_module/screens/shared_drawer.dart';
 import '../theme/app_theme.dart';
@@ -115,8 +116,7 @@ class PreparationStep {
 
 class RecipeDetailScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
-  final int usuarioId;
-  final String usuarioNombre;
+  final usuario_Logged user;
   final int idReceta;
   final double protFeed;
   final double carbFeed;
@@ -125,8 +125,7 @@ class RecipeDetailScreen extends StatefulWidget {
   const RecipeDetailScreen({
     super.key,
     required this.themeNotifier,
-    required this.usuarioId,
-    required this.usuarioNombre,
+    required this.user,
     required this.idReceta,
     required this.protFeed,
     required this.carbFeed,

@@ -1,20 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/theme_notifier.dart';
 import '../models/receta_feed.dart';
 import 'shared_drawer.dart';
 import 'recipe_detail.dart';
 
 class MyRecipesScreen extends StatefulWidget {
-  final int usuarioId;
-  final String usuarioNombre;
+  final usuario_Logged user;
   final ThemeNotifier themeNotifier;
 
   const MyRecipesScreen({
     super.key,
-    required this.usuarioId,
-    required this.usuarioNombre,
+    required this.user,
     required this.themeNotifier,
   });
 
@@ -43,7 +42,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   Future<void> _cargarRecetas() async {
     try {
-      final jsonString = await _channel.invokeMethod('getRecetasUsuario', {'usuarioId': widget.usuarioId});
+      final jsonString = await _channel.invokeMethod('getRecetasUsuario', {'usuarioId': widget.user.id});
       final List<dynamic> jsonList = jsonDecode(jsonString);
 
       if (mounted) {
@@ -63,8 +62,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       endDrawer: SharedDrawer(
-        usuarioId: widget.usuarioId,
-        usuarioNombre: widget.usuarioNombre,
+        user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'recetas',
       ),
@@ -157,8 +155,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         MaterialPageRoute(
           builder: (_) => RecipeDetailScreen(
             themeNotifier: widget.themeNotifier,
-            usuarioId: widget.usuarioId,
-            usuarioNombre: widget.usuarioNombre,
+            user: widget.user,
             idReceta: receta.idReceta,
             protFeed: receta.proteinasTotales,
             carbFeed: receta.carbohidratosTotales,

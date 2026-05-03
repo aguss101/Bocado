@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import 'package:flutter_module/screens/feed_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
@@ -68,8 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(
               builder: (_) => FeedScreen(
                   themeNotifier: widget.themeNotifier,
-                  usuarioId: data['id'],
-                  usuarioNombre: data['nombre'] ?? data['usuario']
+                user: usuario_Logged(data['id'], data['id_cuenta'], data['usuario'], data['foto'], data['banner'])
               ),
           ),
         );

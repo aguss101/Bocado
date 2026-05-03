@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_notifier.dart';
 import 'screens/login_screen.dart';
@@ -10,7 +11,7 @@ import 'screens/recipe_editor_screen.dart';
 // ── Modo debug ─────────────────────────────────────────────────────────────────
 // Cambiá kDebugSkipLogin a true para entrar directo al editor sin pasar por login.
 // Acordate de volver a false antes de hacer build de producción.
-const bool kDebugSkipLogin = true;
+const bool kDebugSkipLogin = false;
 const int kDebugUsuarioId = 1;
 const String kDebugUsuarioNombre = 'Dev User';
 // ──────────────────────────────────────────────────────────────────────────────
@@ -49,8 +50,7 @@ class _BocadoAppState extends State<BocadoApp> {
           home: kDebugSkipLogin
               ? RecipeEditorScreen(
             themeNotifier: _themeNotifier,
-            usuarioId: kDebugUsuarioId,
-            usuarioNombre: kDebugUsuarioNombre,
+            user: usuario_Logged(1, 3, 'Dev User', null, null),
           )
               : LoginScreen(themeNotifier: _themeNotifier),
         );

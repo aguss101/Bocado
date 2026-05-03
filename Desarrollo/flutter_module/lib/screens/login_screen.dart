@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
@@ -55,8 +56,7 @@ try {
       MaterialPageRoute(
         builder: (_) => FeedScreen(
           themeNotifier: widget.themeNotifier,
-          usuarioId: data['id'],
-          usuarioNombre: data['nombre'] ?? data['username'],
+            user: usuario_Logged(data['id'], data['id_cuenta'], data['usuario'], data['foto'], data['banner'])
         ),
       ),
     );

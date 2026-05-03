@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/receta_feed.dart';
@@ -9,14 +10,12 @@ import 'shared_drawer.dart';
 
 class FeedScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
-  final int usuarioId;
-  final String usuarioNombre;
+  final usuario_Logged user;
 
   const FeedScreen({
     super.key,
     required this.themeNotifier,
-    required this.usuarioId,
-    required this.usuarioNombre,
+    required this.user,
   });
 
   @override
@@ -63,8 +62,7 @@ class _FeedScreenState extends State<FeedScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0D0701) : Colors.grey.shade50,
       endDrawer: SharedDrawer(
-        usuarioId: widget.usuarioId,
-        usuarioNombre: widget.usuarioNombre,
+        user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
       ),
@@ -110,7 +108,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   radius: 16,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                   child: Text(
-                    widget.usuarioNombre.isNotEmpty ? widget.usuarioNombre[0].toUpperCase() : '?',
+                    widget.user.usuario.isNotEmpty ? widget.user.usuario[0].toUpperCase() : '?',
                     style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.primary, fontSize: 14),
                   ),
                 ),
@@ -137,8 +135,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       MaterialPageRoute(
                         builder: (context) => RecipeDetailScreen(
                           themeNotifier: widget.themeNotifier,
-                          usuarioId: widget.usuarioId,
-                          usuarioNombre: widget.usuarioNombre,
+                          user: widget.user,
                           idReceta: recetaActual.idReceta,
                           protFeed: recetaActual.proteinasTotales,
                           carbFeed: recetaActual.carbohidratosTotales,

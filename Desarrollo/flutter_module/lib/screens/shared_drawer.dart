@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import 'feed_screen.dart';
@@ -7,15 +8,13 @@ import 'profile_screen.dart';
 import 'recipe_editor_screen.dart';
 
 class SharedDrawer extends StatelessWidget {
-  final int usuarioId;
-  final String usuarioNombre;
+  final usuario_Logged user;
   final ThemeNotifier themeNotifier;
   final String rutaActual;
 
   const SharedDrawer({
     super.key,
-    required this.usuarioId,
-    required this.usuarioNombre,
+    required this.user,
     required this.themeNotifier,
     required this.rutaActual,
   });
@@ -42,7 +41,7 @@ class SharedDrawer extends StatelessWidget {
                     radius: 24,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                     child: Text(
-                      usuarioNombre.isNotEmpty ? usuarioNombre[0].toUpperCase() : '?',
+                      user.usuario.isNotEmpty ? user.usuario[0].toUpperCase() : '?',
                       style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 20),
                     ),
                   ),
@@ -51,8 +50,8 @@ class SharedDrawer extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(usuarioNombre, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                        Text('ID: $usuarioId', style: TextStyle(fontSize: 12, color: mutedColor)),
+                        Text(user.usuario, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                        Text('ID: ${user.id}', style: TextStyle(fontSize: 12, color: mutedColor)),
                       ],
                     ),
                   ),
@@ -73,9 +72,7 @@ class SharedDrawer extends StatelessWidget {
                       isActive: rutaActual == 'inicio',
                       onTap: () {
                         if (rutaActual != 'inicio') {
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => FeedScreen(
-                              themeNotifier: themeNotifier, usuarioId: usuarioId, usuarioNombre: usuarioNombre
-                          )));
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => FeedScreen(themeNotifier: themeNotifier, user: user)));
                         } else {
                           Navigator.pop(context);
                         }
@@ -88,9 +85,7 @@ class SharedDrawer extends StatelessWidget {
                       isActive: rutaActual == 'recetas',
                       onTap: () {
                         if (rutaActual != 'recetas') {
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MyRecipesScreen(
-                              usuarioId: usuarioId, usuarioNombre: usuarioNombre, themeNotifier: themeNotifier,
-                          )));
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MyRecipesScreen(themeNotifier: themeNotifier, user: user)));
                         } else {
                           Navigator.pop(context);
                         }
@@ -106,11 +101,7 @@ class SharedDrawer extends StatelessWidget {
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       onTap: () {
                         Navigator.pop(context); // Cerramos el menú
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(
-                          themeNotifier: themeNotifier,
-                          usuarioId: usuarioId,
-                          usuarioNombre: usuarioNombre,
-                        )));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(themeNotifier: themeNotifier, user: user)));
                       },
                     ),
                   ),
@@ -124,9 +115,7 @@ class SharedDrawer extends StatelessWidget {
                       isActive: rutaActual == 'perfil',
                       onTap: () {
                         if (rutaActual != 'perfil') {
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(
-                              usuarioId: usuarioId, usuarioNombre: usuarioNombre, themeNotifier: themeNotifier
-                          )));
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(themeNotifier: themeNotifier, user: user)));
                         } else {
                           Navigator.pop(context);
                         }

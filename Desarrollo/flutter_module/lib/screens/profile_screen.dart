@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import 'shared_drawer.dart'; // ── 1. IMPORTAMOS EL MENÚ ──
 
 class ProfileScreen extends StatelessWidget {
-  final int usuarioId; // ── 2. AGREGAMOS EL ID ──
-  final String usuarioNombre;
+  final usuario_Logged user;
   final ThemeNotifier themeNotifier;
 
   const ProfileScreen({
     super.key,
-    required this.usuarioId, // Lo pedimos como obligatorio
-    required this.usuarioNombre,
+    required this.user,
     required this.themeNotifier,
   });
 
@@ -27,8 +26,7 @@ class ProfileScreen extends StatelessWidget {
 
       // ── 3. AGREGAMOS EL CAJÓN LATERAL ──
       endDrawer: SharedDrawer(
-        usuarioId: usuarioId,
-        usuarioNombre: usuarioNombre,
+        user: user,
         themeNotifier: themeNotifier,
         rutaActual: 'perfil', // Le avisamos que estamos en el perfil
       ),
@@ -62,10 +60,14 @@ class ProfileScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                    child: Text(
-                      usuarioNombre.isNotEmpty ? usuarioNombre[0].toUpperCase() : '?',
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: AppTheme.primary),
-                    ),
+                    backgroundImage: user.fotoReady != null ? MemoryImage(user.fotoReady!) : null,
+                    child: user.fotoReady == null ? Text(user.usuario.isNotEmpty ? user.usuario[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primary
+                      ),
+                    ) : null,
                   ),
                   Container(
                     padding: const EdgeInsets.all(4),
@@ -78,11 +80,11 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             // Nombre de usuario
             Text(
-              usuarioNombre,
+              user.usuario,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
             ),
             const SizedBox(height: 8),
-            Text('@${usuarioNombre.toLowerCase().replaceAll(' ', '')}', style: const TextStyle(color: AppTheme.primary)),
+            Text('@${user.usuario.toLowerCase().replaceAll(' ', '')}', style: const TextStyle(color: AppTheme.primary)),
 
             const SizedBox(height: 24),
 

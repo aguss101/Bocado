@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const _primary = Color(0xFFD96E11);
@@ -37,15 +39,13 @@ class _RecipeStep {
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 class RecipeEditorScreen extends StatefulWidget {
-  final dynamic themeNotifier;
-  final int usuarioId;
-  final String usuarioNombre;
+  final ThemeNotifier themeNotifier;
+  final usuario_Logged user;
 
   const RecipeEditorScreen({
     super.key,
     required this.themeNotifier,
-    required this.usuarioId,
-    required this.usuarioNombre,
+    required this.user
   });
 
   @override
