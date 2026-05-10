@@ -3,15 +3,20 @@ import 'package:flutter_module/models/usuario_Logged.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_notifier.dart';
 import 'screens/login_screen.dart';
+import 'screens/feed_screen.dart';
 import 'screens/recipe_editor_screen.dart';
+import 'services/session_service.dart';
 import 'config/debug_config.dart';
 
-void main() {
-  runApp(const BocadoApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final savedUser = await SessionService.loadSession();
+  runApp(BocadoApp(savedUser: savedUser));
 }
 
 class BocadoApp extends StatefulWidget {
-  const BocadoApp({super.key});
+  final usuario_Logged? savedUser;
+  const BocadoApp({super.key, this.savedUser});
 
   @override
   State<BocadoApp> createState() => _BocadoAppState();
@@ -26,6 +31,19 @@ class _BocadoAppState extends State<BocadoApp> {
     super.dispose();
   }
 
+  Widget _resolveHome() {
+    if (kDebugSkipLogin) {
+      return RecipeEditorScreen(
+        themeNotifier: _themeNotifier,
+        user: usuario_Logged(kDebugUsuarioId, kDebugCuentaId, kDebugUsuarioNombre, null, null),
+      );
+    }
+    if (widget.savedUser != null) {
+      return FeedScreen(themeNotifier: _themeNotifier, user: widget.savedUser!);
+    }
+    return LoginScreen(themeNotifier: _themeNotifier);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
@@ -37,12 +55,7 @@ class _BocadoAppState extends State<BocadoApp> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          home: kDebugSkipLogin
-              ? RecipeEditorScreen(
-            themeNotifier: _themeNotifier,
-            user: usuario_Logged(kDebugUsuarioId, kDebugCuentaId, kDebugUsuarioNombre, null, null),
-          )
-              : LoginScreen(themeNotifier: _themeNotifier),
+          home: _resolveHome(),
         );
       },
     );

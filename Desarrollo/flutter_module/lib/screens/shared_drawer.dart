@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import '../services/session_service.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import 'feed_screen.dart';
+import 'login_screen.dart';
 import 'my_recipes_screen.dart';
 import 'profile_screen.dart';
 import 'recipe_editor_screen.dart';
@@ -122,6 +124,29 @@ class SharedDrawer extends StatelessWidget {
                       }
                   ),
                 ],
+              ),
+            ),
+
+            // ── CERRAR SESIÓN ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                tileColor: Colors.red.withValues(alpha: 0.08),
+                leading: const Icon(Icons.logout, color: Colors.redAccent),
+                title: const Text(
+                  'Cerrar sesión',
+                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+                ),
+                onTap: () async {
+                  await SessionService.clearSession();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => LoginScreen(themeNotifier: themeNotifier)),
+                      (_) => false,
+                    );
+                  }
+                },
               ),
             ),
           ],

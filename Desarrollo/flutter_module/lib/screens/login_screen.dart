@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/usuario_service.dart';
+import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
@@ -40,6 +41,8 @@ _errorMessage = null;
 
 try {
   final user = await UsuarioService.login(usuario, contrasena);
+
+  if (_rememberMe) await SessionService.saveSession(user);
 
   if (mounted) {
     Navigator.pushReplacement(
