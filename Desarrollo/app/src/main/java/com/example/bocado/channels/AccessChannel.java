@@ -1,6 +1,7 @@
 package com.example.bocado.channels;
 
 import android.app.Activity;
+import com.example.bocado.BuildConfig;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
@@ -9,6 +10,8 @@ import com.example.bocado.entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AccessChannel {
 
@@ -26,11 +29,12 @@ public class AccessChannel {
 
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         switch (call.method) {
-            case "loginJava" -> handleLogin(call, result);
-            case "register"  -> handleRegister(call, result);
-            case "registerJava"  -> handleRegister(call, result);
-            case "getNaciones" -> handleGetNaciones(result);
-            case "getGeneros"  -> handleGetGeneros(result);
+            case "loginJava"         -> handleLogin(call, result);
+            case "register"          -> handleRegister(call, result);
+            case "registerJava"      -> handleRegister(call, result);
+            case "getNaciones"       -> handleGetNaciones(result);
+            case "getGeneros"        -> handleGetGeneros(result);
+            case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
             default -> result.notImplemented();
         }
     }
@@ -80,6 +84,18 @@ public class AccessChannel {
                 activity.runOnUiThread(() -> result.success(body));
             }
         });
+    }
+
+    private void handleGetSupabaseConfig(MethodChannel.Result result) {
+        // La anon key es pública por diseño — seguro exponerla al cliente Flutter
+        String rawUrl = BuildConfig.SUPABASE_URL;
+        // Eliminar trailing slash si lo tiene para construir URLs de Storage correctamente
+        String url = rawUrl.endsWith("/") ? rawUrl.substring(0, rawUrl.length() - 1) : rawUrl;
+
+        Map<String, String> config = new HashMap<>();
+        config.put("url", url);
+        config.put("key", BuildConfig.SUPABASE_KEY);
+        result.success(config);
     }
 
     private void handleGetGeneros(MethodChannel.Result result) {

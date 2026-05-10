@@ -1,12 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
-import '../services/receta_service.dart';
-import '../theme/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/image_upload_service.dart';
 import '../theme/theme_notifier.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const _primary = Color(0xFFD96E11);
-const _primaryLight = Color(0xFFFFDBC9);
 const _bg = Color(0xFFFFFBF5);
 const _surface = Color(0xFFFFFFFF);
 const _surfaceDim = Color(0xFFF5F5F5);
@@ -59,6 +59,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   int _step = 1;
 
   // Step 1
+  Uint8List? _portadaBytes;
+  bool _uploadingPortada = false;
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
 
@@ -123,6 +125,47 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   void _snack(String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _seleccionarPortada(ImageSource source) async {
+    setState(() => _uploadingPortada = true);
+    try {
+      final bytes = await ImageUploadService.pickAndCompressReceta(source);
+      if (bytes != null && mounted) setState(() => _portadaBytes = bytes);
+    } catch (e) {
+      if (mounted) _snack('Error al cargar imagen: $e');
+    } finally {
+      if (mounted) setState(() => _uploadingPortada = false);
+    }
+  }
+
+  Future<void> _mostrarPickerPortada() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined, color: _primary),
+              title: const Text('Cámara'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: _primary),
+              title: const Text('Galería'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (source != null) await _seleccionarPortada(source);
   }
 
   // ─── Build ──────────────────────────────────────────────────────────────────
@@ -365,7 +408,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               const SizedBox(height: 14),
               // Main upload button
               GestureDetector(
-                onTap: () => _snack('Seleccionar foto principal'),
+                onTap: _uploadingPortada ? null : _mostrarPickerPortada,
                 child: Container(
                   width: double.infinity,
                   height: 140,
@@ -377,31 +420,61 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                         width: 1.5,
                         strokeAlign: BorderSide.strokeAlignInside),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _primary.withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.add_photo_alternate_outlined,
-                            color: _primary, size: 24),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'SUBIR FOTO PRINCIPAL',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: _onSurfaceVariant.withOpacity(0.8),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _portadaBytes != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(_portadaBytes!, fit: BoxFit.cover),
+                            Positioned(
+                              bottom: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'CAMBIAR',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : _uploadingPortada
+                          ? const Center(child: CircularProgressIndicator(color: _primary))
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: _primary.withOpacity(0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.add_photo_alternate_outlined,
+                                      color: _primary, size: 24),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'SUBIR FOTO PRINCIPAL',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    color: _onSurfaceVariant.withOpacity(0.8),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1098,10 +1171,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _outline.withOpacity(0.3)),
                 ),
-                child: const Center(
-                  child: Icon(Icons.image_outlined,
-                      color: Color(0xFFCBD5E1), size: 36),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: _portadaBytes != null
+                    ? Image.memory(_portadaBytes!, fit: BoxFit.cover, width: double.infinity)
+                    : const Center(
+                        child: Icon(Icons.image_outlined,
+                            color: Color(0xFFCBD5E1), size: 36),
+                      ),
               ),
               const SizedBox(height: 16),
               _summaryRow('Ingredientes', '${_ingredients.length} items'),

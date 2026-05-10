@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
+import '../services/image_upload_service.dart';
 import 'shared_drawer.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -23,6 +25,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _usuarioCtrl;
   late TextEditingController _correoCtrl;
   String _genero = 'masculino';
+  String? _fotoUrl;
+  String? _bannerUrl;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -54,6 +59,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       SnackBar(content: Text('$feature — Próximamente')),
     );
   }
+
+  Future<void> _cambiarFoto() => _pickAndUpload(
+        label: 'foto',
+        upload: (src) => ImageUploadService.uploadFotoPerfil(widget.user.id, src),
+        onDone: (url) => setState(() => _fotoUrl = url),
+      );
+
+  Future<void> _cambiarBanner() => _pickAndUpload(
+        label: 'banner',
+        upload: (src) => ImageUploadService.uploadBanner(widget.user.id, src),
+        onDone: (url) => setState(() => _bannerUrl = url),
+      );
+
+  Future<void> _pickAndUpload({
+    required String label,
+    required Future<String?> Function(ImageSource) upload,
+    required void Function(String) onDone,
+  }) async {
+    final source = await _showSourceSheet();
+    if (source == null) return;
+    setState(() => _uploading = true);
+    try {
+      final url = await upload(source);
+      if (url != null) onDone(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al subir $label: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<ImageSource?> _showSourceSheet() => showModalBottomSheet<ImageSource>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined, color: AppTheme.primary),
+                title: const Text('Cámara'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primary),
+                title: const Text('Galería'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -180,26 +245,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 color: AppTheme.primary.withValues(alpha: 0.1),
               ),
               clipBehavior: Clip.antiAlias,
-              child: widget.user.fotoReady != null
-                  ? Image.memory(widget.user.fotoReady!, fit: BoxFit.cover)
-                  : Center(
-                      child: Text(
-                        widget.user.usuario.isNotEmpty
-                            ? widget.user.usuario[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                            fontSize: 52,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary),
-                      ),
-                    ),
+              child: _fotoUrl != null
+                  ? Image.network(_fotoUrl!, fit: BoxFit.cover)
+                  : widget.user.fotoReady != null
+                      ? Image.memory(widget.user.fotoReady!, fit: BoxFit.cover)
+                      : Center(
+                          child: Text(
+                            widget.user.usuario.isNotEmpty
+                                ? widget.user.usuario[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                                fontSize: 52,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primary),
+                          ),
+                        ),
             ),
             // Botón cámara
             Positioned(
               bottom: -8,
               right: -8,
               child: GestureDetector(
-                onTap: () => _mostrarProximamente('Cambiar foto'),
+                onTap: _uploading ? null : _cambiarFoto,
                 child: Container(
                   width: 44,
                   height: 44,
@@ -249,6 +316,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _chipStat('845 Seguidores', border, text),
           ],
         ),
+        const SizedBox(height: 16),
+        // Banner upload
+        GestureDetector(
+          onTap: _uploading ? null : _cambiarBanner,
+          child: Container(
+            width: double.infinity,
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.4)),
+              color: _bannerUrl != null ? null : AppTheme.primary.withValues(alpha: 0.06),
+              image: _bannerUrl != null
+                  ? DecorationImage(image: NetworkImage(_bannerUrl!), fit: BoxFit.cover)
+                  : null,
+            ),
+            child: _bannerUrl == null
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.panorama_outlined, color: AppTheme.primary, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Cambiar banner',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  )
+                : null,
+          ),
+        ),
+        if (_uploading) ...[
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(color: AppTheme.primary),
+        ],
       ],
     );
   }
