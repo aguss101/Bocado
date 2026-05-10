@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
 import 'package:flutter_module/screens/feed_screen.dart';
 import 'package:flutter_module/screens/shared_drawer.dart';
+import '../services/receta_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
@@ -141,8 +140,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isLoading = true;
   RecipeDetailData? _data;
 
-  static const _channel = MethodChannel('com.example.bocado/recetas');
-
   @override
   void initState() {
     super.initState();
@@ -150,28 +147,23 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _traerDetalleDeLaReceta() async {
-      try{
-        final jsonString = await _channel.invokeMethod('getRecetaDetalle', {'id': widget.idReceta});
-        final List<dynamic> jsonList = jsonDecode(jsonString);
-        if(jsonList.isNotEmpty){
-          final Map<String, dynamic> recetaJson = jsonList.first;
-          if(mounted){
-            setState(() {
-              _data = RecipeDetailData.fromJson(
-                recetaJson,
-                widget.protFeed,
-                widget.carbFeed,
-                widget.grasFeed,
-              );
-              _isLoading = false;
-            });
-          }
-        }
-      } catch (e){
-        print ("Error del traer de java: $e");
-        if(mounted) setState(() {_isLoading = false;});
+    try {
+      final recetaJson = await RecetaService.getRecetaDetalle(widget.idReceta);
+      if (mounted) {
+        setState(() {
+          _data = RecipeDetailData.fromJson(
+            recetaJson,
+            widget.protFeed,
+            widget.carbFeed,
+            widget.grasFeed,
+          );
+          _isLoading = false;
+        });
       }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
 
 
   @override

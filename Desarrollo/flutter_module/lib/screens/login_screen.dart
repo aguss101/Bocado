@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
+import '../services/usuario_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
@@ -25,9 +24,6 @@ bool _rememberMe = false;
 bool _isLoading = false;
 String? _errorMessage;
 
-static const _channel = MethodChannel('com.example.bocado/access');
-
-/// Login usando Java → Supabase (HTTP)
 Future<void> _login() async {
 final usuario = _emailController.text.trim();
 final contrasena = _passwordController.text;
@@ -43,12 +39,7 @@ _errorMessage = null;
 });
 
 try {
-  final String response = await _channel.invokeMethod(
-    'loginJava',
-    {'usuario': usuario, 'contrasena': contrasena},
-  );
-
-  final data = jsonDecode(response);
+  final user = await UsuarioService.login(usuario, contrasena);
 
   if (mounted) {
     Navigator.pushReplacement(
@@ -56,7 +47,7 @@ try {
       MaterialPageRoute(
         builder: (_) => FeedScreen(
           themeNotifier: widget.themeNotifier,
-            user: usuario_Logged(data['id'], data['id_cuenta'], data['usuario'], data['foto'], data['banner'])
+          user: user,
         ),
       ),
     );

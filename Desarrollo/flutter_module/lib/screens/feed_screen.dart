@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/receta_feed.dart';
+import '../services/receta_service.dart';
 import 'recipe_detail.dart';
 import 'shared_drawer.dart';
 
@@ -26,30 +25,23 @@ class _FeedScreenState extends State<FeedScreen> {
   List<RecetaFeed> recipesFeed = [];
   bool _estaCargando = true;
 
-  static const _channel = MethodChannel('com.example.bocado/recetas');
-
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _traerRecetas();
   }
 
-  Future<void> _traerRecetas() async{
-    try{
-      final recipesJson = await _channel.invokeMethod('getRecetas');
-      final List<dynamic> listDynamic = jsonDecode(recipesJson);
-      final List<RecetaFeed> listRecipes = listDynamic.map((item) => RecetaFeed.fromJson(item)).toList();
-
-      if(mounted){
+  Future<void> _traerRecetas() async {
+    try {
+      final lista = await RecetaService.getRecetas();
+      if (mounted) {
         setState(() {
-          recipesFeed = listRecipes;
-          recipesFeed.shuffle();
+          recipesFeed = lista..shuffle();
           _estaCargando = false;
         });
       }
-    } catch (e){
-      print(e);
-      if(mounted) setState(() {_estaCargando = false;});
+    } catch (e) {
+      if (mounted) setState(() => _estaCargando = false);
     }
   }
 
@@ -61,14 +53,14 @@ class _FeedScreenState extends State<FeedScreen> {
     final borderColor = isDark ? const Color(0xFF2D1D0E) : Colors.grey.shade300;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D0701) : Colors.grey.shade50,
+      backgroundColor: isDark ? AppTheme.bgDark : Colors.grey.shade50,
       endDrawer: SharedDrawer(
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
       ),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0D0701).withValues(alpha: 0.9) : Colors.white,
+        backgroundColor: isDark ? AppTheme.bgDark.withValues(alpha: 0.9) : Colors.white,
         elevation: 0,
         title: Row(
           children: [

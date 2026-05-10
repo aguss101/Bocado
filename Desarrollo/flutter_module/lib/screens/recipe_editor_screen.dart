@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import '../services/receta_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
@@ -54,7 +54,7 @@ class RecipeEditorScreen extends StatefulWidget {
 
 class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     with TickerProviderStateMixin {
-  final MethodChannel _channel = const MethodChannel("bocado_channel");
+  // Operaciones de receta disponibles via RecetaService
 
   int _step = 1;
 

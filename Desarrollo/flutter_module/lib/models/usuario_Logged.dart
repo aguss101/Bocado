@@ -1,37 +1,32 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
-class usuario_Logged{
+class usuario_Logged {
   int id;
   int id_Cuenta;
   String usuario;
-  String? fotoRaw;
+  String? fotoBase64;
+  String? bannerBase64;
   Uint8List? fotoReady;
-  String? bannerRaw;
   Uint8List? bannerReady;
 
   usuario_Logged(
-      this.id,
-      this.id_Cuenta,
-      this.usuario,
-      this.fotoRaw,
-      this.bannerRaw
-      ){
-    fotoReady = _parseSupabaseBytea(fotoRaw);
-    bannerReady = _parseSupabaseBytea(bannerRaw);
+    this.id,
+    this.id_Cuenta,
+    this.usuario,
+    this.fotoBase64,
+    this.bannerBase64,
+  ) {
+    fotoReady   = _decode(fotoBase64);
+    bannerReady = _decode(bannerBase64);
   }
-  Uint8List? _parseSupabaseBytea(String? pic){
-    if (pic==null || pic.isEmpty) return null;
 
-    String hex = pic;
-
-    if(hex.startsWith(r'\x')){
-      hex = hex.substring(2);
+  static Uint8List? _decode(String? b64) {
+    if (b64 == null || b64.isEmpty) return null;
+    try {
+      return base64Decode(b64);
+    } catch (_) {
+      return null;
     }
-    List<int> bytes = [];
-    for(int i=0; i<hex.length; i+=2){
-      bytes.add((int.parse(hex.substring(i,i + 2), radix: 16)));
-    }
-
-    return Uint8List.fromList(bytes);
   }
 }

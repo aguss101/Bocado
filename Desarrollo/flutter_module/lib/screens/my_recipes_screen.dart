@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../models/receta_feed.dart';
+import '../services/receta_service.dart';
 import 'shared_drawer.dart';
 import 'recipe_detail.dart';
 
@@ -22,17 +22,14 @@ class MyRecipesScreen extends StatefulWidget {
 }
 
 class _MyRecipesScreenState extends State<MyRecipesScreen> {
-  static const Color bgColor = Color(0xFF0D0701);
-  static const Color primaryColor = Color(0xFFD96E11);
+  // AppTheme.bgDark y AppTheme.primary son idénticos a AppTheme.bgDark y AppTheme.primary
   static const Color surfaceColor = Color(0xFF130E09);
-  static const Color textColor = Color(0xFFF8FAFC);
-  static const Color mutedColor = Color(0xFF94A3B8);
-  static const Color borderColor = Color(0xFF1E293B);
+  static const Color textColor    = Color(0xFFF8FAFC);
+  static const Color mutedColor   = Color(0xFF94A3B8);
+  static const Color borderColor  = Color(0xFF1E293B);
 
   List<RecetaFeed> _recetas = [];
   bool _cargando = true;
-
-  static const _channel = MethodChannel('com.example.bocado/recetas');
 
   @override
   void initState() {
@@ -42,17 +39,14 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   Future<void> _cargarRecetas() async {
     try {
-      final jsonString = await _channel.invokeMethod('getRecetasUsuario', {'usuarioId': widget.user.id});
-      final List<dynamic> jsonList = jsonDecode(jsonString);
-
+      final lista = await RecetaService.getRecetasUsuario(widget.user.id);
       if (mounted) {
         setState(() {
-          _recetas = jsonList.map((item) => RecetaFeed.fromJson(item)).toList();
+          _recetas = lista;
           _cargando = false;
         });
       }
     } catch (e) {
-      print('Error cargando recetas: $e');
       if (mounted) setState(() => _cargando = false);
     }
   }
@@ -60,14 +54,14 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppTheme.bgDark,
       endDrawer: SharedDrawer(
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'recetas',
       ),
       appBar: AppBar(
-        backgroundColor: bgColor.withValues(alpha: 0.9),
+        backgroundColor: AppTheme.bgDark.withValues(alpha: 0.9),
         elevation: 0,
         iconTheme: const IconThemeData(color: mutedColor),
         title: Container(
@@ -87,7 +81,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           IconButton(icon: const Icon(Icons.filter_list, color: mutedColor), onPressed: () {}),
           Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: primaryColor),
+              icon: const Icon(Icons.menu, color: AppTheme.primary),
               onPressed: () => Scaffold.of(context).openEndDrawer(),
             ),
           ),
@@ -95,7 +89,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         ],
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -142,7 +136,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: primaryColor,
+        backgroundColor: AppTheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -186,7 +180,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
-                        colors: [bgColor.withValues(alpha: 0.8), Colors.transparent],
+                        colors: [AppTheme.bgDark.withValues(alpha: 0.8), Colors.transparent],
                       ),
                     ),
                   ),
@@ -262,9 +256,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         const SizedBox(height: 2),
         Row(
           children: [
-            Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+            Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary)),
             const SizedBox(width: 2),
-            const Icon(Icons.star, color: primaryColor, size: 10),
+            const Icon(Icons.star, color: AppTheme.primary, size: 10),
           ],
         ),
       ],

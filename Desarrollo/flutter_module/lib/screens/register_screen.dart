@@ -1,12 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'package:flutter_module/screens/feed_screen.dart';
+import '../services/usuario_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
+import 'feed_screen.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -35,9 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int? _idNacionSeleccionada;
   int? _idGeneroSeleccionado;
 
-  static const _channel = MethodChannel('com.example.bocado/access');
-
-  Future <void> _register() async{
+  Future<void> _register() async {
     final nombre = _nombreController.text;
     final apellido = _apellidoController.text;
     final email = _emailController.text.trim();
@@ -47,7 +43,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final genero = _idGeneroSeleccionado;
     final fechaNacimiento = _fechaNacimientoSeleccionada;
 
-    if(nacion == null || genero == null || nombre.isEmpty || apellido.isEmpty || email.isEmpty || usuario.isEmpty || password.isEmpty || fechaNacimiento == null){
+    if (nacion == null || genero == null || nombre.isEmpty || apellido.isEmpty ||
+        email.isEmpty || usuario.isEmpty || password.isEmpty || fechaNacimiento == null) {
       setState(() => _errorMessage = 'Completá todos los campos.');
       return;
     }
@@ -57,45 +54,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _errorMessage = null;
     });
 
-    try{
-      final String response = await _channel.invokeMethod(
-        'registerJava',
-          {'nacion': nacion, 'genero': genero, 'nombre': nombre, 'apellido': apellido, 'email': email, 'usuario': usuario, 'password': password, 'fechaNacimiento': fechaNacimiento?.toIso8601String()}
+    try {
+      final user = await UsuarioService.registrar(
+        nacion: nacion,
+        genero: genero,
+        nombre: nombre,
+        apellido: apellido,
+        email: email,
+        usuario: usuario,
+        password: password,
+        fechaNacimiento: fechaNacimiento.toIso8601String(),
       );
-      final data = jsonDecode(response);
 
-      if(mounted){
-        Navigator.pushReplacement(context,
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
           MaterialPageRoute(
-              builder: (_) => FeedScreen(
-                  themeNotifier: widget.themeNotifier,
-                user: usuario_Logged(data['id'], data['id_cuenta'], data['usuario'], data['foto'], data['banner'])
-              ),
+            builder: (_) => FeedScreen(themeNotifier: widget.themeNotifier, user: user),
           ),
         );
       }
-    } on PlatformException catch (e){
+    } on PlatformException catch (e) {
       setState(() {
-        switch(e.code){
+        switch (e.code) {
           case 'REGISTRO_VACIO':
-            _errorMessage = 'Se creó pero no devolvio datos.';
+            _errorMessage = 'Se creó pero no devolvió datos.';
             break;
           case 'ERROR_REGISTRO':
-            _errorMessage = e.message ?? "Fallo al crear el usuario.";
+            _errorMessage = e.message ?? 'Fallo al crear el usuario.';
             break;
           case 'NETWORK_ERROR':
-            _errorMessage = "Error de conexión con el servidor.";
+            _errorMessage = 'Error de conexión con el servidor.';
             break;
           default:
-            _errorMessage = "Error inesperado.";
-            break;
+            _errorMessage = 'Error inesperado.';
         }
       });
-    } catch (e){
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally{
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -132,22 +129,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.initState();
     _traerDatosdelaBase();
   }
-  Future <void> _traerDatosdelaBase() async{
-    try{
-      final nacionesJson = await _channel.invokeMethod("getNaciones");
-      final generosJson = await _channel.invokeMethod("getGeneros");
-
-      if(mounted){
+  Future<void> _traerDatosdelaBase() async {
+    try {
+      final naciones = await UsuarioService.getNaciones();
+      final generos  = await UsuarioService.getGeneros();
+      if (mounted) {
         setState(() {
-          _naciones = jsonDecode(nacionesJson);
-          _generos = jsonDecode(generosJson);
+          _naciones = naciones;
+          _generos  = generos;
           _cargandoOpciones = false;
         });
       }
-    } catch (e){
-      if(mounted){
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _errorMessage = "No se pudieron cargar las opciones: $e";
+          _errorMessage = 'No se pudieron cargar las opciones: $e';
           _cargandoOpciones = false;
         });
       }
