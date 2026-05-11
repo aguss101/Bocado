@@ -17,6 +17,7 @@ class RecetaFeed {
   final int cantidadComentarios;
   final double promedioCalificacion;
   final int cantidadFavoritos;
+  final List<Map<String, dynamic>> interacciones;
 
   ///Nutrientes:
   final double proteinasTotales;
@@ -37,6 +38,7 @@ class RecetaFeed {
     required this.cantidadComentarios,
     required this.promedioCalificacion,
     required this.cantidadFavoritos,
+    required this.interacciones,
     required this.proteinasTotales,
     required this.carbohidratosTotales,
     required this.grasasTotales
@@ -64,11 +66,18 @@ class RecetaFeed {
       cantidadComentarios: json['cant_comentarios'] ?? 0,
       promedioCalificacion: (json['promedio_calificacion'] ?? 0).toDouble(),
       cantidadFavoritos: json['cant_favoritos'] ?? 0,
+      interacciones: (json['lista_interacciones'] as List?)?.map((item)=> Map<String, dynamic>.from(item)).toList() ?? [],
 
       ///Nutrientes:
       proteinasTotales: (json['proteinas_totales'] ?? 0).toDouble(),
       carbohidratosTotales: (json['carbohidratos_totales'] ?? 0).toDouble(),
       grasasTotales: (json['grasas_totales'] ?? 0).toDouble(),
     );
+  }
+  bool isLikedBy(int idUsuario){
+    return interacciones.any((i)=> i['tipo'] == 'like' && i['id_usuario'] == idUsuario);
+  }
+  bool isSavedBy(int idUsuario){
+    return interacciones.any((i)=> i['tipo'] == 'save' && i['id_usuario'] == idUsuario);
   }
 }

@@ -6,6 +6,7 @@ import '../models/receta_feed.dart';
 import '../services/receta_service.dart';
 import 'recipe_detail.dart';
 import 'shared_drawer.dart';
+import 'package:share_plus/share_plus.dart';
 
 class FeedScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
@@ -44,6 +45,8 @@ class _FeedScreenState extends State<FeedScreen> {
       if (mounted) setState(() => _estaCargando = false);
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +145,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     borderColor: borderColor,
                     secondary: secondary,
                     receta: recetaActual,
+                    id_usuario: widget.user.id
                   ),
                 );
               },
@@ -159,12 +163,14 @@ class _FeedArticleCard extends StatefulWidget {
   final Color borderColor;
   final Color secondary;
   final RecetaFeed receta;
+  final int id_usuario;
 
   const _FeedArticleCard({
     required this.surfaceColor,
     required this.borderColor,
     required this.secondary,
     required this.receta,
+    required this.id_usuario
   });
 
   @override
@@ -172,8 +178,65 @@ class _FeedArticleCard extends StatefulWidget {
 }
 
 class _FeedArticleCardState extends State<_FeedArticleCard> {
-  bool _isLiked = false;
-  bool _isSaved = false;
+  late bool _isLiked;
+  late bool _isSaved;
+  late int _likesLocales;
+
+  @override
+  void initState(){
+    super.initState();
+    _isLiked=widget.receta.isLikedBy(widget.id_usuario);
+    _isSaved=widget.receta.isSavedBy(widget.id_usuario);
+    _likesLocales = widget.receta.cantidadFavoritos;
+  }
+
+  Future<void> _handleLike() async{
+    setState(()=> {
+      _isLiked = !_isLiked,
+      _isLiked ? _likesLocales++ : _likesLocales--
+    });
+
+    try{
+      await RecetaService.toggleInteraction({
+        'id_usuario': widget.id_usuario,
+        'id_receta': widget.receta.idReceta,
+        'tipo': 'like',
+        'is_adding': _isLiked,
+      });
+    } catch(e){
+      if(mounted){
+        setState(()=> {
+          _isLiked = !_isLiked,
+          _isLiked ? _likesLocales++ : _likesLocales--
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar el Like. Revisa tu conexión.')));
+      }
+    }
+  }
+  Future<void> _handleSave() async{
+    setState(()=> _isSaved = !_isSaved);
+
+    try{
+      await RecetaService.toggleInteraction({
+        'id_usuario': widget.id_usuario,
+        'id_receta': widget.receta.idReceta,
+        'tipo': 'save',
+        'is_adding': _isSaved,
+      });
+    } catch(e){
+      if(mounted){
+        setState(()=> _isSaved = !_isSaved);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar la receta. Revisa tu conexión.')));
+      }
+    }
+  }
+  void _handleShare() {
+    final String textoCompartir =
+        '¡Mirá esta receta de ${widget.receta.nombre} en Bocado! 👨‍🍳\n\n'
+        'Rinde ${widget.receta.porciones} porciones y tiene ${widget.receta.caloriasTotales.toInt()} calorías.\n'
+        '¡Descargá la app para ver los ingredientes y prepararla!';
+    SharePlus.instance.share(ShareParams(text: textoCompartir));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +382,9 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                       children: [
                         _buildActionButton(
                           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                          label: '${widget.receta.cantidadFavoritos}', // Dinámico
+                          label: '$_likesLocales', // Dinámico
                           color: _isLiked ? AppTheme.primary : widget.secondary,
-                          onTap: () => setState(() { _isLiked = !_isLiked; }),
+                          onTap: _handleLike,
                         ),
                         const SizedBox(width: 20),
                         _buildActionButton(
@@ -335,12 +398,12 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                           icon: Icons.share_outlined,
                           label: 'Compartir',
                           color: widget.secondary,
-                          onTap: () {},
+                          onTap: _handleShare,
                         ),
                       ],
                     ),
                     GestureDetector(
-                      onTap: () => setState(() => _isSaved = !_isSaved),
+                      onTap: _handleSave,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(

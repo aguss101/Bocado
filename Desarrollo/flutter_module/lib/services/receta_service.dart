@@ -49,4 +49,9 @@ class RecetaService {
     final result = await _channel.invokeMethod('saveReceta', datos);
     return jsonDecode(result as String) as Map<String, dynamic>;
   }
+
+  static Future<bool> toggleInteraction(Map<String, dynamic> datos) async{
+    final result = await _channel.invokeMethod('toggleInteraction', datos);
+    return result as bool;
+  }
 }
