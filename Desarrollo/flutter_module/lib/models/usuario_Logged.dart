@@ -9,14 +9,18 @@ class usuario_Logged {
   String? bannerBase64;
   Uint8List? fotoReady;
   Uint8List? bannerReady;
+  String? fotoUrl;
+  String? bannerUrl;
 
   usuario_Logged(
     this.id,
     this.id_Cuenta,
     this.usuario,
     this.fotoBase64,
-    this.bannerBase64,
-  ) {
+    this.bannerBase64, {
+    this.fotoUrl,
+    this.bannerUrl,
+  }) {
     fotoReady   = _decode(fotoBase64);
     bannerReady = _decode(bannerBase64);
   }

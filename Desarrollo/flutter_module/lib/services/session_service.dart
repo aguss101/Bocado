@@ -7,6 +7,8 @@ class SessionService {
   static const _keyUsuario   = 'session_usuario';
   static const _keyFoto      = 'session_foto';
   static const _keyBanner    = 'session_banner';
+  static const _keyFotoUrl   = 'session_foto_url';
+  static const _keyBannerUrl = 'session_banner_url';
 
   /// Persiste los datos del usuario logueado en el dispositivo.
   static Future<void> saveSession(usuario_Logged user) async {
@@ -14,8 +16,10 @@ class SessionService {
     await prefs.setInt(_keyId,       user.id);
     await prefs.setInt(_keyIdCuenta, user.id_Cuenta);
     await prefs.setString(_keyUsuario, user.usuario);
-    if (user.fotoBase64   != null) await prefs.setString(_keyFoto,   user.fotoBase64!);
-    if (user.bannerBase64 != null) await prefs.setString(_keyBanner, user.bannerBase64!);
+    if (user.fotoBase64   != null) await prefs.setString(_keyFoto,      user.fotoBase64!);
+    if (user.bannerBase64 != null) await prefs.setString(_keyBanner,    user.bannerBase64!);
+    if (user.fotoUrl      != null) await prefs.setString(_keyFotoUrl,   user.fotoUrl!);
+    if (user.bannerUrl    != null) await prefs.setString(_keyBannerUrl, user.bannerUrl!);
   }
 
   /// Devuelve el usuario guardado, o null si no hay sesión activa.
@@ -30,6 +34,8 @@ class SessionService {
       prefs.getString(_keyUsuario) ?? '',
       prefs.getString(_keyFoto),
       prefs.getString(_keyBanner),
+      fotoUrl:   prefs.getString(_keyFotoUrl),
+      bannerUrl: prefs.getString(_keyBannerUrl),
     );
   }
 

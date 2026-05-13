@@ -4,16 +4,20 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
+import '../services/usuario_service.dart';
+import '../services/session_service.dart';
 import 'shared_drawer.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final usuario_Logged user;
   final ThemeNotifier themeNotifier;
+  final void Function(usuario_Logged)? onSaved;
 
   const EditProfileScreen({
     super.key,
     required this.user,
     required this.themeNotifier,
+    this.onSaved,
   });
 
   @override
@@ -28,6 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _fotoUrl;
   String? _bannerUrl;
   bool _uploading = false;
+  bool _saving    = false;
 
   @override
   void initState() {
@@ -43,14 +48,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _guardarCambios() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _guardarCambios() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await UsuarioService.actualizarPerfil(
+        id:        widget.user.id,
+        usuario:   _usuarioCtrl.text.trim(),
+        correo:    _correoCtrl.text.trim().isEmpty ? null : _correoCtrl.text.trim(),
+        genero:    _genero,
+        fotoUrl:   _fotoUrl,
+        bannerUrl: _bannerUrl,
+      );
+      final updatedUser = usuario_Logged(
+        widget.user.id,
+        widget.user.id_Cuenta,
+        _usuarioCtrl.text.trim(),
+        widget.user.fotoBase64,
+        widget.user.bannerBase64,
+        fotoUrl:   _fotoUrl   ?? widget.user.fotoUrl,
+        bannerUrl: _bannerUrl ?? widget.user.bannerUrl,
+      );
+      await SessionService.saveSession(updatedUser);
+      widget.onSaved?.call(updatedUser);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Cambios guardados correctamente'),
           backgroundColor: AppTheme.primary,
         ),
       );
+      Navigator.pop(context);
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -485,9 +520,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      onPressed: _guardarCambios,
-                      child: const Text('Guardar cambios',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _saving ? null : _guardarCambios,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Guardar cambios',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

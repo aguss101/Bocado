@@ -22,11 +22,13 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late usuario_Logged _user;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _user = widget.user;
   }
 
   @override
@@ -47,7 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: bg,
       endDrawer: SharedDrawer(
-        user: widget.user,
+        user: _user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'perfil',
       ),
@@ -153,9 +155,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         fit: StackFit.expand,
         children: [
           // Imagen de banner o color sólido
-          widget.user.bannerReady != null
-              ? Image.memory(widget.user.bannerReady!, fit: BoxFit.cover)
-              : Container(
+          _user.bannerUrl != null
+              ? Image.network(_user.bannerUrl!, fit: BoxFit.cover)
+              : _user.bannerReady != null
+                  ? Image.memory(_user.bannerReady!, fit: BoxFit.cover)
+                  : Container(
                   color: isDark
                       ? const Color(0xFF1A1108)
                       : const Color(0xFFF5E0C8),
@@ -230,15 +234,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                             borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditProfileScreen(
-                            user: widget.user,
-                            themeNotifier: widget.themeNotifier,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditProfileScreen(
+                              user: _user,
+                              themeNotifier: widget.themeNotifier,
+                              onSaved: (updated) {
+                                setState(() => _user = updated);
+                              },
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                       child: const Text('Editar Perfil',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13)),
@@ -272,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.user.usuario,
+                  _user.usuario,
                   style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -280,14 +289,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '@${widget.user.usuario.toLowerCase().replaceAll(' ', '_')}',
+                  '@${_user.usuario.toLowerCase().replaceAll(' ', '_')}',
                   style: TextStyle(color: muted, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 // Badges
                 Row(
                   children: [
-                    if (widget.user.id_Cuenta == 2)
+                    if (_user.id_Cuenta == 2)
                       _badge(
                           icon: Icons.verified_outlined,
                           label: 'PRO',
@@ -319,19 +328,21 @@ class _ProfileScreenState extends State<ProfileScreen>
         color: AppTheme.primary.withValues(alpha: 0.15),
       ),
       clipBehavior: Clip.antiAlias,
-      child: widget.user.fotoReady != null
-          ? Image.memory(widget.user.fotoReady!, fit: BoxFit.cover)
-          : Center(
-              child: Text(
-                widget.user.usuario.isNotEmpty
-                    ? widget.user.usuario[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primary),
-              ),
-            ),
+      child: _user.fotoUrl != null
+          ? Image.network(_user.fotoUrl!, fit: BoxFit.cover)
+          : _user.fotoReady != null
+              ? Image.memory(_user.fotoReady!, fit: BoxFit.cover)
+              : Center(
+                  child: Text(
+                    _user.usuario.isNotEmpty
+                        ? _user.usuario[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.primary),
+                  ),
+                ),
     );
   }
 

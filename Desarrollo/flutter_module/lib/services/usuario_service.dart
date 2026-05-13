@@ -59,4 +59,22 @@ class UsuarioService {
     final String json = await _channel.invokeMethod('getGeneros');
     return jsonDecode(json);
   }
+
+  static Future<void> actualizarPerfil({
+    required int id,
+    required String usuario,
+    String? correo,
+    String? genero,
+    String? fotoUrl,
+    String? bannerUrl,
+  }) async {
+    await _channel.invokeMethod('actualizarPerfil', {
+      'id': id,
+      'usuario': usuario,
+      if (correo != null && correo.isNotEmpty) 'correo': correo,
+      if (genero != null) 'genero': genero,
+      if (fotoUrl != null) 'fotoUrl': fotoUrl,
+      if (bannerUrl != null) 'bannerUrl': bannerUrl,
+    });
+  }
 }

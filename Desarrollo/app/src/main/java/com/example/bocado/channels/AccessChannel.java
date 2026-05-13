@@ -10,6 +10,7 @@ import com.example.bocado.entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
+import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ public class AccessChannel {
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
             case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
+            case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             default -> result.notImplemented();
         }
     }
@@ -96,6 +98,44 @@ public class AccessChannel {
         config.put("url", url);
         config.put("key", BuildConfig.SUPABASE_KEY);
         result.success(config);
+    }
+
+    private void handleActualizarPerfil(MethodCall call, MethodChannel.Result result) {
+        try {
+            int id = call.argument("id");
+            JSONObject actualizaciones = new JSONObject();
+
+            String usuario = call.argument("usuario");
+            if (usuario != null && !usuario.trim().isEmpty())
+                actualizaciones.put("usuario", usuario.trim());
+
+            String correo = call.argument("correo");
+            if (correo != null && !correo.trim().isEmpty())
+                actualizaciones.put("correo", correo.trim());
+
+            String genero = call.argument("genero");
+            if (genero != null && !genero.trim().isEmpty())
+                actualizaciones.put("genero", genero.trim());
+
+            String fotoUrl = call.argument("fotoUrl");
+            if (fotoUrl != null && !fotoUrl.trim().isEmpty())
+                actualizaciones.put("foto_url", fotoUrl.trim());
+
+            String bannerUrl = call.argument("bannerUrl");
+            if (bannerUrl != null && !bannerUrl.trim().isEmpty())
+                actualizaciones.put("banner_url", bannerUrl.trim());
+
+            usuarioManager.actualizar(id, actualizaciones, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    activity.runOnUiThread(() -> result.success("ok"));
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (Exception e) {
+            result.error("ERROR_INTERNO", e.getMessage(), null);
+        }
     }
 
     private void handleGetGeneros(MethodChannel.Result result) {
