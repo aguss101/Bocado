@@ -1,9 +1,33 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/usuario_Logged.dart';
 
 class UsuarioService {
   static const _channel = MethodChannel('com.example.bocado/access');
+
+  static Future<usuario_Logged> loginOrCreate(GoogleSignInAccount user) async{
+    List<String> partes = user.displayName?.split(' ') ?? [];
+    String nombre = partes.isNotEmpty ? partes.first: '';
+    String apellido = partes.length > 1 ? partes.sublist(1).join(''): '';
+
+    final String response = await _channel.invokeMethod('loginOrCreateGoogle',{
+      'googleId': user.id,
+      'email': user.email,
+      'nombre': nombre,
+      'apellido': apellido,
+      'foto': user.photoUrl ?? '',
+    },
+    );
+    final data = jsonDecode(response);
+    return usuario_Logged(
+      data['id'],
+      data['id_cuenta'],
+      data['usuario'],
+      data['foto'],
+      data['banner'],
+    );
+  }
 
   static Future<usuario_Logged> login(String usuario, String contrasena) async {
     final String response = await _channel.invokeMethod(

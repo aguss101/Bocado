@@ -33,6 +33,7 @@ public class AccessChannel {
             case "loginJava"         -> handleLogin(call, result);
             case "register"          -> handleRegister(call, result);
             case "registerJava"      -> handleRegister(call, result);
+            case "loginOrCreateGoogle" -> handleVerify(call,result);
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
             case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
@@ -41,6 +42,24 @@ public class AccessChannel {
         }
     }
 
+    private void handleVerify(MethodCall call, MethodChannel.Result result){
+        String googleId = call.argument("googleId");
+        String email    = call.argument("email");
+        String nombre   = call.argument("nombre");
+        String apellido = call.argument("apellido");
+        String foto     = call.argument("foto");
+
+        usuarioManager.loginOrCreateGoogle(email, googleId, nombre, apellido, foto, new CallbackCB() {
+            @Override
+            public void onSuccess(String response) {
+                activity.runOnUiThread(() -> result.success(response));
+            }
+            @Override
+            public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        });
+    }
     private void handleLogin(MethodCall call, MethodChannel.Result result) {
         String usuario   = call.argument("usuario");
         String contrasena = call.argument("contrasena");

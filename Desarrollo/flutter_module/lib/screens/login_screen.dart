@@ -8,6 +8,7 @@ import '../widgets/auth_scaffold.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'feed_screen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
 final ThemeNotifier themeNotifier;
@@ -271,7 +272,63 @@ const SizedBox(height: 20),
 const AuthDivider(label: 'O'),
 const SizedBox(height: 20),
 
-GoogleButton(onTap: () {}),
+GoogleButton(
+  onTap: () async {
+    try {
+      final googleSignIn = GoogleSignIn();
+      final usuario = await googleSignIn.signIn();
+
+      if(usuario == null) return;
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        final user = await UsuarioService.loginOrCreate(usuario);
+
+        if (_rememberMe) await SessionService.saveSession(user);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FeedScreen(
+                themeNotifier: widget.themeNotifier,
+                user: user,
+              ),
+            ),
+          );
+        }
+
+      } on PlatformException catch (e) {
+        setState(() {
+          switch (e.code) {
+            case 'ERROR_REGISTRO':
+              _errorMessage = 'No se pudo autenticar con Google en la base de datos.';
+              break;
+            case 'ERROR_INTERNO':
+              _errorMessage = 'Error procesando el perfil.';
+              break;
+            default:
+              _errorMessage = 'Error inesperado.';
+          }
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'Error procesando la respuesta.';
+        });
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+
+    } catch (e) {
+      print(e.toString());
+    }
+  },
+),
+
 const SizedBox(height: 28),
 
 Divider(color: outline),

@@ -12,6 +12,46 @@ import org.json.JSONObject;
 public class UsuarioDAO implements IUsuario {
 
     @Override
+    public void loginOrCreateGoogle(String email, String googleId, String nombre, String apellido, String foto, CallbackCB cb) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("p_correo", email);
+            json.put("p_nombre", nombre);
+            json.put("p_apellido", apellido);
+            json.put("p_foto", foto);
+            json.put("p_google_id", googleId);
+
+            RpcCallHelper.callAsync("login_or_create_google", json, new CallbackCB() {
+                @Override
+                public void onSuccess(String response) {
+                    JSONObject obj = RpcCallHelper.firstOrNull(response);
+
+                    if (obj == null) {
+                        cb.onError(ErrorCode.ERROR_REGISTRO, "No se pudo autenticar con Google en la base de datos.", null);
+                        return;
+                    }
+
+                    try {
+                        obj.put("foto", RpcCallHelper.byteaToBase64(obj.optString("foto", null)));
+                        obj.put("banner", RpcCallHelper.byteaToBase64(obj.optString("banner", null)));
+                        cb.onSuccess(obj.toString());
+
+                    } catch (Exception e) {
+                        cb.onError(ErrorCode.ERROR_INTERNO, "Error procesando el perfil: " + e.getMessage(), null);
+                    }
+                }
+
+                @Override
+                public void onError(String code, String msg, Object data) {
+                    cb.onError(code, msg, data);
+                }
+            });
+
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error al empaquetar los datos de Google: " + e.getMessage(), null);
+        }
+    }
+    @Override
     public void registrar(Usuario u, CallbackCB cb) {
         try {
             JSONObject json = new JSONObject();

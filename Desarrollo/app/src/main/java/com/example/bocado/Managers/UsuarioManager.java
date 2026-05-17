@@ -11,6 +11,19 @@ public class UsuarioManager {
     public UsuarioManager(IUsuario usuarioDAO) {
         this.usuarioDAO = usuarioDAO;
     }
+    public void loginOrCreateGoogle(String email, String googleId, String nombre, String apellido, String foto, CallbackCB cb){
+        if (email == null || email.trim().isEmpty() || googleId == null || googleId.trim().isEmpty()) {
+            cb.onError("NEGOCIO", "El correo y el ID de Google son obligatorios para continuar.", null);
+            return;
+        }
+
+        if (!email.contains("@") || !email.contains(".")) {
+            cb.onError("NEGOCIO", "El formato del correo electrónico provisto por Google es inválido.", null);
+            return;
+        }
+
+        usuarioDAO.loginOrCreateGoogle(email, googleId, nombre, apellido, foto, cb);
+    }
     public void registrar(Usuario u, CallbackCB cb) {
         if (u.getNombre().trim().isEmpty() || u.getCorreo().trim().isEmpty() || u.getContrasena().trim().isEmpty()) {
             cb.onError("NEGOCIO", "El nombre, correo y contraseña son obligatorios.", null);
