@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:flutter_module/screens/profile_screen.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/receta_feed.dart';
@@ -145,7 +146,8 @@ class _FeedScreenState extends State<FeedScreen> {
                     borderColor: borderColor,
                     secondary: secondary,
                     receta: recetaActual,
-                    id_usuario: widget.user.id
+                    user: widget.user,
+                    themeNotifier: widget.themeNotifier
                   ),
                 );
               },
@@ -163,14 +165,16 @@ class _FeedArticleCard extends StatefulWidget {
   final Color borderColor;
   final Color secondary;
   final RecetaFeed receta;
-  final int id_usuario;
+  final usuario_Logged user;
+  final ThemeNotifier themeNotifier;
 
   const _FeedArticleCard({
     required this.surfaceColor,
     required this.borderColor,
     required this.secondary,
     required this.receta,
-    required this.id_usuario
+    required this.user,
+    required this.themeNotifier
   });
 
   @override
@@ -185,8 +189,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
   @override
   void initState(){
     super.initState();
-    _isLiked=widget.receta.isLikedBy(widget.id_usuario);
-    _isSaved=widget.receta.isSavedBy(widget.id_usuario);
+    _isLiked=widget.receta.isLikedBy(widget.user.id);
+    _isSaved=widget.receta.isSavedBy(widget.user.id);
     _likesLocales = widget.receta.cantidadFavoritos;
   }
 
@@ -198,7 +202,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
 
     try{
       await RecetaService.toggleInteraction({
-        'id_usuario': widget.id_usuario,
+        'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'like',
         'is_adding': _isLiked,
@@ -218,7 +222,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
 
     try{
       await RecetaService.toggleInteraction({
-        'id_usuario': widget.id_usuario,
+        'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'save',
         'is_adding': _isSaved,
@@ -345,7 +349,45 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                     ),
                     IconButton(
                       icon: Icon(Icons.more_horiz, color: widget.secondary),
-                      onPressed: () {},
+                      onPressed: () {
+                        showModalBottomSheet(
+                            context: context,
+                            backgroundColor: const Color(0xFF1E1E1E),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                          builder: (BuildContext context){
+                              return Wrap(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.person, color: Colors.white70),
+                                    title: const Text('Ver Perfil', style: TextStyle(color: Colors.white)),
+                                    onTap: (){
+                                      Navigator.pop(context);
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget,)));
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.report_problem, color: Colors.white70),
+                                    title: const Text('Reportar receta', style: TextStyle(color: Colors.white)),
+                                    onTap: () {
+                                    Navigator.pop(context);
+
+                                    }
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.delete, color: Colors.redAccent),
+                                    title: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+                                    onTap: () {
+                                      Navigator.pop(context);
+
+                                    },
+                                  ),
+                                ],
+                              );
+                          },
+                        );
+                      },
                     ),
                   ],
                 ),

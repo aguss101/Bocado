@@ -101,4 +101,16 @@ class UsuarioService {
       if (bannerUrl != null) 'bannerUrl': bannerUrl,
     });
   }
+
+  static Future<usuario_Logged> getPerfilUsuario(int idUsuarioTarget) async{
+    final String response = await _channel.invokeMethod(
+      'getPerfilUsuario',
+      {'id_usuario': idUsuarioTarget},
+    );
+    final List<dynamic> lista = jsonDecode(response);
+    if(lista.isEmpty) throw Exception('Usuario no encontrado');
+    final Map<String, dynamic> data = lista.first;
+
+    return usuario_Logged.fromJson(data);
+  }
 }

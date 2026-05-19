@@ -38,6 +38,7 @@ public class AccessChannel {
             case "getGeneros"        -> handleGetGeneros(result);
             case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
+            case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             default -> result.notImplemented();
         }
     }
@@ -159,6 +160,19 @@ public class AccessChannel {
 
     private void handleGetGeneros(MethodChannel.Result result) {
         HttpClientManager.getInstance().get("/rest/v1/generos?select=*", new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                activity.runOnUiThread(() -> result.success(body));
+            }
+        });
+    }
+
+    private void handleGetPerfilUsuario(MethodCall call, MethodChannel.Result result){
+        Integer idUsuario = call.argument("id_usuario");
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=*", new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }

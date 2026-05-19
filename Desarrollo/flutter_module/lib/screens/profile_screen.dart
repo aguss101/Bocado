@@ -4,15 +4,18 @@ import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import 'shared_drawer.dart';
 import 'edit_profile_screen.dart';
+import '../services/usuario_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
   final ThemeNotifier themeNotifier;
+  final int? idUsuarioTarget;
 
   const ProfileScreen({
     super.key,
     required this.user,
     required this.themeNotifier,
+    this.idUsuarioTarget
   });
 
   @override
@@ -23,12 +26,40 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late usuario_Logged _user;
+  late bool _isMiPerfil;
+  bool _estaCargandoPerfil = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _user = widget.user;
+    _isMiPerfil = widget.idUsuarioTarget == null || widget.idUsuarioTarget == widget.user.id;
+    _tabController = TabController(length: _isMiPerfil ? 4 : 2, vsync: this);
+    if(_isMiPerfil){
+      _user = widget.user;
+    } else {
+      _user = widget.user;
+      _cargarPerfilTercero(widget.idUsuarioTarget!);
+    }
+  }
+
+  Future<void> _cargarPerfilTercero(int idTarget) async {
+    setState(() => _estaCargandoPerfil = true);
+    try {
+      final usuarioTercero = await UsuarioService.getPerfilUsuario(idTarget);
+      if (mounted) {
+        setState(() {
+          _user = usuarioTercero;
+          _estaCargandoPerfil = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _estaCargandoPerfil = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al cargar el perfil')),
+        );
+      }
+    }
   }
 
   @override
@@ -85,7 +116,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(width: 4),
         ],
       ),
-      body: NestedScrollView(
+      body: _estaCargandoPerfil
+        ? const Center(child: CircularProgressIndicator())
+          : NestedScrollView(
         headerSliverBuilder: (context, _) => [
           SliverToBoxAdapter(
             child: Column(
@@ -107,42 +140,50 @@ class _ProfileScreenState extends State<ProfileScreen>
               ],
             ),
           ),
-          // ── TAB BAR ──
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _StickyTabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppTheme.primary,
-                indicatorWeight: 2,
-                labelColor: AppTheme.primary,
-                unselectedLabelColor: muted,
-                labelStyle: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold),
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: const [
+      // ── TAB BAR ──
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _StickyTabBarDelegate(
+          TabBar(
+            controller: _tabController,
+            indicatorColor: AppTheme.primary,
+            indicatorWeight: 2,
+            labelColor: AppTheme.primary,
+            unselectedLabelColor: muted,
+            labelStyle: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.bold),
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: _isMiPerfil
+                ? const [
                   Tab(text: 'Recetas Publicadas'),
-                  Tab(text: 'Guardados'),
-                  Tab(text: 'Borradores'),
-                  Tab(text: 'Seguidos'),
-                ],
-              ),
-              color: bg,
-              border: border,
-            ),
+              Tab(text: 'Guardados'),
+              Tab(text: 'Borradores'),
+              Tab(text: 'Seguidos'),
+            ] : const[
+              Tab(text: 'Recetas Publicadas'),
+              Tab(text: 'Seguidos'),
+            ],
           ),
-        ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildRecetasTab(surface, border, text, muted),
-            _buildPlaceholderTab('favorite_border', 'Sin guardados aún', muted),
-            _buildPlaceholderTab('draft', 'Sin borradores', muted),
-            _buildSeguidosTab(surface, border, text, muted),
-          ],
+          color: bg,
+          border: border,
         ),
       ),
+    ],
+    body: TabBarView(
+    controller: _tabController,
+    children: _isMiPerfil? [
+    _buildRecetasTab(surface, border, text, muted),
+    _buildPlaceholderTab('favorite_border', 'Sin guardados aún', muted),
+    _buildPlaceholderTab('draft', 'Sin borradores', muted),
+    _buildSeguidosTab(surface, border, text, muted),
+    ]
+      :[
+        _buildRecetasTab(surface, border, text, muted),
+      _buildRecetasTab(surface, border, text, muted),
+    ],
+    ),
+    ),
     );
   }
 
@@ -183,17 +224,18 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           // Botón editar portada
-          Positioned(
-            bottom: 12,
-            right: 16,
-            child: _glassButton(
-              icon: Icons.photo_camera_outlined,
-              label: 'Editar Portada',
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Próximamente')),
+          if(_isMiPerfil)
+            Positioned(
+              bottom: 12,
+              right: 16,
+              child: _glassButton(
+                icon: Icons.photo_camera_outlined,
+                label: 'Editar Portada',
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Próximamente')),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -224,7 +266,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Row(
                   children: [
                     // Editar perfil
-                    ElevatedButton(
+                    _isMiPerfil
+                        ? ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
@@ -249,8 +292,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                         );
                       },
                       child: const Text('Editar Perfil',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13)),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    ) : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Siguiendo...')));
+                      },
+                      child: const Text('Seguir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                     const SizedBox(width: 8),
                     // Compartir

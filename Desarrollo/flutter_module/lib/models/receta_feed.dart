@@ -9,6 +9,7 @@ class RecetaFeed {
   final List<String> etiquetas;
 
   ///Usuario:
+  final int usuarioTarget;
   final String apellidoNombre;
   final String nombreUsuario;
   final String? fotoUsuario;
@@ -32,6 +33,7 @@ class RecetaFeed {
     required this.foto,
     required this.precioPorcion,
     required this.etiquetas,
+    required this.usuarioTarget,
     required this.apellidoNombre,
     required this.nombreUsuario,
     required this.fotoUsuario,
@@ -58,6 +60,7 @@ class RecetaFeed {
       etiquetas: List<String>.from(json['lista_etiquetas'] ?? []),
 
       ///Usuarios:
+      usuarioTarget: json ['id_usuario'] ?? 0,
       apellidoNombre: json['apellido_nombre'] ?? '',
       nombreUsuario: json['usuario'] ?? 'desconocido',
       fotoUsuario: json['foto_perfil'],

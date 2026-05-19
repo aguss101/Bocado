@@ -33,4 +33,15 @@ class usuario_Logged {
       return null;
     }
   }
+  factory usuario_Logged.fromJson(Map<String, dynamic> json) {
+    return usuario_Logged(
+      json['id'] ?? 0,
+      json['id_cuenta'] ?? 1,
+      json['usuario'] ?? 'Usuario Desconocido',
+      null,
+      null,
+      fotoUrl: json['foto'],
+      bannerUrl: json['banner'],
+    );
+  }
 }
