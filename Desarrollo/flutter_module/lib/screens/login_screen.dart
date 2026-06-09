@@ -66,6 +66,12 @@ try {
       case 'NETWORK_ERROR':
         _errorMessage = 'Error de conexión con el servidor.';
         break;
+      case 'NEGOCIO':
+        _errorMessage = e.message ?? 'Revisá los datos ingresados.';
+        break;
+      case 'ERROR_API':
+        _errorMessage = 'El servidor rechazó la solicitud. Intentá de nuevo.';
+        break;
       default:
         _errorMessage = 'Error inesperado.';
     }
@@ -324,7 +330,12 @@ GoogleButton(
       }
 
     } catch (e) {
-      print(e.toString());
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'No se pudo iniciar sesión con Google.';
+        });
+      }
     }
   },
 ),

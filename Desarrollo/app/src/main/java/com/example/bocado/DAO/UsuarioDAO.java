@@ -30,15 +30,8 @@ public class UsuarioDAO implements IUsuario {
                         cb.onError(ErrorCode.ERROR_REGISTRO, "No se pudo autenticar con Google en la base de datos.", null);
                         return;
                     }
-
-                    try {
-                        obj.put("foto", RpcCallHelper.byteaToBase64(obj.optString("foto", null)));
-                        obj.put("banner", RpcCallHelper.byteaToBase64(obj.optString("banner", null)));
-                        cb.onSuccess(obj.toString());
-
-                    } catch (Exception e) {
-                        cb.onError(ErrorCode.ERROR_INTERNO, "Error procesando el perfil: " + e.getMessage(), null);
-                    }
+                    // foto/banner ya son URLs de Storage (text) → se pasan tal cual.
+                    cb.onSuccess(obj.toString());
                 }
 
                 @Override
@@ -54,10 +47,19 @@ public class UsuarioDAO implements IUsuario {
     @Override
     public void registrar(Usuario u, CallbackCB cb) {
         try {
+            // La función registrar_usuario(p_data jsonb) espera TODOS los campos.
+            JSONObject data = new JSONObject();
+            data.put("usuario", u.getUsuario());
+            data.put("correo", u.getCorreo());
+            data.put("contrasena", u.getContrasena());
+            data.put("nombre", u.getNombre());
+            data.put("apellido", u.getApellido());
+            data.put("id_nacion", Integer.parseInt(u.getNacion()));
+            data.put("id_genero", Integer.parseInt(u.getGenero()));
+            data.put("fecha_nacimiento", u.getFechaNacimientoIso());
+
             JSONObject json = new JSONObject();
-            json.put("p_usuario", u.getUsuario());
-            json.put("p_correo", u.getCorreo());
-            json.put("p_contrasena", u.getContrasena());
+            json.put("p_data", data);
 
             RpcCallHelper.callAsync("registrar_usuario", json, new CallbackCB() {
                 @Override
@@ -98,14 +100,8 @@ public class UsuarioDAO implements IUsuario {
                         cb.onError(ErrorCode.CRED_INVALIDAS, "Usuario o contraseña incorrectos", null);
                         return;
                     }
-                    try {
-                        // Convertir bytea → Base64 aquí para que Flutter no tenga lógica de DB
-                        obj.put("foto", RpcCallHelper.byteaToBase64(obj.optString("foto", null)));
-                        obj.put("banner", RpcCallHelper.byteaToBase64(obj.optString("banner", null)));
-                        cb.onSuccess(obj.toString());
-                    } catch (Exception e) {
-                        cb.onError(ErrorCode.ERROR_INTERNO, e.getMessage(), null);
-                    }
+                    // foto/banner ya son URLs de Storage (text) → se pasan tal cual.
+                    cb.onSuccess(obj.toString());
                 }
 
                 @Override

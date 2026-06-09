@@ -20,13 +20,7 @@ class UsuarioService {
     },
     );
     final data = jsonDecode(response);
-    return usuario_Logged(
-      data['id'],
-      data['id_cuenta'],
-      data['usuario'],
-      data['foto'],
-      data['banner'],
-    );
+    return usuario_Logged.fromJson(data);
   }
 
   static Future<usuario_Logged> login(String usuario, String contrasena) async {
@@ -35,13 +29,16 @@ class UsuarioService {
       {'usuario': usuario, 'contrasena': contrasena},
     );
     final data = jsonDecode(response);
-    return usuario_Logged(
-      data['id'],
-      data['id_cuenta'],
-      data['usuario'],
-      data['foto'],
-      data['banner'],
-    );
+    return usuario_Logged.fromJson(data);
+  }
+
+  /// Revalida contra la BD que la cuenta exista y siga activa.
+  /// Devuelve true si está vigente; lanza PlatformException si no hay red.
+  static Future<bool> sesionVigente(int id) async {
+    final String response =
+        await _channel.invokeMethod('validarSesion', {'id_usuario': id});
+    final List<dynamic> lista = jsonDecode(response);
+    return lista.isNotEmpty;
   }
 
   static Future<usuario_Logged> registrar({

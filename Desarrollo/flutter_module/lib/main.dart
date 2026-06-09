@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_notifier.dart';
@@ -6,6 +7,7 @@ import 'screens/login_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/recipe_editor_screen.dart';
 import 'services/session_service.dart';
+import 'services/usuario_service.dart';
 import 'config/debug_config.dart';
 import 'config/supabase_config.dart';
 
@@ -23,6 +25,17 @@ void main() async {
 
   try {
     savedUser = await SessionService.loadSession();
+    if (savedUser != null) {
+      try {
+        final vigente = await UsuarioService.sesionVigente(savedUser.id);
+        if (!vigente) {
+          await SessionService.clearSession();
+          savedUser = null;
+        }
+      } on PlatformException {
+        // Sin conexión: confiamos en la sesión cacheada (modo offline).
+      }
+    }
   } catch (e) {
     initError ??= 'SessionService.loadSession() falló: $e';
   }

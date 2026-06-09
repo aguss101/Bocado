@@ -13,6 +13,7 @@ public class Usuario
     private String usuario;
     private String contrasena;
     private Timestamp fecha_Nacimiento;
+    private String fechaNacimientoIso; // ISO 8601 crudo desde Flutter (para registro)
     private Timestamp fecha_Creacion;
     private Timestamp fecha_Acceso;
     private boolean activo;
@@ -168,5 +169,13 @@ public class Usuario
 
     public void setBanner(byte[] banner) {
         this.banner = banner;
+    }
+
+    public String getFechaNacimientoIso() {
+        return fechaNacimientoIso;
+    }
+
+    public void setFechaNacimientoIso(String fechaNacimientoIso) {
+        this.fechaNacimientoIso = fechaNacimientoIso;
     }
 }

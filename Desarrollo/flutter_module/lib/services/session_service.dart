@@ -47,5 +47,7 @@ class SessionService {
     await prefs.remove(_keyUsuario);
     await prefs.remove(_keyFoto);
     await prefs.remove(_keyBanner);
+    await prefs.remove(_keyFotoUrl);
+    await prefs.remove(_keyBannerUrl);
   }
 }
