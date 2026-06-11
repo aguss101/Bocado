@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Requerido para MethodChannel
+import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/image_upload_service.dart';
@@ -15,7 +15,7 @@ const _outline = Color(0xFFE8CCB1);
 const _onSurface = Color(0xFF0F172A);
 const _onSurfaceVariant = Color(0xFF475569);
 const _error = Color(0xFFB91C1C);
-const bool _isDebug = true; // Flag de control para pruebas del Step 4
+const bool _isDebug = true;
 
 class _Ingredient {
   final int idAlimento;
@@ -23,7 +23,8 @@ class _Ingredient {
   final String category;
   String quantity;
   final String unit;
-  final double price;
+  final double priceBase;
+  final int idMedida;
 
   _Ingredient({
     required this.idAlimento,
@@ -31,14 +32,16 @@ class _Ingredient {
     required this.category,
     required this.quantity,
     required this.unit,
-    required this.price,
+    required this.priceBase,
+    required this.idMedida,
   });
+
   double get subtotal {
     final qty = double.tryParse(quantity) ?? 0.0;
-    if (unit.toLowerCase() == 'gr' || unit.toLowerCase() == 'ml') {
-      return (price / 100.0) * qty;
+    if (idMedida == 1 || idMedida == 2) {
+      return (priceBase / 100.0) * qty;
     }
-    return price * qty;
+    return priceBase * qty;
   }
 }
 
@@ -52,7 +55,6 @@ class _RecipeStep {
 class RecipeEditorScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final usuario_Logged user;
-
   const RecipeEditorScreen({
     super.key,
     required this.themeNotifier,
@@ -75,13 +77,16 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
 
+
   // Step 2
   final _ingSearchCtrl = TextEditingController();
   final List<_Ingredient> _ingredients = [];
-
   List<Map<String, dynamic>> _dbAlimentosMaster = [];
   List<Map<String, dynamic>> _suggestions = [];
   bool _cargandoAlimentos = true;
+  final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  bool _isSearching = false;
 
   // Step 3
   final _prepCtrl = TextEditingController();
@@ -100,6 +105,23 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     super.initState();
     _cargarAlimentosDesdeDB();
     _ingSearchCtrl.addListener(_onSearchChanged);
+    _searchFocusNode.addListener(() {
+      if (_searchFocusNode.hasFocus) {
+        // Pequeño delay para asegurar que el teclado abrió
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              150, // Ajusta este valor según la altura de tu header
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+            _searchFocusNode.addListener(() {
+              setState(() => _isSearching = _searchFocusNode.hasFocus);
+            });
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -186,7 +208,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         category: item['categoria'] ?? 'General',
         quantity: '100',
         unit: 'gr',
-        price: (item['precio'] != null) ? double.tryParse(item['precio'].toString()) ?? 0.0 : 0.0,
+        priceBase: (item['precio'] != null) ? double.tryParse(item['precio'].toString()) ?? 0.0 : 0.0,
+        idMedida: 1,
       ));
     });
   }
@@ -205,7 +228,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     String instruccionesConcatenadas = _pasos.asMap().entries.map((e) {
       return '${e.key + 1}. ${e.value.description}';
     }).join('\n');
-
     if (instruccionesConcatenadas.isEmpty) {
       instruccionesConcatenadas = _prepCtrl.text.trim();
     }
@@ -221,10 +243,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       'ingredientes': _ingredients.map((ing) => {
         'id_alimento': ing.idAlimento,
         'cantidad': double.tryParse(ing.quantity) ?? 0.0,
-        'precio': ing.price,
+        'precio': ing.priceBase,
       }).toList(),
     };
-
     try {
       final String? response = await _channel.invokeMethod<String>('saveReceta', payload);
       _snack('¡Receta creada con éxito en la base de datos!');
@@ -286,7 +307,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fondoPantalla = isDark ? const Color(0xFF0F172A) : _bg;
     final fondoTarjetas = isDark ? const Color(0xFF1E293B) : _surface;
-
     return Scaffold(
       backgroundColor: fondoPantalla,
       body: SafeArea(
@@ -296,6 +316,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             _buildStepIndicator(),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Theme(
@@ -374,36 +395,36 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
+// ══════════════════════════════════════════════════════════════════════════
+// HEADER (Versión Compacta)
+// ══════════════════════════════════════════════════════════════════════════
   Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'EDITOR DE RECETAS',
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary.withOpacity(0.8), letterSpacing: 3),
+            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2),
           ),
-          const SizedBox(height: 6),
           Text(
             'Paso $_step de 4',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _onSurface, letterSpacing: -0.5),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _onSurface, height: 1.0),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(4, (i) {
               final active = _step == i + 1;
-              final done = _step > i + 1;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
+              return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: active ? 36 : 20,
-                height: 6,
+                width: active ? 28 : 16,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: (active || done) ? _primary : Colors.black12,
+                  color: active ? _primary : Colors.black12,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: active ? [BoxShadow(color: _primary.withOpacity(0.35), blurRadius: 8, offset: const Offset(0, 2))] : [],
                 ),
               );
             }),
@@ -538,7 +559,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               const SizedBox(height: 12),
               Center(
                   child: Text(
-                      'JPG, PNG • Máx 10 MB • Recomendamos luz natural',
+                      'JPG, PNG • Máx 10 MB \n • Recomendamos luz natural',
                       style: TextStyle(
                           fontSize: 10,
                           color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.6)
@@ -553,11 +574,12 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 2 – Ingredientes
-  // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+// STEP 2 – Ingredientes (Versión Limpia y Estática)
+// ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep2() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -567,31 +589,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             children: [
               _fieldLabel('AÑADIR INGREDIENTE'),
               const SizedBox(height: 10),
-              _searchField(
-                controller: _ingSearchCtrl,
-                hint: 'Buscar ingrediente...',
-              ),
+              _searchField(controller: _ingSearchCtrl, hint: 'Buscar ingrediente...'),
+
               if (_ingSearchCtrl.text.trim().isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Text(
-                  'SUGERENCIAS',
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5),
-                      letterSpacing: 2
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                Text('SUGERENCIAS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5), letterSpacing: 2)),
+                const SizedBox(height: 6),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 220),
+                  constraints: const BoxConstraints(maxHeight: 280),
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _customIngredientRow(_ingSearchCtrl.text.trim()),
-                        const Divider(height: 12, thickness: 0.5),
+                        const Divider(height: 8, thickness: 0.5),
                         ..._suggestions.map((s) => _suggestionRow(s)).toList(),
                       ],
                     ),
@@ -602,91 +612,45 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           ),
         ),
         const SizedBox(height: 16),
+
+        // Lista de ingredientes
         Container(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : _surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: _primary.withOpacity(0.06),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'LISTA DE INGREDIENTES',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2),
-                    ),
-                    Text(
-                      '${_ingredients.length} ITEMS',
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white60 : _onSurfaceVariant.withOpacity(0.6),
-                          letterSpacing: 1.5
-                      ),
-                    ),
+                    const Text('LISTA DE INGREDIENTES', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2)),
+                    Text('${_ingredients.length} ITEMS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white60 : _onSurfaceVariant.withOpacity(0.6), letterSpacing: 1.5)),
                   ],
                 ),
               ),
               ..._ingredients.asMap().entries.map((e) => _ingredientRow(e.value, e.key)),
+
+              // Footer Costo Estimado
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                  border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'COSTO ESTIMADO',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white60 : _onSurfaceVariant.withOpacity(0.6),
-                          letterSpacing: 0.5
-                      ),
-                    ),
-                    Text(
-                      'Basado en precios de mercado',
-                      style: TextStyle(fontSize: 10, color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.5)),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'TOTAL RECETA',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : _onSurfaceVariant.withOpacity(0.7)),
-                        ),
-                        Text(
-                          '\$${_calcularCostoTotal().toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : _onSurface,
-                              letterSpacing: -0.5
-                          ),
-                        ),
-                      ],
-                    ),
+                    Text('TOTAL RECETA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : _onSurfaceVariant.withOpacity(0.7))),
+                    Text('\$${_calcularCostoTotal().toStringAsFixed(2)}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : _onSurface, letterSpacing: -0.5)),
                   ],
                 ),
               ),
@@ -731,12 +695,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         setState(() {
           _ingredients.add(
             _Ingredient(
-              idAlimento: idDinamico,
-              name: nombreFormateado,
-              category: s['categoria'] ?? 'Añadido',
-              quantity: '100',
-              unit: s['unidad'] ?? 'gr',
-              price: precioNum,
+                idAlimento: idDinamico,
+                name: nombreFormateado,
+                category: s['categoria'] ?? 'Añadido',
+                quantity: '100',
+                unit: s['unidad'] ?? 'gr',
+                priceBase: precioNum,
+                idMedida: 1
             ),
           );
           _ingSearchCtrl.clear();
@@ -772,20 +737,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   Text(
                     s['name']?.toString() ?? s['nombre']?.toString() ?? '',
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 11, // Era 13, ahora 12
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : _onSurface
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     s['sub']?.toString() ?? s['categoria']?.toString() ?? '',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 7, // Era 9, ahora 8
                       fontWeight: FontWeight.w700,
                       color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.6),
-                      letterSpacing: 0.5,
                     ),
                   ),
                 ],
@@ -800,97 +762,82 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
   Widget _ingredientRow(_Ingredient ing, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : _onSurface;
+    final subtextColor = isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.black.withOpacity(0.05))),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  ing.name,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : _onSurface
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '\$${ing.price.toStringAsFixed(2)} x 100${ing.unit}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5),
-                  ),
-                ),
-              ],
-            ),
+          // Fila 1: Nombre del ingrediente
+          Text(
+            ing.name,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 6),
-          _miniInputBox(
-            label: 'CANT.',
-            value: ing.quantity,
-            onChanged: (newValue) {
-              String sanitized = newValue.trim();
-              if (sanitized.isEmpty || sanitized == '0') {
-                _showResetQuantityDialog(ing, index);
-              } else {
-                setState(() {
-                  ing.quantity = sanitized;
-                });
-              }
-            },
-          ),
-          const SizedBox(width: 4),
-          _miniStaticBox(label: 'UNID.', value: ing.unit),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 85,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'SUBTOTAL',
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '\$${ing.subtotal.toStringAsFixed(2)}',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : _onSurface
+          const SizedBox(height: 6),
+
+          // Fila 2: Cantidad (Izq) y Subtotal/Eliminar (Der)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Alineado a la izquierda: Cantidad y Unidad
+              Row(
+                children: [
+                  SizedBox(
+                    width: 50, height: 26,
+                    child: TextFormField(
+                      initialValue: ing.quantity,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
+                      // Usamos onFieldSubmitted en lugar de onChanged para evitar el cuelgue mientras escribe
+                      onFieldSubmitted: (v) {
+                        if (v.isEmpty || v == '0') {
+                          _showResetQuantityDialog(ing, index);
+                        } else {
+                          setState(() => ing.quantity = v);
+                        }
+                      },
+                      decoration: InputDecoration(
+                          contentPadding: EdgeInsets.zero,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4))
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => setState(() => _ingredients.removeAt(index)),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Icon(
-                  Icons.delete_outline,
-                  color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.4),
-                  size: 20
+                  const SizedBox(width: 6),
+                  Text(ing.unit, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subtextColor)),
+                ],
               ),
+              // Alineado a la derecha: Subtotal y eliminar
+              Row(
+                children: [
+                  Text(
+                    '\$${ing.subtotal.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textColor),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _ingredients.removeAt(index)),
+                    child: Icon(Icons.delete_outline, color: isDark ? Colors.white38 : _error.withOpacity(0.6), size: 18),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+
+          // Fila 3: Precio x 100gr/ml o Unidad (Alineado a la derecha)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '(\$${ing.priceBase.toStringAsFixed(2)} x 100${ing.unit})',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: subtextColor),
             ),
           ),
         ],
@@ -900,7 +847,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
   Widget _customIngredientRow(String textEntered) {
     return GestureDetector(
-      onTap: () => _showCustomIngredientDialog(textEntered),
+      onTap: () => _showAdvancedIngredientDialog(textEntered),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -942,73 +889,64 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  void _showCustomIngredientDialog(String name) {
-    final priceCtrl = TextEditingController();
+  void _showAdvancedIngredientDialog(String name) {
+    final _cantCompraCtrl = TextEditingController();
+    final _precioTotalCtrl = TextEditingController();
+    int _medidaSeleccionada = 1;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Ingrediente: $name', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ingresa el precio estimado por cada 100 gramos:',
-              style: TextStyle(fontSize: 12, color: _onSurface.withOpacity(0.6)),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-              decoration: const InputDecoration(
-                prefixText: '\$ ',
-                hintText: '0.00',
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _primary)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Configurar: $name'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<int>(
+                value: _medidaSeleccionada,
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
+                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
+                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
+                ],
+                onChanged: (v) => setDialogState(() => _medidaSeleccionada = v!),
               ),
+              TextField(controller: _cantCompraCtrl, decoration: const InputDecoration(labelText: 'Cantidad comprada'), keyboardType: TextInputType.number),
+              TextField(controller: _precioTotalCtrl, decoration: const InputDecoration(labelText: 'Precio pagado \$'), keyboardType: TextInputType.number),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+            ElevatedButton(
+              onPressed: () {
+                double cant = double.tryParse(_cantCompraCtrl.text) ?? 0;
+                double total = double.tryParse(_precioTotalCtrl.text) ?? 0;
+                if (cant <= 0) return;
+
+                double precioBaseCalculado = (total / cant);
+                if (_medidaSeleccionada == 1 || _medidaSeleccionada == 2) {
+                  precioBaseCalculado *= 100;
+                }
+
+                setState(() {
+                  _ingredients.add(_Ingredient(
+                    idAlimento: DateTime.now().millisecondsSinceEpoch,
+                    name: name,
+                    category: 'Personalizado',
+                    quantity: '100',
+                    unit: _medidaSeleccionada == 1 ? 'gr' : (_medidaSeleccionada == 2 ? 'ml' : 'unid'),
+                    priceBase: precioBaseCalculado,
+                    idMedida: _medidaSeleccionada,
+                  ));
+                  _ingSearchCtrl.clear();
+                  FocusScope.of(context).unfocus();
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('GUARDAR'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCELAR', style: TextStyle(color: _onSurfaceVariant)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _primary),
-            onPressed: () {
-              String nameInput = name.trim();
-              if (nameInput.isEmpty) return;
-              String formattedName = nameInput[0].toUpperCase() + nameInput.substring(1);
-              bool yaExiste = _ingredients.any((ing) => ing.name.toLowerCase() == formattedName.toLowerCase());
-              if (yaExiste) {
-                Navigator.pop(context);
-                _snack('⚠️ El ingrediente "$formattedName" ya está en la lista.');
-                return;
-              }
-              final double customPrice = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
-              setState(() {
-                _ingredients.add(
-                  _Ingredient(
-                    idAlimento: DateTime.now().millisecondsSinceEpoch,
-                    name: formattedName,
-                    category: 'Personalizado',
-                    quantity: '100',
-                    unit: 'gr',
-                    price: customPrice,
-                  ),
-                );
-                _ingSearchCtrl.clear();
-                _suggestions.clear();
-              });
-              FocusScope.of(context).unfocus();
-              Navigator.pop(context);
-              _snack('✨ Creado: $formattedName');
-            },
-            child: const Text('AÑADIR', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -1257,7 +1195,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep4() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1399,7 +1336,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  // ─── Componentes de Soporte Auxiliares de Interfaz ─────────────────────────
   Widget _fieldLabel(String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
@@ -1466,7 +1402,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   Widget _buildFooter() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final esUltimoPaso = _step == 4;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1527,7 +1462,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  Widget _searchField({required TextEditingController controller, required String hint}) {
+  Widget _searchField({required TextEditingController controller, required String hint, FocusNode? focusNode}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1549,6 +1484,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           Expanded(
             child: TextFormField(
               controller: controller,
+              focusNode: focusNode,
               style: TextStyle(
                 fontSize: 13,
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
