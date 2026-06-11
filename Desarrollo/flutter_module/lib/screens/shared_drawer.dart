@@ -42,9 +42,8 @@ class SharedDrawer extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                    child: Text(
-                      user.usuario.isNotEmpty ? user.usuario[0].toUpperCase() : '?',
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 20),
+                    backgroundImage: NetworkImage(
+                        user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                     ),
                   ),
                   const SizedBox(width: 16),

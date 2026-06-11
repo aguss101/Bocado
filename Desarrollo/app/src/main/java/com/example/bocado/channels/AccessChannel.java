@@ -140,11 +140,11 @@ public class AccessChannel {
 
             String fotoUrl = call.argument("fotoUrl");
             if (fotoUrl != null && !fotoUrl.trim().isEmpty())
-                actualizaciones.put("foto_url", fotoUrl.trim());
+                actualizaciones.put("foto", fotoUrl.trim());
 
             String bannerUrl = call.argument("bannerUrl");
             if (bannerUrl != null && !bannerUrl.trim().isEmpty())
-                actualizaciones.put("banner_url", bannerUrl.trim());
+                actualizaciones.put("banner", bannerUrl.trim());
 
             usuarioManager.actualizar(id, actualizaciones, new CallbackCB() {
                 @Override public void onSuccess(String response) {

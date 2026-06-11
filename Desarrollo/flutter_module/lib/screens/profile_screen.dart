@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:flutter_module/services/receta_service.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import 'shared_drawer.dart';
 import 'edit_profile_screen.dart';
 import '../services/usuario_service.dart';
+import '../models/receta_feed.dart';
+import '../screens/recipe_editor_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -511,158 +514,205 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── TAB: RECETAS ──────────────────────────────────────────────────────────
   Widget _buildRecetasTab(
       Color surface, Color border, Color text, Color muted) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        if (index == 4) {
-          // Card "Crear nueva receta"
-          return Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                  color: border, width: 2, style: BorderStyle.solid),
-              borderRadius: BorderRadius.circular(16),
+    return FutureBuilder<List<RecetaFeed>>(
+      future: RecetaService.getRecetasUsuario(_user.id),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text(
+                'Error al cargar las recetas', style: TextStyle(color: text)));
+          }
+
+          final recetas = snapshot.data ?? [];
+          final itemCount = _isMiPerfil ? recetas.length + 1 : recetas.length;
+          if (recetas.isEmpty) {
+            return _buildPlaceholderTab(
+                'restaurant', 'No hay recetas publicadas', muted);
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add,
-                      color: AppTheme.primary, size: 28),
-                ),
-                const SizedBox(height: 10),
-                Text('Crear Receta',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: muted)),
-              ],
-            ),
+            itemCount: itemCount,
+            itemBuilder: (context, index) {
+              if (_isMiPerfil && index == recetas.length) {
+                return _tarjetaCrearReceta(context, border, muted);
+              }
+
+              final receta = recetas[index];
+
+              return _recipeCard(
+                surface: surface,
+                border: border,
+                text: text,
+                muted: muted,
+                receta: receta,
+              );
+            },
           );
         }
-        // Cards de receta de ejemplo
-        return _recipeCard(
-          surface: surface,
-          border: border,
-          text: text,
-          muted: muted,
-          title: ['Pan de masa madre', 'Hamburguesa Gourmet',
-              'Croissant', 'Focaccia'][index],
-          time: ['45 min', '20 min', '90 min', '60 min'][index],
-          rating: ['4.9', '4.7', '4.8', '4.6'][index],
-          level: ['Intermedio', 'Principiante', 'Avanzado', 'Intermedio'][index],
+          );
+        }
+
+  Widget _tarjetaCrearReceta(BuildContext context, Color border, Color muted) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeEditorScreen(
+              themeNotifier: widget.themeNotifier,
+              user: widget.user,
+            ),
+          ),
         );
       },
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: border, width: 2, style: BorderStyle.solid),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: AppTheme.primary, size: 28),
+            ),
+            const SizedBox(height: 10),
+            Text('Crear Receta',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: muted)),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _recipeCard({
-    required Color surface,
-    required Color border,
-    required Color text,
-    required Color muted,
-    required String title,
-    required String time,
-    required String rating,
-    required String level,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Imagen placeholder
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
+Widget _recipeCard({
+  required Color surface,
+  required Color border,
+  required Color text,
+  required Color muted,
+  required RecetaFeed receta,
+}) {
+  final stringEtiqueta = receta.etiquetas.isNotEmpty ? receta.etiquetas.first : 'Receta';
+
+  return Container(
+    decoration: BoxDecoration(
+      color: surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: border),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── IMAGEN DE LA RECETA ──
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (receta.foto != null && receta.foto!.isNotEmpty)
+                Image.network(receta.foto!, fit: BoxFit.cover)
+              else
                 Container(
                   color: AppTheme.primary.withValues(alpha: 0.08),
                   child: Icon(Icons.restaurant,
                       size: 40,
                       color: AppTheme.primary.withValues(alpha: 0.3)),
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(time,
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white)),
+
+              // ── BADGE SUPERIOR DERECHO (Calorías) ──
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(6),
                   ),
+                  child: Text('${receta.caloriasTotales.toInt()} kcal',
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          // Info
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: text),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.star,
-                            size: 12, color: AppTheme.primary),
-                        const SizedBox(width: 2),
-                        Text(rating,
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: muted)),
-                      ],
-                    ),
-                    Text(level,
+        ),
+
+        // ── INFO DE LA RECETA ──
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(receta.nombre,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: text),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Calificación
+                  Row(
+                    children: [
+                      const Icon(Icons.star,
+                          size: 12, color: AppTheme.primary),
+                      const SizedBox(width: 2),
+                      Text(receta.promedioCalificacion.toStringAsFixed(1),
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: muted)),
+                    ],
+                  ),
+
+
+                  // Etiqueta
+                  Expanded(
+                    child: Text(stringEtiqueta,
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: muted,
                             letterSpacing: 0.3)),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   // ── TAB: SEGUIDOS ─────────────────────────────────────────────────────────
   Widget _buildSeguidosTab(
@@ -791,29 +841,34 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _badge(
-      {required IconData icon,
-      required String label,
-      required Color bg,
-      required Color textColor}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: textColor),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: textColor)),
-        ],
-      ),
-    );
-  }
+Widget _badge({
+  required IconData icon,
+  required String label,
+  required Color bg,
+  required Color textColor,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: textColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // ── DELEGATE PARA TAB BAR STICKY ─────────────────────────────────────────────

@@ -104,9 +104,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 child: CircleAvatar(
                   radius: 16,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                  child: Text(
-                    widget.user.usuario.isNotEmpty ? widget.user.usuario[0].toUpperCase() : '?',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.primary, fontSize: 14),
+                  backgroundImage: NetworkImage(
+                      widget.user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                   ),
                 ),
               ),

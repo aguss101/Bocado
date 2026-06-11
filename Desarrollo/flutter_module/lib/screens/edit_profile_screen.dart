@@ -98,7 +98,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _cambiarFoto() => _pickAndUpload(
         label: 'foto',
         upload: (src) => ImageUploadService.uploadFotoPerfil(widget.user.id, src),
-        onDone: (url) => setState(() => _fotoUrl = url),
+        onDone: (url){
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          setState(() => _fotoUrl = '$url?t=$timestamp');
+          },
       );
 
   Future<void> _cambiarBanner() => _pickAndUpload(
@@ -264,6 +267,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ── COLUMNA IZQUIERDA: AVATAR ─────────────────────────────────────────────
   Widget _buildAvatarColumn(
       Color text, Color muted, Color surface, Color border) {
+
+    final String? urlImgMomentanea = _fotoUrl ?? widget.user.fotoUrl;
     return Column(
       children: [
         // Avatar grande con botón cámara
@@ -280,8 +285,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 color: AppTheme.primary.withValues(alpha: 0.1),
               ),
               clipBehavior: Clip.antiAlias,
-              child: _fotoUrl != null
-                  ? Image.network(_fotoUrl!, fit: BoxFit.cover)
+              child: urlImgMomentanea != null
+                  ? Image.network(urlImgMomentanea, fit: BoxFit.cover)
                   : widget.user.fotoReady != null
                       ? Image.memory(widget.user.fotoReady!, fit: BoxFit.cover)
                       : Center(
