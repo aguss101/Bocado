@@ -6,6 +6,8 @@ import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
 import 'feed_screen.dart';
 import 'login_screen.dart';
+import 'complete_google_profile_screen.dart';
+import '../utils/validaciones.dart';
 
 class RegisterScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
@@ -34,18 +36,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int? _idGeneroSeleccionado;
 
   Future<void> _register() async {
-    final nombre = _nombreController.text;
-    final apellido = _apellidoController.text;
+    final nombre = _nombreController.text.trim();
+    final apellido = _apellidoController.text.trim();
     final email = _emailController.text.trim();
-    final usuario = _usuarioController.text;
+    final usuario = _usuarioController.text.trim();
     final password = _passwordController.text;
     final nacion = _idNacionSeleccionada;
     final genero = _idGeneroSeleccionado;
     final fechaNacimiento = _fechaNacimientoSeleccionada;
 
-    if (nacion == null || genero == null || nombre.isEmpty || apellido.isEmpty ||
-        email.isEmpty || usuario.isEmpty || password.isEmpty || fechaNacimiento == null) {
-      setState(() => _errorMessage = 'Completá todos los campos.');
+    // Validación campo por campo: muestra el primer error específico.
+    final error = Validaciones.nombre(nombre, campo: 'nombre')
+        ?? Validaciones.nombre(apellido, campo: 'apellido')
+        ?? Validaciones.correo(email)
+        ?? (fechaNacimiento == null ? 'Elegí tu fecha de nacimiento.' : null)
+        ?? (nacion == null ? 'Elegí tu nación.' : null)
+        ?? (genero == null ? 'Elegí tu género.' : null)
+        ?? Validaciones.usuario(usuario)
+        ?? Validaciones.contrasena(password)
+        ?? (!_acceptTerms
+            ? 'Tenés que aceptar los Términos de Servicio para continuar.'
+            : null);
+    if (error != null) {
+      setState(() => _errorMessage = error);
       return;
     }
 
@@ -56,14 +69,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final user = await UsuarioService.registrar(
-        nacion: nacion,
-        genero: genero,
+        nacion: nacion!,
+        genero: genero!,
         nombre: nombre,
         apellido: apellido,
         email: email,
         usuario: usuario,
         password: password,
-        fechaNacimiento: fechaNacimiento.toIso8601String(),
+        fechaNacimiento: fechaNacimiento!.toIso8601String(),
       );
 
       if (mounted) {
@@ -77,21 +90,88 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } on PlatformException catch (e) {
       setState(() {
         switch (e.code) {
-          case 'REGISTRO_VACIO':
-            _errorMessage = 'Se creó pero no devolvió datos.';
+          case 'DUPLICADO':
+            _errorMessage = e.message ?? 'Ese correo o usuario ya está registrado.';
             break;
-          case 'ERROR_REGISTRO':
-            _errorMessage = e.message ?? 'Fallo al crear el usuario.';
+          case 'NEGOCIO':
+            _errorMessage = e.message ?? 'Revisá los datos ingresados.';
             break;
           case 'NETWORK_ERROR':
-            _errorMessage = 'Error de conexión con el servidor.';
+            _errorMessage = 'Sin conexión con el servidor. Revisá tu internet.';
+            break;
+          case 'ERROR_JSON':
+            _errorMessage = 'Hubo un problema al preparar los datos. Intentá de nuevo.';
+            break;
+          case 'ERROR_API':
+          case 'ERROR_REGISTRO':
+            _errorMessage = e.message ?? 'El servidor rechazó el registro. Intentá de nuevo.';
             break;
           default:
-            _errorMessage = 'Error inesperado.';
+            _errorMessage = e.message ?? 'No se pudo completar el registro (${e.code}).';
         }
       });
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      setState(() => _errorMessage = 'No se pudo procesar la respuesta del servidor.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Alta/login con Google. No exige aceptar términos (decisión de producto).
+  /// Usa el mismo método compartido que Login: el backend hace login-or-create.
+  Future<void> _registrarConGoogle() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final outcome = await UsuarioService.signInWithGoogle();
+      if (outcome.cancelado) return; // canceló — el finally limpia _isLoading
+
+      if (outcome.existente != null) {
+        // Ya tenía cuenta → entra directo.
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FeedScreen(themeNotifier: widget.themeNotifier, user: outcome.existente!),
+            ),
+          );
+        }
+      } else {
+        // Usuario nuevo → completar nación/género/fecha.
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CompleteGoogleProfileScreen(
+                themeNotifier: widget.themeNotifier,
+                perfil: outcome.nuevo!,
+              ),
+            ),
+          );
+        }
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        switch (e.code) {
+          case 'NETWORK_ERROR':
+          case 'network_error':
+            _errorMessage = 'Sin conexión. No se pudo contactar a Google.';
+            break;
+          case 'sign_in_failed':
+            _errorMessage = 'No se pudo registrar con Google. Verificá la configuración de la cuenta.';
+            break;
+          case 'NEGOCIO':
+            _errorMessage = e.message ?? 'Google no devolvió los datos necesarios.';
+            break;
+          default:
+            _errorMessage = e.message ?? 'No se pudo continuar con Google (${e.code}).';
+        }
+      });
+    } catch (e) {
+      setState(() => _errorMessage = 'No se pudo registrar con Google.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -505,7 +585,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 20),
 
               // ── Google ────────────────────────────────────────
-              GoogleButton(onTap: () {}),
+              GoogleButton(onTap: _registrarConGoogle),
               const SizedBox(height: 20),
 
               // ── Security badge ────────────────────────────────

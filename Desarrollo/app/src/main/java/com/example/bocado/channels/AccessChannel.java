@@ -6,6 +6,7 @@ import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.UsuarioManager;
+import com.example.bocado.Estaticos.RpcCallHelper;
 import com.example.bocado.entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
@@ -33,7 +34,8 @@ public class AccessChannel {
             case "loginJava"         -> handleLogin(call, result);
             case "register"          -> handleRegister(call, result);
             case "registerJava"      -> handleRegister(call, result);
-            case "loginOrCreateGoogle" -> handleVerify(call,result);
+            case "loginGoogle"       -> handleLoginGoogle(call, result);
+            case "registrarGoogle"   -> handleRegistrarGoogle(call, result);
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
             case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
@@ -44,23 +46,70 @@ public class AccessChannel {
         }
     }
 
-    private void handleVerify(MethodCall call, MethodChannel.Result result){
-        String googleId = call.argument("googleId");
-        String email    = call.argument("email");
-        String nombre   = call.argument("nombre");
-        String apellido = call.argument("apellido");
-        String foto     = call.argument("foto");
+    /** Paso 1 del login social: ¿ya existe una cuenta con ese correo? */
+    private void handleLoginGoogle(MethodCall call, MethodChannel.Result result) {
+        String email = call.argument("email");
+        if (email == null || email.trim().isEmpty()) {
+            result.error("NEGOCIO", "Google no devolvió un correo.", null);
+            return;
+        }
 
-        usuarioManager.loginOrCreateGoogle(email, googleId, nombre, apellido, foto, new CallbackCB() {
-            @Override
-            public void onSuccess(String response) {
-                activity.runOnUiThread(() -> result.success(response));
-            }
-            @Override
-            public void onError(String code, String message, Object details) {
-                activity.runOnUiThread(() -> result.error(code, message, details));
-            }
-        });
+        String correoQuery;
+        try {
+            correoQuery = java.net.URLEncoder.encode(email, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            correoQuery = email;
+        }
+
+        // RLS está deshabilitado en public.usuarios → la anon key puede leer por correo.
+        // Solo traemos lo necesario para la sesión (no la contraseña).
+        HttpClientManager.getInstance().get(
+                "/rest/v1/usuarios?correo=eq." + correoQuery + "&activo=eq.true&select=id,id_cuenta,usuario,foto,banner",
+                new okhttp3.Callback() {
+                    @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                    }
+                    @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                        String body = response.body() != null ? response.body().string() : "[]";
+                        activity.runOnUiThread(() -> result.success(body));
+                    }
+                });
+    }
+
+    /** Paso 2 del login social: crea el usuario con los datos del onboarding. */
+    private void handleRegistrarGoogle(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("correo", (String) call.argument("correo"));
+            data.put("nombre", (String) call.argument("nombre"));
+            data.put("apellido", (String) call.argument("apellido"));
+            String foto = call.argument("foto");
+            data.put("foto", foto != null ? foto : "");
+            data.put("id_nacion", (Integer) call.argument("nacion"));
+            data.put("id_genero", (Integer) call.argument("genero"));
+            data.put("fecha_nacimiento", (String) call.argument("fechaNacimiento"));
+
+            JSONObject json = new JSONObject();
+            json.put("p_data", data);
+
+            RpcCallHelper.callAsync("registrar_usuario_google", json, new CallbackCB() {
+                @Override
+                public void onSuccess(String response) {
+                    JSONObject obj = RpcCallHelper.firstOrNull(response);
+                    if (obj != null) {
+                        activity.runOnUiThread(() -> result.success(obj.toString()));
+                    } else {
+                        activity.runOnUiThread(() -> result.error("ERROR_REGISTRO", "No se pudo crear el usuario de Google.", null));
+                    }
+                }
+                @Override
+                public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (Exception e) {
+            result.error("ERROR_JSON", "Error armando datos de Google: " + e.getMessage(), null);
+        }
     }
     private void handleLogin(MethodCall call, MethodChannel.Result result) {
         String usuario   = call.argument("usuario");
@@ -83,8 +132,13 @@ public class AccessChannel {
         u.setCorreo(call.argument("email"));
         u.setUsuario(call.argument("usuario"));
         u.setContrasena(call.argument("password"));
-        u.setNacion(String.valueOf(call.argument("nacion")));
-        u.setGenero(String.valueOf(call.argument("genero")));
+        // Ojo: call.argument(...) dentro de String.valueOf() hace que Java infiera
+        // el overload char[] → ClassCastException (Integer → char[]). Tipamos el
+        // valor como Integer primero para forzar String.valueOf(Object).
+        Integer idNacion = call.argument("nacion");
+        Integer idGenero = call.argument("genero");
+        u.setNacion(String.valueOf((Object) idNacion));
+        u.setGenero(String.valueOf((Object) idGenero));
         u.setFechaNacimientoIso(call.argument("fechaNacimiento"));
 
         usuarioManager.registrar(u, new CallbackCB() {

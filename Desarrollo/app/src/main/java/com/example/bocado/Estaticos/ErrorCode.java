@@ -12,4 +12,5 @@ public class ErrorCode {
     public static final String ERROR_CREATE   = "ERROR_CREATE";
     public static final String PARSE_ERROR    = "PARSE_ERROR";
     public static final String NEGOCIO        = "NEGOCIO";
+    public static final String DUPLICADO      = "DUPLICADO";
 }
