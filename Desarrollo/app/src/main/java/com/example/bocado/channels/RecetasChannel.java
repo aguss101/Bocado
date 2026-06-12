@@ -36,6 +36,7 @@ public class RecetasChannel {
             case "getRecetas"      -> handleGetRecetas(result);
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
+            case "getGuardadosUsuario" -> handleGetGuardadosUsuario(call, result);
             case "toggleInteraction"-> handleToggleInteraction(call, result);
             default                -> result.notImplemented();
         }
@@ -96,6 +97,26 @@ public class RecetasChannel {
 
         HttpClientManager.getInstance().get(
                 "/rest/v1/vistas_recetas_macros?select=*&id_usuario=eq." + usuarioId,
+                new okhttp3.Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                    }
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        String body = response.body() != null ? response.body().string() : "[]";
+                        activity.runOnUiThread(() -> result.success(body));
+                    }
+                }
+        );
+    }
+
+    // ── getGuardadosUsuario ────────────────────────────────────────────────────────────
+    private void handleGetGuardadosUsuario(MethodCall call, MethodChannel.Result result) {
+        Integer usuarioId = call.argument("usuarioId");
+
+        HttpClientManager.getInstance().get(
+                "/rest/v1/vistas_recetas_macros?select=*,interacciones_usuario!inner(id_usuario,tipo_interaccion)&interacciones_usuario.id_usuario=eq." + usuarioId + "&interacciones_usuario.tipo_interaccion=eq.save",
                 new okhttp3.Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {

@@ -19,6 +19,14 @@ class RecetaService {
     final List<dynamic> lista = jsonDecode(json);
     return lista.map((e) => RecetaFeed.fromJson(e)).toList();
   }
+  static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId) async {
+    final String json = await _channel.invokeMethod(
+      'getGuardadosUsuario',
+      {'usuarioId': usuarioId},
+    );
+    final List<dynamic> lista = jsonDecode(json);
+    return lista.map((e) => RecetaFeed.fromJson(e)).toList();
+  }
 
   static Future<Map<String, dynamic>> getRecetaDetalle(int idReceta) async {
     final String json = await _channel.invokeMethod(

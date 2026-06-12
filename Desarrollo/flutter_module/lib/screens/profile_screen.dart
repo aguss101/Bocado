@@ -8,6 +8,7 @@ import 'edit_profile_screen.dart';
 import '../services/usuario_service.dart';
 import '../models/receta_feed.dart';
 import '../screens/recipe_editor_screen.dart';
+import '../screens/recipe_detail.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -177,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     controller: _tabController,
     children: _isMiPerfil? [
     _buildRecetasTab(surface, border, text, muted),
-    _buildPlaceholderTab('favorite_border', 'Sin guardados aún', muted),
+    _buildGuardadosTab(surface, border, text, muted),
     _buildPlaceholderTab('draft', 'Sin borradores', muted),
     _buildSeguidosTab(surface, border, text, muted),
     ]
@@ -383,7 +384,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       height: 88,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3), width: 3),
         color: AppTheme.primary.withValues(alpha: 0.15),
       ),
       clipBehavior: Clip.antiAlias,
@@ -510,6 +510,53 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
   }
+  // ── TAB: GUARDADOS  ──────────────────────────────────────────────────────────
+  Widget _buildGuardadosTab(Color surface, Color border, Color text, Color muted){
+    return FutureBuilder<List<RecetaFeed>>(
+        future: RecetaService.getGuardadosUsuario(_user.id),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text(
+                'Error al cargar las recetas', style: TextStyle(color: text)));
+          }
+
+          final recetas = snapshot.data ?? [];
+          if (recetas.isEmpty) {
+            return _buildPlaceholderTab(
+                'favorite_border', 'No hay recetas guardadas', muted);
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: recetas.length,
+            itemBuilder: (context, index) {
+
+              final receta = recetas[index];
+
+              return _recipeCard(
+                surface: surface,
+                border: border,
+                text: text,
+                muted: muted,
+                receta: receta,
+                context: context,
+                themeNotifier: widget.themeNotifier,
+                user: widget.user,
+              );
+            },
+          );
+        }
+    );
+  }
 
   // ── TAB: RECETAS ──────────────────────────────────────────────────────────
   Widget _buildRecetasTab(
@@ -554,6 +601,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 text: text,
                 muted: muted,
                 receta: receta,
+                context: context,
+                themeNotifier: widget.themeNotifier,
+                user: widget.user,
               );
             },
           );
@@ -610,10 +660,29 @@ Widget _recipeCard({
   required Color text,
   required Color muted,
   required RecetaFeed receta,
+  required BuildContext context,
+  required ThemeNotifier themeNotifier,
+  required usuario_Logged user,
 }) {
   final stringEtiqueta = receta.etiquetas.isNotEmpty ? receta.etiquetas.first : 'Receta';
 
-  return Container(
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => RecipeDetailScreen(
+              themeNotifier: themeNotifier,
+              user: user,
+              idReceta: receta.idReceta,
+              protFeed: receta.proteinasTotales,
+              carbFeed: receta.carbohidratosTotales,
+              grasFeed: receta.grasasTotales,
+            )
+        )
+      );
+    },
+  child: Container(
     decoration: BoxDecoration(
       color: surface,
       borderRadius: BorderRadius.circular(16),
@@ -711,6 +780,7 @@ Widget _recipeCard({
         ),
       ],
     ),
+  ),
   );
 }
 

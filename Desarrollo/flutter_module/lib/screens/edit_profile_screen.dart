@@ -280,9 +280,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               height: 140,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.2), width: 3),
-                color: AppTheme.primary.withValues(alpha: 0.1),
               ),
               clipBehavior: Clip.antiAlias,
               child: urlImgMomentanea != null
