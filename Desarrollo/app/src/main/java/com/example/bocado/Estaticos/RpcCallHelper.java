@@ -30,7 +30,23 @@ public class RpcCallHelper {
                 if (response.isSuccessful()) {
                     cb.onSuccess(resBody);
                 } else {
-                    cb.onError(ErrorCode.ERROR_API, resBody, null);
+                    // PostgREST devuelve {"code","message","details","hint"}. Extraemos
+                    // un mensaje legible y detectamos el duplicado (SQLSTATE 23505)
+                    // para no mostrarle JSON crudo al usuario.
+                    String code = ErrorCode.ERROR_API;
+                    String msg = resBody;
+                    try {
+                        JSONObject err = new JSONObject(resBody);
+                        if (err.has("message") && !err.isNull("message")) {
+                            msg = err.getString("message");
+                        }
+                        if ("23505".equals(err.optString("code"))) {
+                            code = ErrorCode.DUPLICADO;
+                        }
+                    } catch (Exception ignore) {
+                        // No era JSON → dejamos el body crudo como mensaje.
+                    }
+                    cb.onError(code, msg, null);
                 }
             }
         });

@@ -8,7 +8,8 @@ import '../widgets/auth_scaffold.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'feed_screen.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'complete_google_profile_screen.dart';
+import '../utils/validaciones.dart';
 
 class LoginScreen extends StatefulWidget {
 final ThemeNotifier themeNotifier;
@@ -30,8 +31,10 @@ Future<void> _login() async {
 final usuario = _emailController.text.trim();
 final contrasena = _passwordController.text;
 
-if (usuario.isEmpty || contrasena.isEmpty) {
-setState(() => _errorMessage = 'Completá todos los campos.');
+final error = Validaciones.requerido(usuario, 'Ingresá tu correo o usuario.')
+?? Validaciones.requerido(contrasena, 'Ingresá tu contraseña.');
+if (error != null) {
+setState(() => _errorMessage = error);
 return;
 }
 
@@ -64,22 +67,85 @@ try {
         _errorMessage = 'Usuario o contraseña incorrectos.';
         break;
       case 'NETWORK_ERROR':
-        _errorMessage = 'Error de conexión con el servidor.';
+        _errorMessage = 'Sin conexión con el servidor. Revisá tu internet.';
         break;
       case 'NEGOCIO':
         _errorMessage = e.message ?? 'Revisá los datos ingresados.';
         break;
       case 'ERROR_API':
-        _errorMessage = 'El servidor rechazó la solicitud. Intentá de nuevo.';
+        _errorMessage = e.message ?? 'El servidor rechazó la solicitud. Intentá de nuevo.';
         break;
       default:
-        _errorMessage = 'Error inesperado.';
+        _errorMessage = e.message ?? 'No se pudo iniciar sesión (${e.code}).';
     }
   });
 } catch (e) {
 setState(() {
 _errorMessage = 'Error procesando la respuesta.';
 });
+} finally {
+if (mounted) setState(() => _isLoading = false);
+}
+}
+
+Future<void> _loginConGoogle() async {
+if (_isLoading) return;
+setState(() {
+_isLoading = true;
+_errorMessage = null;
+});
+try {
+final outcome = await UsuarioService.signInWithGoogle();
+if (outcome.cancelado) return; // canceló — el finally limpia _isLoading
+
+if (outcome.existente != null) {
+// Ya tenía cuenta → entra directo.
+final user = outcome.existente!;
+if (_rememberMe) await SessionService.saveSession(user);
+if (mounted) {
+Navigator.pushReplacement(
+context,
+MaterialPageRoute(
+builder: (_) => FeedScreen(
+themeNotifier: widget.themeNotifier,
+user: user,
+),
+),
+);
+}
+} else {
+// Usuario nuevo → completar nación/género/fecha.
+if (mounted) {
+Navigator.pushReplacement(
+context,
+MaterialPageRoute(
+builder: (_) => CompleteGoogleProfileScreen(
+themeNotifier: widget.themeNotifier,
+perfil: outcome.nuevo!,
+),
+),
+);
+}
+}
+} on PlatformException catch (e) {
+setState(() {
+switch (e.code) {
+case 'NETWORK_ERROR':
+case 'network_error':
+_errorMessage = 'Sin conexión. No se pudo contactar a Google.';
+break;
+case 'sign_in_failed':
+_errorMessage = 'No se pudo iniciar sesión con Google. Verificá la configuración de la cuenta.';
+break;
+case 'NEGOCIO':
+_errorMessage = e.message ?? 'Google no devolvió los datos necesarios.';
+break;
+default:
+_errorMessage = e.message ?? 'No se pudo continuar con Google (${e.code}).';
+}
+});
+} catch (e) {
+setState(() => _errorMessage = 'No se pudo iniciar sesión con Google.');
 } finally {
 if (mounted) setState(() => _isLoading = false);
 }
@@ -278,67 +344,7 @@ const SizedBox(height: 20),
 const AuthDivider(label: 'O'),
 const SizedBox(height: 20),
 
-GoogleButton(
-  onTap: () async {
-    try {
-      final googleSignIn = GoogleSignIn();
-      final usuario = await googleSignIn.signIn();
-
-      if(usuario == null) return;
-
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      try {
-        final user = await UsuarioService.loginOrCreate(usuario);
-
-        if (_rememberMe) await SessionService.saveSession(user);
-
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FeedScreen(
-                themeNotifier: widget.themeNotifier,
-                user: user,
-              ),
-            ),
-          );
-        }
-
-      } on PlatformException catch (e) {
-        setState(() {
-          switch (e.code) {
-            case 'ERROR_REGISTRO':
-              _errorMessage = 'No se pudo autenticar con Google en la base de datos.';
-              break;
-            case 'ERROR_INTERNO':
-              _errorMessage = 'Error procesando el perfil.';
-              break;
-            default:
-              _errorMessage = 'Error inesperado.';
-          }
-        });
-      } catch (e) {
-        setState(() {
-          _errorMessage = 'Error procesando la respuesta.';
-        });
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
-
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'No se pudo iniciar sesión con Google.';
-        });
-      }
-    }
-  },
-),
+GoogleButton(onTap: _loginConGoogle),
 
 const SizedBox(height: 28),
 
