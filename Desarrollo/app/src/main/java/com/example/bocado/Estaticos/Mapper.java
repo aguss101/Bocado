@@ -9,46 +9,68 @@ import java.sql.Timestamp;
 public class Mapper {
 
     // RECIBE DATOS de Supa
-    // Reemplaza a getUsuario y setUsuario
     public static Usuario jsonToUsuario(JSONObject json) throws JSONException {
         Usuario u = new Usuario();
 
         u.setId(json.optInt("id", 0));
+        u.setCuenta(String.valueOf(json.optInt("id_cuenta", 1)));
+        u.setNacion(String.valueOf(json.optInt("id_nacion", 0)));
+        u.setGenero(String.valueOf(json.optInt("id_genero", 0)));
+
         u.setNombre(json.optString("nombre", ""));
         u.setApellido(json.optString("apellido", ""));
         u.setCorreo(json.optString("correo", ""));
         u.setUsuario(json.optString("usuario", ""));
         u.setContrasena(json.optString("contrasena", ""));
+
+        u.setFecha_Nacimiento(json.optString("fecha_nacimiento", null)); // ISO crudo (String)
+        u.setFecha_Creacion(parseTimestampSupabase(json.optString("fecha_creacion", null)));
+        u.setFecha_Acceso(parseTimestampSupabase(json.optString("fecha_acceso", null)));
+
         u.setActivo(json.optBoolean("activo", true));
         u.setVisibilidad(json.optBoolean("visibilidad", true));
+
+        u.setFoto(json.isNull("foto") ? null : json.optString("foto", null));
+        u.setBanner(json.isNull("banner") ? null : json.optString("banner", null));
 
         return u;
     }
 
     // ENVIAMOS DATOS a Supa
-    // Reemplaza a createUsuario y modUsuario
     public static JSONObject usuarioToJson(Usuario u) throws JSONException {
+        JSONObject data = new JSONObject();
+
+        data.put("usuario", u.getUsuario());
+        data.put("correo", u.getCorreo());
+        data.put("contrasena", u.getContrasena());
+        data.put("nombre", u.getNombre());
+        data.put("apellido", u.getApellido());
+        data.put("id_nacion", Integer.parseInt(u.getNacion()));
+        data.put("id_genero", Integer.parseInt(u.getGenero()));
+        data.put("fecha_nacimiento", u.getFecha_Nacimiento());
+
+        return data;
+    }
+
+    // ENVIAMOS al cliente Flutter — solo lo que la UI necesita, SIN contrasena.
+    public static JSONObject usuarioToClientJson(Usuario u) throws JSONException {
         JSONObject json = new JSONObject();
 
-        json.put("nombre", u.getNombre());
-        json.put("apellido", u.getApellido());
-        json.put("correo", u.getCorreo());
+        json.put("id", u.getId());
+        json.put("id_cuenta", Integer.parseInt(u.getCuenta()));
         json.put("usuario", u.getUsuario());
-        json.put("contrasena", u.getContrasena());
-
-        // Se envian los IDs foráneos si existen
-        if (u.getNacion() != null) json.put("id_nacion", Integer.parseInt(u.getNacion()));
-        if (u.getGenero() != null) json.put("id_genero", Integer.parseInt(u.getGenero()));
+        // Mismas claves que espera usuario_Logged.fromJson (foto/banner = URL o null).
+        json.put("foto",   u.getFoto()   != null ? u.getFoto()   : JSONObject.NULL);
+        json.put("banner", u.getBanner() != null ? u.getBanner() : JSONObject.NULL);
 
         return json;
     }
-
-    //____________________________________________
+    
     public static Receta jsonToReceta(JSONObject json) throws JSONException {
         Receta r = new Receta();
 
         r.setId(json.optInt("id", 0));
-        r.setId_Usuario(json.optInt("id_usuario", 0)); // Respetando tu get/set
+        r.setId_Usuario(json.optInt("id_usuario", 0));
         r.setNombre(json.optString("nombre", ""));
         r.setInstrucciones(json.optString("instrucciones", ""));
         r.setPorciones(json.optInt("porciones", 1));
@@ -60,25 +82,25 @@ public class Mapper {
         r.setActivo(json.optBoolean("activo", true));
         r.setVisibilidad(json.optBoolean("visibilidad", true));
 
-        String fechaSupa = json.optString("fecha_creacion", null);
-        if (fechaSupa != null && !fechaSupa.isEmpty()) {
-            try {
-                String cleanDate = fechaSupa.replace("T", " ").replace("Z", "");
-                if (cleanDate.length() > 19) {
-                    cleanDate = cleanDate.substring(0, 19);
-                }
-                r.setFecha_Creacion(Timestamp.valueOf(cleanDate));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        /* mapear la foto desde Base64:
-          String fotoB64 = json.optString("foto", null);
-          if(fotoB64 != null) r.setFoto(android.util.Base64.decode(fotoB64, android.util.Base64.DEFAULT));
-         */
+        r.setFecha_Creacion(parseTimestampSupabase(json.optString("fecha_creacion", null)));
 
         return r;
+    }
+
+
+     // Convierte un timestamp ISO de Supabase (ej: "2024-01-15T10:30:00.123Z")
+     // a java.sql.Timestamp. Devuelve null si el texto es vacío o no parsea,
+    private static Timestamp parseTimestampSupabase(String raw) {
+        if (raw == null || raw.isEmpty()) return null;
+        try {
+            String limpio = raw.replace("T", " ").replace("Z", "");
+            if (limpio.length() > 19) {
+                limpio = limpio.substring(0, 19);
+            }
+            return Timestamp.valueOf(limpio);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ENVIAMOS a Supabase

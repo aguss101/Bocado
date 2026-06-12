@@ -12,19 +12,18 @@ public class Usuario
     private String correo;
     private String usuario;
     private String contrasena;
-    private Timestamp fecha_Nacimiento;
-    private String fechaNacimientoIso; // ISO 8601 crudo desde Flutter (para registro)
+    private String fecha_Nacimiento; // ISO 8601 crudo desde Flutter. Reduce conversiones de formato innecesarias
     private Timestamp fecha_Creacion;
     private Timestamp fecha_Acceso;
     private boolean activo;
     private boolean visibilidad;
-    private byte[] foto;
-    private byte[] banner;
+    private String foto;   // URL de Storage (bucket avatars) — la BD guarda texto, no binario
+    private String banner; // URL de Storage — idem
 
     public Usuario() {
     }
 
-    public Usuario(int id, String cuenta, String nacion, String genero, String nombre, String apellido, String correo, String usuario, String contrasena, Timestamp fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, byte[] foto, byte[] banner) {
+    public Usuario(int id, String cuenta, String nacion, String genero, String nombre, String apellido, String correo, String usuario, String contrasena, String fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, String foto, String banner) {
         this.id = id;
         this.cuenta = cuenta;
         this.nacion = nacion;
@@ -115,11 +114,11 @@ public class Usuario
         this.contrasena = contrasena;
     }
 
-    public Timestamp getFecha_Nacimiento() {
+    public String getFecha_Nacimiento() {
         return fecha_Nacimiento;
     }
 
-    public void setFecha_Nacimiento(Timestamp fecha_Nacimiento) {
+    public void setFecha_Nacimiento(String fecha_Nacimiento) {
         this.fecha_Nacimiento = fecha_Nacimiento;
     }
 
@@ -155,27 +154,20 @@ public class Usuario
         this.visibilidad = visibilidad;
     }
 
-    public byte[] getFoto() {
+    public String getFoto() {
         return foto;
     }
 
-    public void setFoto(byte[] foto) {
+    public void setFoto(String foto) {
         this.foto = foto;
     }
 
-    public byte[] getBanner() {
+    public String getBanner() {
         return banner;
     }
 
-    public void setBanner(byte[] banner) {
+    public void setBanner(String banner) {
         this.banner = banner;
     }
 
-    public String getFechaNacimientoIso() {
-        return fechaNacimientoIso;
-    }
-
-    public void setFechaNacimientoIso(String fechaNacimientoIso) {
-        this.fechaNacimientoIso = fechaNacimientoIso;
-    }
 }

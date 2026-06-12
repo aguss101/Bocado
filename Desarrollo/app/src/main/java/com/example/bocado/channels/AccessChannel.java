@@ -7,6 +7,7 @@ import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.UsuarioManager;
 import com.example.bocado.Estaticos.RpcCallHelper;
+import com.example.bocado.Estaticos.Mapper;
 import com.example.bocado.entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
@@ -32,7 +33,6 @@ public class AccessChannel {
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         switch (call.method) {
             case "loginJava"         -> handleLogin(call, result);
-            case "register"          -> handleRegister(call, result);
             case "registerJava"      -> handleRegister(call, result);
             case "loginGoogle"       -> handleLoginGoogle(call, result);
             case "registrarGoogle"   -> handleRegistrarGoogle(call, result);
@@ -61,8 +61,6 @@ public class AccessChannel {
             correoQuery = email;
         }
 
-        // RLS está deshabilitado en public.usuarios → la anon key puede leer por correo.
-        // Solo traemos lo necesario para la sesión (no la contraseña).
         HttpClientManager.getInstance().get(
                 "/rest/v1/usuarios?correo=eq." + correoQuery + "&activo=eq.true&select=id,id_cuenta,usuario,foto,banner",
                 new okhttp3.Callback() {
@@ -76,7 +74,7 @@ public class AccessChannel {
                 });
     }
 
-    /** Paso 2 del login social: crea el usuario con los datos del onboarding. */
+    // Crear usuario con Google
     private void handleRegistrarGoogle(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject data = new JSONObject();
@@ -132,14 +130,12 @@ public class AccessChannel {
         u.setCorreo(call.argument("email"));
         u.setUsuario(call.argument("usuario"));
         u.setContrasena(call.argument("password"));
-        // Ojo: call.argument(...) dentro de String.valueOf() hace que Java infiera
-        // el overload char[] → ClassCastException (Integer → char[]). Tipamos el
-        // valor como Integer primero para forzar String.valueOf(Object).
+        // valor Int primero para forzar String.valueOf(Object):
         Integer idNacion = call.argument("nacion");
         Integer idGenero = call.argument("genero");
         u.setNacion(String.valueOf((Object) idNacion));
         u.setGenero(String.valueOf((Object) idGenero));
-        u.setFechaNacimientoIso(call.argument("fechaNacimiento"));
+        u.setFecha_Nacimiento(call.argument("fechaNacimiento"));
 
         usuarioManager.registrar(u, new CallbackCB() {
             @Override public void onSuccess(String data) {
@@ -164,9 +160,7 @@ public class AccessChannel {
     }
 
     private void handleGetSupabaseConfig(MethodChannel.Result result) {
-        // La anon key es pública por diseño — seguro exponerla al cliente Flutter
         String rawUrl = BuildConfig.SUPABASE_URL;
-        // Eliminar trailing slash si lo tiene para construir URLs de Storage correctamente
         String url = rawUrl.endsWith("/") ? rawUrl.substring(0, rawUrl.length() - 1) : rawUrl;
 
         Map<String, String> config = new HashMap<>();
@@ -225,7 +219,7 @@ public class AccessChannel {
         });
     }
 
-    /** Revalida que la cuenta exista y siga activa (para auto-login al arrancar). */
+    // Revalida que la cuenta exista y siga activa (para auto-login al arrancar)
     private void handleValidarSesion(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&activo=eq.true&select=id", new okhttp3.Callback() {
@@ -247,7 +241,20 @@ public class AccessChannel {
             }
             @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
                 String body = response.body() != null ? response.body().string() : "[]";
-                activity.runOnUiThread(() -> result.success(body));
+                try {
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    if (filas.length() == 0) {
+                        activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
+                        return;
+                    }
+                    // El mapeo vive en Java (Mapper), no en Flutter. Devolvemos un
+                    // objeto limpio y sin contraseña en vez del body crudo de Supabase.
+                    Usuario u = Mapper.jsonToUsuario(filas.getJSONObject(0));
+                    String perfil = Mapper.usuarioToClientJson(u).toString();
+                    activity.runOnUiThread(() -> result.success(perfil));
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
             }
         });
     }

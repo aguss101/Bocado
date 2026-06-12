@@ -99,14 +99,10 @@ class UsuarioService {
       'password': password,
       'fechaNacimiento': fechaNacimiento,
     });
+    // Mismo mapeo que login/getPerfilUsuario: fromJson manda foto/banner a
+    // fotoUrl/bannerUrl (son URLs de Storage, no base64).
     final data = jsonDecode(response);
-    return usuario_Logged(
-      data['id'],
-      data['id_cuenta'],
-      data['usuario'],
-      data['foto'],
-      data['banner'],
-    );
+    return usuario_Logged.fromJson(data);
   }
 
   static Future<List<dynamic>> getNaciones() async {
@@ -138,14 +134,13 @@ class UsuarioService {
   }
 
   static Future<usuario_Logged> getPerfilUsuario(int idUsuarioTarget) async{
+    // El mapeo lo hace Java (Mapper): acá llega un único objeto ya limpio.
+    // Si no existe, Java responde con error NOT_FOUND (PlatformException).
     final String response = await _channel.invokeMethod(
       'getPerfilUsuario',
       {'id_usuario': idUsuarioTarget},
     );
-    final List<dynamic> lista = jsonDecode(response);
-    if(lista.isEmpty) throw Exception('Usuario no encontrado');
-    final Map<String, dynamic> data = lista.first;
-
+    final Map<String, dynamic> data = jsonDecode(response);
     return usuario_Logged.fromJson(data);
   }
 }
