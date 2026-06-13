@@ -38,6 +38,9 @@ public class AccessChannel {
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             case "validarSesion"    -> handleValidarSesion(call, result);
+            case "solicitarOtp"     -> handleSolicitarOtp(call, result);
+            case "verificarOtp"     -> handleVerificarOtp(call, result);
+            case "resetearPassword" -> handleResetearPassword(call, result);
             default -> result.notImplemented();
         }
     }
@@ -239,6 +242,84 @@ public class AccessChannel {
                 }
             }
         });
+    }
+
+    // ── Restablecer contraseña (OTP por correo) ───────────────────────────────
+
+    /** Paso 1: pide a la Edge Function "enviar-otp" que genere y mande el código. */
+    private void handleSolicitarOtp(MethodCall call, MethodChannel.Result result) {
+        String correo = call.argument("correo");
+        if (correo == null || correo.trim().isEmpty()) {
+            result.error("NEGOCIO", "Falta el correo.", null);
+            return;
+        }
+        JSONObject body = new JSONObject();
+        try {
+            body.put("correo", correo.trim());
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+            return;
+        }
+        // La anon key viaja como apikey + Authorization Bearer (headers de HttpClientManager),
+        // lo que satisface el "Verify JWT" de la Edge Function.
+        HttpClientManager.getInstance().post("/functions/v1/enviar-otp", body.toString(), new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                if (response.isSuccessful()) {
+                    activity.runOnUiThread(() -> result.success(true));
+                } else {
+                    int code = response.code();
+                    String b = response.body() != null ? response.body().string() : "";
+                    activity.runOnUiThread(() -> result.error("OTP_ERROR", "enviar-otp respondió " + code + ": " + b, null));
+                }
+            }
+        });
+    }
+
+    /** Paso 2: valida el código contra la BD (RPC verificar_otp → boolean). */
+    private void handleVerificarOtp(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_correo", (String) call.argument("correo"));
+            body.put("p_codigo", (String) call.argument("codigo"));
+            RpcCallHelper.callAsync("verificar_otp", body, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    boolean ok = Boolean.parseBoolean(response.trim());
+                    activity.runOnUiThread(() -> result.success(ok));
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+        }
+    }
+
+    /** Paso 3: re-verifica el OTP y cambia la contraseña (RPC reset_pass → boolean). */
+    private void handleResetearPassword(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_correo", (String) call.argument("correo"));
+            body.put("p_codigo", (String) call.argument("codigo"));
+            body.put("p_nueva",  (String) call.argument("nueva"));
+            RpcCallHelper.callAsync("reset_pass", body, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    if (Boolean.parseBoolean(response.trim())) {
+                        activity.runOnUiThread(() -> result.success(true));
+                    } else {
+                        activity.runOnUiThread(() -> result.error("RESET_FALLIDO", "El código no es válido o venció.", null));
+                    }
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+        }
     }
 
     /**

@@ -5,28 +5,19 @@ import '../models/receta_feed.dart';
 class RecetaService {
   static const _channel = MethodChannel('com.example.bocado/recetas');
 
-  static Future<List<RecetaFeed>> getRecetas() async {
-    final String json = await _channel.invokeMethod('getRecetas');
+  static Future<List<RecetaFeed>> _fetchRecetas(String method, [dynamic args]) async {
+    final String json = await _channel.invokeMethod(method, args);
     final List<dynamic> lista = jsonDecode(json);
     return lista.map((e) => RecetaFeed.fromJson(e)).toList();
   }
 
-  static Future<List<RecetaFeed>> getRecetasUsuario(int usuarioId) async {
-    final String json = await _channel.invokeMethod(
-      'getRecetasUsuario',
-      {'usuarioId': usuarioId},
-    );
-    final List<dynamic> lista = jsonDecode(json);
-    return lista.map((e) => RecetaFeed.fromJson(e)).toList();
-  }
-  static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId) async {
-    final String json = await _channel.invokeMethod(
-      'getGuardadosUsuario',
-      {'usuarioId': usuarioId},
-    );
-    final List<dynamic> lista = jsonDecode(json);
-    return lista.map((e) => RecetaFeed.fromJson(e)).toList();
-  }
+  static Future<List<RecetaFeed>> getRecetas() => _fetchRecetas('getRecetas');
+
+  static Future<List<RecetaFeed>> getRecetasUsuario(int usuarioId) =>
+      _fetchRecetas('getRecetasUsuario', {'usuarioId': usuarioId});
+
+  static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId) =>
+      _fetchRecetas('getGuardadosUsuario', {'usuarioId': usuarioId});
 
   static Future<Map<String, dynamic>> getRecetaDetalle(int idReceta) async {
     final String json = await _channel.invokeMethod(

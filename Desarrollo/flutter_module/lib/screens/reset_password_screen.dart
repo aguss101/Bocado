@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
+import '../services/usuario_service.dart';
+import '../utils/validaciones.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
-  const ResetPasswordScreen({super.key, required this.themeNotifier});
+  final String correo;
+  final String codigo;
+  const ResetPasswordScreen({
+    super.key,
+    required this.themeNotifier,
+    required this.correo,
+    required this.codigo,
+  });
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -16,10 +25,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _saving = false;
 
   bool get _passwordsMatch =>
       _newPasswordController.text == _confirmPasswordController.text &&
           _newPasswordController.text.isNotEmpty;
+
+  /// Error de la nueva contraseña (mín. 8, igual que el registro), o null si OK.
+  /// Devuelve null mientras el campo esté vacío para no molestar antes de escribir.
+  String? get _passwordError {
+    if (_newPasswordController.text.isEmpty) return null;
+    return Validaciones.contrasena(_newPasswordController.text);
+  }
 
   @override
   void dispose() {
@@ -28,28 +45,44 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (!_passwordsMatch) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Las contraseñas no coinciden'),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
+  void _snack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('¡Contraseña restablecida con éxito!'),
-        backgroundColor: AppTheme.primary,
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-    // Navigate back to login
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _submit() async {
+    final errPass = Validaciones.contrasena(_newPasswordController.text);
+    if (errPass != null) {
+      _snack(errPass, isError: true);
+      return;
+    }
+    if (!_passwordsMatch) {
+      _snack('Las contraseñas no coinciden', isError: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await UsuarioService.resetearPassword(
+        widget.correo,
+        widget.codigo,
+        _newPasswordController.text,
+      );
+      if (!mounted) return;
+      _snack('¡Contraseña reestablecida con éxito!');
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) {
+        _snack('No se pudo reestablecer. El código pudo vencer o ya se usó.', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -69,7 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 children: [
                   // ── Title ───────────────────────────────────────
                   Text(
-                    'Restablecer contraseña',
+                    'Reestablecer contraseña',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 22,
@@ -93,6 +126,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     hint: '••••••••',
                     prefixIcon: Icons.lock_outline,
                     obscure: _obscureNew,
+                    onChanged: (_) => setState(() {}),
                     suffix: IconButton(
                       icon: Icon(
                         _obscureNew
@@ -105,6 +139,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           setState(() => _obscureNew = !_obscureNew),
                     ),
                   ),
+
+                  // ── Error de contraseña (mín. 8) en vivo ───────
+                  if (_passwordError != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.cancel_outlined, size: 14, color: Colors.red),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _passwordError!,
+                            style: const TextStyle(fontSize: 11, color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
 
                   // ── Confirmar contraseña ───────────────────────
@@ -115,6 +166,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     hint: '••••••••',
                     prefixIcon: Icons.verified_user_outlined,
                     obscure: _obscureConfirm,
+                    onChanged: (_) => setState(() {}),
                     suffix: IconButton(
                       icon: Icon(
                         _obscureConfirm
@@ -157,8 +209,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                   // ── Submit ──────────────────────────────────────
                   AuthPrimaryButton(
-                    label: 'Restablecer contraseña',
+                    label: _saving ? 'Restableciendo...' : 'Restablecer contraseña',
                     onTap: _submit,
+                    enabled: !_saving,
                   ),
                   const SizedBox(height: 20),
 

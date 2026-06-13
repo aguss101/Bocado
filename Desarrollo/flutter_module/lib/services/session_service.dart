@@ -10,7 +10,7 @@ class SessionService {
   static const _keyFotoUrl   = 'session_foto_url';
   static const _keyBannerUrl = 'session_banner_url';
 
-  /// Persiste los datos del usuario logueado en el dispositivo.
+  /// Datos del usuario perdido
   static Future<void> saveSession(usuario_Logged user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyId,       user.id);
@@ -22,7 +22,7 @@ class SessionService {
     if (user.bannerUrl    != null) await prefs.setString(_keyBannerUrl, user.bannerUrl!);
   }
 
-  /// Devuelve el usuario guardado, o null si no hay sesión activa.
+  /// return user saved
   static Future<usuario_Logged?> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getInt(_keyId);
@@ -39,7 +39,7 @@ class SessionService {
     );
   }
 
-  /// Borra la sesión guardada (logout).
+  /// Log out
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyId);

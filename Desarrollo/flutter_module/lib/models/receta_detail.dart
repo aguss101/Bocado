@@ -2,12 +2,9 @@ import 'package:flutter_module/models/receta_feed.dart';
 import 'package:flutter_module/screens/recipe_detail.dart';
 
 class RecetaDetail {
-  ///RecetaFeed:
   final RecetaFeed receta;
-  ///Datos que quiero en la nueva pantalla:
   final List<IngredientItem> ingredientes;
   final List<PreparationStep> pasos;
-  ///Lo sacamos de pasos o les parece hacer un nuevo campo en la tabla Recetas?
   final String tiempoPreparacion;
 
   RecetaDetail({

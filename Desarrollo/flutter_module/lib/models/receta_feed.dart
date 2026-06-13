@@ -26,7 +26,7 @@ class RecetaFeed {
   final double grasasTotales;
 
   RecetaFeed({
-    required this.idReceta, // Lo pedimos en el constructor
+    required this.idReceta,
     required this.nombre,
     required this.caloriasTotales,
     required this.porciones,
@@ -48,7 +48,6 @@ class RecetaFeed {
 
   factory RecetaFeed.fromJson(Map<String, dynamic> json) {
     return RecetaFeed(
-      // Mapeamos el ID
       idReceta: json['id_receta'] ?? 0,
 
       ///Receta:

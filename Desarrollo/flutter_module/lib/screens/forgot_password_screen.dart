@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/auth_scaffold.dart';
+import '../services/usuario_service.dart';
 import 'reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -16,25 +18,111 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
   bool _codeSent = false;
+  bool _sending = false;
+  bool _verifying = false;
+
+  // Reenvío: tras enviar el código hay que esperar 10 min (lo que dura el OTP)
+  // antes de poder pedir uno nuevo. Mientras tanto mostramos una cuenta regresiva.
+  static const _resendCooldown = 600; // segundos = 10 minutos
+  Timer? _resendTimer;
+  int _secondsLeft = 0;
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _emailController.dispose();
     _codeController.dispose();
     super.dispose();
   }
 
-  void _sendCode() {
-    if (_emailController.text.trim().isEmpty) return;
-    setState(() => _codeSent = true);
+  void _snack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Código enviado a tu correo'),
-        backgroundColor: AppTheme.primary,
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  String _fmt(int s) =>
+      '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
+
+  void _startCooldown() {
+    _resendTimer?.cancel();
+    setState(() => _secondsLeft = _resendCooldown);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_secondsLeft <= 1) {
+        t.cancel();
+        setState(() => _secondsLeft = 0);
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
+  }
+
+  /// Pide (o reenvía) el código. Reenviar genera uno NUEVO e invalida el anterior
+  /// (lo hace la RPC create_otp en la BD), y reinicia la cuenta regresiva.
+  Future<void> _request({required bool isResend}) async {
+    final correo = _emailController.text.trim();
+    if (correo.isEmpty) {
+      _snack('Ingresá tu correo', isError: true);
+      return;
+    }
+    setState(() => _sending = true);
+    try {
+      await UsuarioService.solicitarOtp(correo);
+      if (!mounted) return;
+      setState(() => _codeSent = true);
+      _startCooldown();
+      _snack(isResend
+          ? 'Te enviamos un nuevo código.'
+          : 'Si el correo existe, te enviamos un código.');
+    } catch (_) {
+      if (mounted) _snack('No se pudo enviar el código. Reintentá.', isError: true);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _sendCode() => _request(isResend: false);
+  Future<void> _resendCode() => _request(isResend: true);
+
+  Future<void> _verifyCode() async {
+    final correo = _emailController.text.trim();
+    final codigo = _codeController.text.trim();
+    if (correo.isEmpty || codigo.length < 6) {
+      _snack('Completá el correo y el código de 6 dígitos.', isError: true);
+      return;
+    }
+    setState(() => _verifying = true);
+    try {
+      final ok = await UsuarioService.verificarOtp(correo, codigo);
+      if (!mounted) return;
+      if (ok) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResetPasswordScreen(
+              themeNotifier: widget.themeNotifier,
+              correo: correo,
+              codigo: codigo,
+            ),
+          ),
+        );
+      } else {
+        _snack('Código inválido o vencido.', isError: true);
+      }
+    } catch (_) {
+      if (mounted) _snack('No se pudo verificar el código.', isError: true);
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
   }
 
   @override
@@ -42,6 +130,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
     final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    // Habilitado solo si no estamos enviando y no hay cooldown activo.
+    final canRequest = !_sending && _secondsLeft == 0;
 
     return AuthScaffold(
       themeNotifier: widget.themeNotifier,
@@ -81,24 +171,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: _sendCode,
+                  onTap: canRequest ? _sendCode : null,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'ENVIAR CÓDIGO',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.primary,
+                          color: canRequest ? AppTheme.primary : secondary,
                           letterSpacing: 1.5,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward,
                         size: 14,
-                        color: AppTheme.primary,
+                        color: canRequest ? AppTheme.primary : secondary,
                       ),
                     ],
                   ),
@@ -123,33 +213,49 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
 
-              // ── Resend hint ───────────────────────────────────
+              // ── Resend hint + cuenta regresiva / reenviar ─────
               if (_codeSent) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.info_outline, size: 12, color: secondary),
                     const SizedBox(width: 4),
-                    Text(
-                      'Revisá tu casilla de correo. Puede tardar unos segundos.',
-                      style: TextStyle(fontSize: 11, color: secondary),
+                    Expanded(
+                      child: Text(
+                        'Revisá tu casilla de correo. Puede tardar unos segundos.',
+                        style: TextStyle(fontSize: 11, color: secondary),
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _secondsLeft > 0
+                      ? Text(
+                          'Podés reenviar el código en ${_fmt(_secondsLeft)}',
+                          style: TextStyle(fontSize: 11, color: secondary),
+                        )
+                      : GestureDetector(
+                          onTap: _sending ? null : _resendCode,
+                          child: const Text(
+                            'Reenviar código',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
                 ),
               ],
               const SizedBox(height: 28),
 
               // ── Submit ────────────────────────────────────────
               AuthPrimaryButton(
-                label: 'Verificar código',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ResetPasswordScreen(
-                      themeNotifier: widget.themeNotifier,
-                    ),
-                  ),
-                ),
+                label: _verifying ? 'Verificando...' : 'Verificar código',
+                onTap: _verifyCode,
+                enabled: !_verifying,
               ),
               const SizedBox(height: 20),
 

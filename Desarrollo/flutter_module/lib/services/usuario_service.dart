@@ -7,20 +7,15 @@ class UsuarioService {
   static const _channel = MethodChannel('com.example.bocado/access');
   static final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  /// Lanza el selector de cuentas de Google y resuelve el flujo:
-  /// - [GoogleAuth.cancelado] si el usuario cierra el selector.
-  /// - [GoogleAuth.login] si el correo ya tiene cuenta → entra directo.
-  /// - [GoogleAuth.registroPendiente] si es nuevo → falta completar
-  ///   nación/género/fecha (datos que Google no provee) en el onboarding.
-  /// Reutilizado tanto por Login como por Registro.
+  // Nación/género/fecha (datos que Google no provee) en el onboarding.
+
   static Future<GoogleAuth> signInWithGoogle() async {
-    // Forzamos a que SIEMPRE aparezca el selector de cuentas: si no,
-    // google_sign_in reutiliza en silencio la última cuenta usada.
+  // Siempre aparezca el selector de cuentas
     await _googleSignIn.signOut();
     final account = await _googleSignIn.signIn();
     if (account == null) return GoogleAuth.cancelado(); // el usuario canceló
 
-    // 1) ¿Ya existe una cuenta con ese correo? → login directo.
+    // 1) ¿Ya existe una cuenta con ese correo? → login.
     final String response =
         await _channel.invokeMethod('loginGoogle', {'email': account.email});
     final List<dynamic> lista = jsonDecode(response);
@@ -28,7 +23,7 @@ class UsuarioService {
       return GoogleAuth.login(usuario_Logged.fromJson(lista.first));
     }
 
-    // 2) Usuario nuevo: pre-cargamos lo que Google sí da para el onboarding.
+    // 2) datos de google:
     final partes = account.displayName?.split(' ') ?? [];
     final nombre = partes.isNotEmpty ? partes.first : '';
     final apellido = partes.length > 1 ? partes.sublist(1).join(' ') : '';
@@ -40,8 +35,7 @@ class UsuarioService {
     ));
   }
 
-  /// Crea el usuario de Google una vez completado el onboarding
-  /// (nación/género/fecha). Devuelve el usuario ya creado.
+  /// Crea el usuario de Google en la app.
   static Future<usuario_Logged> registrarUsuarioGoogle({
     required GooglePerfil perfil,
     required int nacion,
@@ -70,8 +64,8 @@ class UsuarioService {
     return usuario_Logged.fromJson(data);
   }
 
-  /// Revalida contra la BD que la cuenta exista y siga activa.
-  /// Devuelve true si está vigente; lanza PlatformException si no hay red.
+  /// La cuenta existe y está activa?.
+
   static Future<bool> sesionVigente(int id) async {
     final String response =
         await _channel.invokeMethod('validarSesion', {'id_usuario': id});
@@ -99,8 +93,6 @@ class UsuarioService {
       'password': password,
       'fechaNacimiento': fechaNacimiento,
     });
-    // Mismo mapeo que login/getPerfilUsuario: fromJson manda foto/banner a
-    // fotoUrl/bannerUrl (son URLs de Storage, no base64).
     final data = jsonDecode(response);
     return usuario_Logged.fromJson(data);
   }
@@ -134,8 +126,6 @@ class UsuarioService {
   }
 
   static Future<usuario_Logged> getPerfilUsuario(int idUsuarioTarget) async{
-    // El mapeo lo hace Java (Mapper): acá llega un único objeto ya limpio.
-    // Si no existe, Java responde con error NOT_FOUND (PlatformException).
     final String response = await _channel.invokeMethod(
       'getPerfilUsuario',
       {'id_usuario': idUsuarioTarget},
@@ -143,11 +133,33 @@ class UsuarioService {
     final Map<String, dynamic> data = jsonDecode(response);
     return usuario_Logged.fromJson(data);
   }
+
+  // ── Reestablecer pass (OTP) ─────────────────────────────────
+  static Future<void> solicitarOtp(String correo) async {
+    await _channel.invokeMethod('solicitarOtp', {'correo': correo});
+  }
+
+  /// Valida código OTP.
+  static Future<bool> verificarOtp(String correo, String codigo) async {
+    final bool ok = await _channel.invokeMethod('verificarOtp', {
+      'correo': correo,
+      'codigo': codigo,
+    });
+    return ok;
+  }
+
+  /// Re-verifica el OTP y cambia la contraseña.
+  static Future<void> resetearPassword(String correo, String codigo, String nueva) async {
+    await _channel.invokeMethod('resetearPassword', {
+      'correo': correo,
+      'codigo': codigo,
+      'nueva': nueva,
+    });
+  }
 }
 
-/// Resultado del flujo de autenticación con Google.
 class GoogleAuth {
-  /// != null  → el correo ya tenía cuenta: login directo.
+  /// != null  → el correo tiene cuenta: login.
   final usuario_Logged? existente;
 
   /// != null  → usuario nuevo: falta completar el perfil (onboarding).
@@ -162,7 +174,7 @@ class GoogleAuth {
   bool get cancelado => existente == null && nuevo == null;
 }
 
-/// Datos que Google sí provee y que pre-cargamos en el onboarding.
+/// Datos de google y onboarding
 class GooglePerfil {
   final String correo;
   final String nombre;
