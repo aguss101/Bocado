@@ -18,7 +18,7 @@ const _error = Color(0xFFB91C1C);
 const bool _isDebug = true;
 
 class _Ingredient {
-  final int idAlimento;
+  int idAlimento;
   final String name;
   final String category;
   String quantity;
@@ -230,43 +230,53 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Future<void> _persistirRecetaFinal() async {
-
-    final int idDificultadReal = _dificultadData[_dificultad]['id'];
-    if (_nombreCtrl.text.trim().isEmpty) {
-      _snack('Por favor, introduce el título de la receta');
-      return;
-    }
-
     setState(() => _isSaving = true);
-    String instruccionesConcatenadas = _pasos.asMap().entries.map((e) {
-      return '${e.key + 1}. ${e.value.description}';
-    }).join('\n');
-    if (instruccionesConcatenadas.isEmpty) {
-      instruccionesConcatenadas = _prepCtrl.text.trim();
-    }
 
-    final Map<String, dynamic> payload = {
-      'id_usuario': widget.user.id,
-      'nombre': _nombreCtrl.text.trim(),
-      'descripcion': _descripcionCtrl.text.trim(),
-      'calorias_totales': double.tryParse(_caloriasCtrl.text.trim()) ?? 0.0,
-      'porciones': int.tryParse(_porcionesCtrl.text.trim()) ?? 1,
-      'instrucciones': instruccionesConcatenadas,
-      'precio': _calcularCostoTotal(),
-      'ingredientes': _ingredients.map((ing) => {
-        'id_alimento': ing.idAlimento,
-        'cantidad': double.tryParse(ing.quantity) ?? 0.0,
-        'precio': ing.priceBase,
-      }).toList(),
-    };
     try {
-      final String? response = await _channel.invokeMethod<String>('saveReceta', payload);
-      _snack('¡Receta creada con éxito en la base de datos!');
-      if (mounted) Navigator.pop(context, true);
+      // 1 y 2: Procesar ingredientes nuevos
+      // Recorremos la lista de ingredientes que el usuario cargó
+      for (var ing in _ingredients) {
+        if (ing.idAlimento <= 0) { // Asumimos que <= 0 significa "nuevo"
+          // Llamamos al MethodChannel para crear el alimento
+          final Map<String, dynamic> response = await const MethodChannel('com.example.bocado/recetas')
+              .invokeMethod('addAlimento', {
+            'nombre': ing.name,
+            'id_usuario': widget.user.id,
+          });
+
+          // 3: Actualizamos el ID local con el ID real que nos devolvió la BD
+          ing.idAlimento = response['id'];
+        }
+      }
+
+      // 4: Ahora que todos los ingredientes tienen ID real, guardamos la receta
+      final Map<String, dynamic> recetaData = {
+        'id_usuario': widget.user.id,
+        'nombre': _nombreCtrl.text,
+        'calorias_totales': double.tryParse(_caloriasCtrl.text) ?? 0,
+        'porciones': int.tryParse(_porcionesCtrl.text) ?? 1,
+        'porciones_peso': double.tryParse(_pesoPorcionCtrl.text) ?? 0,
+        'id_dificultad': _dificultadData[_dificultad]['id'],
+        'instrucciones': _pasos.map((s) => s.description).join('\n'),
+        'precio': _calcularCostoTotal(),
+        'ingredientes': _ingredients.map((ing) => {
+          'id_alimento': ing.idAlimento,
+          'nombre': ing.name,
+          'cantidad': double.tryParse(ing.quantity) ?? 0,
+          'precio': ing.priceBase,
+        }).toList(),
+      };
+
+      await const MethodChannel('com.example.bocado/recetas')
+          .invokeMethod('saveReceta', recetaData);
+
+      _snack('Receta guardada con éxito');
+      Navigator.pop(context);
+
     } catch (e) {
-      _snack('Error al impactar en Supabase: $e');
+      _snack('Error al guardar: $e');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      setState(() => _isSaving = false);
     }
   }
 
@@ -676,6 +686,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
   Widget _suggestionRow(Map<String, dynamic> s) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final idDinamico = (s['id_alimento'] ?? s['id'] ?? -1);
     return GestureDetector(
       onTap: () {
         double precioNum = 0.50;
@@ -916,7 +927,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 setState(() {
                   if (isEditing) {
                     _ingredients[_ingredients.indexOf(ing!)] = _Ingredient(
-                        idAlimento: ing.idAlimento, name: ing.name, category: ing.category,
+                        idAlimento: ing.idAlimento,
+                        name: ing.name,
+                        category: ing.category,
                         quantity: ing.quantity,
                         unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
                         priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: ing.idUsuario
@@ -924,7 +937,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   } else {
                     _ingredients.add(_Ingredient(
                         idAlimento: DateTime.now().millisecondsSinceEpoch,
-                        name: newName!, category: 'Personalizado',
+                        name: newName!,
+                        category: 'Personalizado',
                         quantity: '100',
                         unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
                         priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: widget.user.id
@@ -1031,7 +1045,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
                 setState(() {
                   _ingredients.add(_Ingredient(
-                    idAlimento: DateTime.now().millisecondsSinceEpoch,
+                    idAlimento: -1,
                     name: name,
                     category: 'Personalizado',
                     quantity: '100',

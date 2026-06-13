@@ -4,8 +4,10 @@ import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.ErrorCode;
 import com.example.bocado.Estaticos.RpcCallHelper;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.List;
 import java.util.Map;
 
 public class RecetaDAO {
@@ -17,13 +19,22 @@ public class RecetaDAO {
             recetaJson.put("nombre", args.get("nombre"));
             recetaJson.put("calorias_totales", args.get("calorias_totales"));
             recetaJson.put("porciones", args.get("porciones"));
+            recetaJson.put("porciones_peso", args.get("porciones_peso")); // <-- ¿Está aquí?
+            recetaJson.put("id_dificultad", args.get("id_dificultad"));   // <-- ¿Está aquí?
             recetaJson.put("instrucciones", args.get("instrucciones"));
-            recetaJson.put("precio", args.containsKey("precio") ? args.get("precio") : 0);
+            recetaJson.put("precio", args.get("precio"));
+            recetaJson.put("ingredientes", args.get("ingredientes"));
 
             if (args.containsKey("ingredientes")) {
-                recetaJson.put("ingredientes", args.get("ingredientes"));
+                Object ingredientesObj = args.get("ingredientes");
+                if (ingredientesObj instanceof List) {
+                    // Esto convierte la lista de Maps de Flutter a un JSONArray de Java
+                    JSONArray jsonArray = new JSONArray((List<?>) ingredientesObj);
+                    recetaJson.put("ingredientes", jsonArray);
+                } else {
+                    recetaJson.put("ingredientes", ingredientesObj);
+                }
             }
-
             JSONObject body = new JSONObject();
             body.put("p_data", recetaJson);
 
