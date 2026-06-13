@@ -75,4 +75,28 @@ public class HttpClientManager {
                 jsonBody, MediaType.parse("application/json; charset=utf-8"));
         return getBaseBuilder(endpoint).post(body).build();
     }
+
+    // ── Storage (subida de imágenes) ──────────────────────────────────────────
+    // supaUrl sin barra final, para no duplicar "/" al construir rutas de Storage.
+    private String baseUrl() {
+        return supaUrl.endsWith("/") ? supaUrl.substring(0, supaUrl.length() - 1) : supaUrl;
+    }
+
+    /** Sube bytes de imagen a un bucket de Storage (upsert). Async, responde por callback. */
+    public void uploadImage(String bucket, String path, byte[] bytes, Callback callback) {
+        RequestBody body = RequestBody.create(bytes, MediaType.parse("image/jpeg"));
+        Request request = new Request.Builder()
+                .url(baseUrl() + "/storage/v1/object/" + bucket + "/" + path)
+                .addHeader("apikey", supaKey)
+                .addHeader("Authorization", "Bearer " + supaKey)
+                .addHeader("x-upsert", "true")   // sobreescribe si ya existe
+                .post(body)
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
+
+    /** URL pública de un objeto de Storage. */
+    public String storagePublicUrl(String bucket, String path) {
+        return baseUrl() + "/storage/v1/object/public/" + bucket + "/" + path;
+    }
 }

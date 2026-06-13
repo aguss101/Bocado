@@ -1,7 +1,6 @@
 package com.example.bocado.channels;
 
 import android.app.Activity;
-import com.example.bocado.BuildConfig;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
@@ -13,8 +12,6 @@ import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
 import org.json.JSONObject;
-import java.util.HashMap;
-import java.util.Map;
 
 public class AccessChannel {
 
@@ -38,7 +35,6 @@ public class AccessChannel {
             case "registrarGoogle"   -> handleRegistrarGoogle(call, result);
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
-            case "getSupabaseConfig" -> handleGetSupabaseConfig(result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             case "validarSesion"    -> handleValidarSesion(call, result);
@@ -95,7 +91,7 @@ public class AccessChannel {
                 public void onSuccess(String response) {
                     JSONObject obj = RpcCallHelper.firstOrNull(response);
                     if (obj != null) {
-                        activity.runOnUiThread(() -> result.success(obj.toString()));
+                        responderUsuarioLimpio(obj.toString(), result);
                     } else {
                         activity.runOnUiThread(() -> result.error("ERROR_REGISTRO", "No se pudo crear el usuario de Google.", null));
                     }
@@ -115,7 +111,7 @@ public class AccessChannel {
 
         usuarioManager.login(usuario, contrasena, new CallbackCB() {
             @Override public void onSuccess(String response) {
-                activity.runOnUiThread(() -> result.success(response));
+                responderUsuarioLimpio(response, result);
             }
             @Override public void onError(String code, String message, Object details) {
                 activity.runOnUiThread(() -> result.error(code, message, details));
@@ -139,7 +135,7 @@ public class AccessChannel {
 
         usuarioManager.registrar(u, new CallbackCB() {
             @Override public void onSuccess(String data) {
-                activity.runOnUiThread(() -> result.success(data));
+                responderUsuarioLimpio(data, result);
             }
             @Override public void onError(String code, String message, Object details) {
                 activity.runOnUiThread(() -> result.error(code, message, details));
@@ -157,16 +153,6 @@ public class AccessChannel {
                 activity.runOnUiThread(() -> result.success(body));
             }
         });
-    }
-
-    private void handleGetSupabaseConfig(MethodChannel.Result result) {
-        String rawUrl = BuildConfig.SUPABASE_URL;
-        String url = rawUrl.endsWith("/") ? rawUrl.substring(0, rawUrl.length() - 1) : rawUrl;
-
-        Map<String, String> config = new HashMap<>();
-        config.put("url", url);
-        config.put("key", BuildConfig.SUPABASE_KEY);
-        result.success(config);
     }
 
     private void handleActualizarPerfil(MethodCall call, MethodChannel.Result result) {
@@ -247,15 +233,27 @@ public class AccessChannel {
                         activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
                         return;
                     }
-                    // El mapeo vive en Java (Mapper), no en Flutter. Devolvemos un
-                    // objeto limpio y sin contraseña en vez del body crudo de Supabase.
-                    Usuario u = Mapper.jsonToUsuario(filas.getJSONObject(0));
-                    String perfil = Mapper.usuarioToClientJson(u).toString();
-                    activity.runOnUiThread(() -> result.success(perfil));
+                    responderUsuarioLimpio(filas.getJSONObject(0).toString(), result);
                 } catch (org.json.JSONException e) {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
             }
         });
+    }
+
+    /**
+     * Mapea una fila cruda de la tabla usuarios a JSON limpio para el cliente
+     * (vía Mapper, SIN contrasena) y la devuelve por el channel en el hilo de UI.
+     * El mapeo vive en Java, no en Flutter. Reutilizado por login, registro,
+     * registro Google y getPerfilUsuario.
+     */
+    private void responderUsuarioLimpio(String filaUsuarioJson, MethodChannel.Result result) {
+        try {
+            Usuario u = Mapper.jsonToUsuario(new JSONObject(filaUsuarioJson));
+            String limpio = Mapper.usuarioToClientJson(u).toString();
+            activity.runOnUiThread(() -> result.success(limpio));
+        } catch (org.json.JSONException e) {
+            activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+        }
     }
 }

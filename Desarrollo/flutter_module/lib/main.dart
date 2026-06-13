@@ -9,19 +9,12 @@ import 'screens/recipe_editor_screen.dart';
 import 'services/session_service.dart';
 import 'services/usuario_service.dart';
 import 'config/debug_config.dart';
-import 'config/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   String? initError;
   usuario_Logged? savedUser;
-
-  try {
-    await SupabaseConfig.initialize();
-  } catch (e) {
-    initError = 'SupabaseConfig.initialize() falló: $e';
-  }
 
   try {
     savedUser = await SessionService.loadSession();

@@ -1,8 +1,7 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:http/http.dart' as http;
-import '../config/supabase_config.dart';
 
 /// Límites de compresión por tipo de imagen.
 /// El celular puede sacar fotos de 10+ MB — acá las reducimos antes de subir.
@@ -19,6 +18,7 @@ const _presetReceta = _Preset(1200, 900,  85);
 
 class ImageUploadService {
   static final _picker = ImagePicker();
+  static const _channel = MethodChannel('com.example.bocado/images');
 
   // ── PICK ──────────────────────────────────────────────────────────────────
 
@@ -43,25 +43,14 @@ class ImageUploadService {
   // ── UPLOAD ────────────────────────────────────────────────────────────────
 
   static Future<String> _upload(String bucket, String path, Uint8List bytes) async {
-    final cfg = SupabaseConfig.instance;
-    final uri = Uri.parse(cfg.storageUploadUrl(bucket, path));
-
-    final response = await http.post(
-      uri,
-      headers: {
-        'apikey':         cfg.key,
-        'Authorization':  'Bearer ${cfg.key}',
-        'Content-Type':   'image/jpeg',
-        'x-upsert':       'true',   // sobreescribe si ya existe
-      },
-      body: bytes,
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Error al subir imagen (${response.statusCode}): ${response.body}');
-    }
-
-    return cfg.storagePublicUrl(bucket, path);
+    // La subida (HTTP a Supabase Storage) vive en Java; acá solo mandamos los
+    // bytes por el channel y recibimos la URL pública ya construida.
+    final String url = await _channel.invokeMethod('subirImagen', {
+      'bucket': bucket,
+      'path': path,
+      'bytes': bytes,
+    });
+    return url;
   }
 
   // ── API PÚBLICA ───────────────────────────────────────────────────────────
