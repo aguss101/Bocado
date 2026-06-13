@@ -25,6 +25,7 @@ class _Ingredient {
   final String unit;
   final double priceBase;
   final int idMedida;
+  final int? idUsuario;
 
   _Ingredient({
     required this.idAlimento,
@@ -34,6 +35,7 @@ class _Ingredient {
     required this.unit,
     required this.priceBase,
     required this.idMedida,
+    this.idUsuario,
   });
 
   double get subtotal {
@@ -97,8 +99,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   final _pesoPorcionCtrl = TextEditingController();
   final _tiempoCtrl = TextEditingController();
   final _caloriasCtrl = TextEditingController();
-  int _dificultad = 1;
+  int _dificultad = 2;
   bool _isSaving = false;
+
+  final List<Map<String, dynamic>> _dificultadData = [
+    {'label': 'Principiante', 'icon': Icons.child_care, 'id': 1},
+    {'label': 'Aficionado',   'icon': Icons.kitchen, 'id': 2},
+    {'label': 'Intermedio',   'icon': Icons.fitness_center, 'id': 3},
+    {'label': 'Profesional',  'icon': Icons.work_outline, 'id': 4},
+    {'label': 'Experto',      'icon': Icons.local_fire_department, 'id': 5},
+  ];
+
 
   @override
   void initState() {
@@ -219,6 +230,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Future<void> _persistirRecetaFinal() async {
+
+    final int idDificultadReal = _dificultadData[_dificultad]['id'];
     if (_nombreCtrl.text.trim().isEmpty) {
       _snack('Por favor, introduce el título de la receta');
       return;
@@ -396,7 +409,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
 // ══════════════════════════════════════════════════════════════════════════
-// HEADER (Versión Compacta)
+// HEADER
 // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStepIndicator() {
     return Container(
@@ -771,50 +784,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         border: Border(bottom: BorderSide(color: Colors.black.withOpacity(0.05))),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Fila 1: Nombre del ingrediente
-          Text(
-            ing.name,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-
-          // Fila 2: Cantidad (Izq) y Subtotal/Eliminar (Der)
+          // Fila 1 y 2 combinadas: Nombre, Subtotal y Eliminar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Alineado a la izquierda: Cantidad y Unidad
-              Row(
-                children: [
-                  SizedBox(
-                    width: 50, height: 26,
-                    child: TextFormField(
-                      initialValue: ing.quantity,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
-                      // Usamos onFieldSubmitted en lugar de onChanged para evitar el cuelgue mientras escribe
-                      onFieldSubmitted: (v) {
-                        if (v.isEmpty || v == '0') {
-                          _showResetQuantityDialog(ing, index);
-                        } else {
-                          setState(() => ing.quantity = v);
-                        }
-                      },
-                      decoration: InputDecoration(
-                          contentPadding: EdgeInsets.zero,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4))
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(ing.unit, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subtextColor)),
-                ],
+              Expanded(
+                child: Text(
+                  ing.name,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              // Alineado a la derecha: Subtotal y eliminar
               Row(
                 children: [
                   Text(
@@ -830,17 +812,136 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               ),
             ],
           ),
-          const SizedBox(height: 4),
 
-          // Fila 3: Precio x 100gr/ml o Unidad (Alineado a la derecha)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '(\$${ing.priceBase.toStringAsFixed(2)} x 100${ing.unit})',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: subtextColor),
-            ),
+          const SizedBox(height: 8),
+
+          // Fila 3: Cantidad, Unidad, Precio Base y Configuración
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Input de cantidad
+              Row(
+                children: [
+                  SizedBox(
+                    width: 50, height: 26,
+                    child: TextFormField(
+                      initialValue: ing.quantity,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
+                      onFieldSubmitted: (v) {
+                        if (v.isEmpty || v == '0') {
+                          _showResetQuantityDialog(ing, index);
+                        } else {
+                          setState(() => ing.quantity = v);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(ing.unit, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subtextColor)),
+                ],
+              ),
+
+              // Precio base y botón de configuración
+              Row(
+                children: [
+                  Text(
+                    ing.idMedida == 3
+                        ? '(\$${ing.priceBase.toStringAsFixed(2)} x unid)'
+                        : '(\$${ing.priceBase.toStringAsFixed(2)} x 100${ing.unit})',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: subtextColor),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showIngredientDialog(ing: ing),
+                    child: Icon(Icons.settings, color: _primary, size: 18),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+// 4. Fila para crear nuevo personalizado (Simplificada)
+
+  void _showIngredientDialog({_Ingredient? ing, String? newName}) {
+    final isEditing = ing != null;
+    // Definición de controladores DENTRO del método
+    final TextEditingController _cantCtrl = TextEditingController(text: isEditing ? ing.quantity : '100');
+    final TextEditingController _precioCtrl = TextEditingController(text: isEditing ? ((double.tryParse(ing.quantity) ?? 1) * (ing.priceBase / (ing.idMedida < 3 ? 100 : 1))).toStringAsFixed(2) : '');
+    int _medida = isEditing ? ing.idMedida : 1;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(isEditing ? 'Editar: ${ing.name}' : 'Configurar: $newName'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<int>(
+                value: _medida,
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
+                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
+                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
+                ],
+                onChanged: (v) => setDialogState(() => _medida = v!),
+              ),
+              TextField(controller: _cantCtrl, decoration: const InputDecoration(labelText: 'Cantidad Comprada'), keyboardType: TextInputType.number),
+              TextField(controller: _precioCtrl, decoration: const InputDecoration(labelText: 'Precio Total Pagado \$'), keyboardType: TextInputType.number),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+            ElevatedButton(
+              onPressed: () {
+                // Ahora sí, _precioCtrl es accesible desde aquí porque está en el scope del padre
+                double cantComprada = double.tryParse(_cantCtrl.text) ?? 0;
+                double precioTotal = double.tryParse(_precioCtrl.text) ?? 0;
+
+                if (cantComprada <= 0) return;
+
+                double nuevoPriceBase = (precioTotal / cantComprada);
+                if (_medida == 1 || _medida == 2) nuevoPriceBase *= 100;
+
+                setState(() {
+                  if (isEditing) {
+                    _ingredients[_ingredients.indexOf(ing!)] = _Ingredient(
+                        idAlimento: ing.idAlimento, name: ing.name, category: ing.category,
+                        quantity: ing.quantity,
+                        unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
+                        priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: ing.idUsuario
+                    );
+                  } else {
+                    _ingredients.add(_Ingredient(
+                        idAlimento: DateTime.now().millisecondsSinceEpoch,
+                        name: newName!, category: 'Personalizado',
+                        quantity: '100',
+                        unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
+                        priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: widget.user.id
+                    ));
+                    _ingSearchCtrl.clear();
+                  }
+                });
+
+                Navigator.pop(context);
+                // Desenfoque global para cerrar teclado
+                FocusManager.instance.primaryFocus?.unfocus();
+                _snack('Configuración guardada');
+              },
+              child: const Text('GUARDAR'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -937,11 +1038,79 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     unit: _medidaSeleccionada == 1 ? 'gr' : (_medidaSeleccionada == 2 ? 'ml' : 'unid'),
                     priceBase: precioBaseCalculado,
                     idMedida: _medidaSeleccionada,
+                    idUsuario: widget.user.id,
                   ));
                   _ingSearchCtrl.clear();
                   FocusScope.of(context).unfocus();
                 });
                 Navigator.pop(context);
+              },
+              child: const Text('GUARDAR'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditIngredientDialog(_Ingredient ing, int index) {
+    // Inicializamos controladores con los valores actuales del ingrediente
+    final _cantCtrl = TextEditingController(text: ing.quantity);
+    final _precioBaseCtrl = TextEditingController(text: ing.priceBase.toStringAsFixed(2));
+    int _medidaTemp = ing.idMedida;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Editar: ${ing.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<int>(
+                value: _medidaTemp,
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
+                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
+                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
+                ],
+                onChanged: (v) => setDialogState(() => _medidaTemp = v!),
+              ),
+              TextField(
+                  controller: _cantCtrl,
+                  decoration: const InputDecoration(labelText: 'Cantidad'),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true)
+              ),
+              TextField(
+                  controller: _precioBaseCtrl,
+                  decoration: const InputDecoration(labelText: 'Precio Base'),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true)
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+            ElevatedButton(
+              onPressed: () {
+                final nuevaCant = _cantCtrl.text.trim();
+                final nuevoPrecio = double.tryParse(_precioBaseCtrl.text) ?? 0.0;
+
+                setState(() {
+                  // Actualizamos el objeto en la lista
+                  _ingredients[index] = _Ingredient(
+                    idAlimento: ing.idAlimento,
+                    name: ing.name,
+                    category: ing.category,
+                    quantity: nuevaCant,
+                    unit: _medidaTemp == 1 ? 'gr' : (_medidaTemp == 2 ? 'ml' : 'unid'),
+                    priceBase: nuevoPrecio,
+                    idMedida: _medidaTemp,
+                    idUsuario: ing.idUsuario, // Mantenemos el ID del usuario
+                  );
+                });
+
+                Navigator.pop(context);
+                _snack('Ingrediente actualizado');
               },
               child: const Text('GUARDAR'),
             ),
@@ -1091,6 +1260,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep3() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1098,19 +1268,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _fieldLabel('NUEVA INSTRUCCIÓN'),
-              const SizedBox(height: 10),
+              // Fila: Título y Botón + en la misma línea
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: _textField(
-                      controller: _prepCtrl,
-                      hint: 'Ej: Dorar la cebolla y el ajo a fuego lento con un chorrito de aceite de oliva...',
-                      maxLines: 3,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  _fieldLabel('NUEVA INSTRUCCIÓN'),
                   GestureDetector(
                     onTap: () {
                       final text = _prepCtrl.text.trim();
@@ -1118,20 +1280,33 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                         setState(() {
                           _pasos.add(_RecipeStep(description: text));
                           _prepCtrl.clear();
+                          FocusManager.instance.primaryFocus?.unfocus();
                         });
                       }
                     },
                     child: Container(
-                      height: 48,
-                      width: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: _primary,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add, color: Colors.white),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.add, color: Colors.white, size: 18),
+                          SizedBox(width: 4),
+                          Text('AÑADIR', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              // TextField ocupando todo el ancho disponible
+              _textField(
+                controller: _prepCtrl,
+                hint: 'Ej: Dorar la cebolla y el ajo...',
+                maxLines: 3,
               ),
             ],
           ),
@@ -1140,53 +1315,58 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           const SizedBox(height: 20),
           _fieldLabel('PASOS DE PREPARACIÓN'),
           const SizedBox(height: 10),
-          _card(
-            child: Column(
-              children: _pasos.asMap().entries.map((e) => Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(
-                          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04)
-                      )
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                        radius: 9,
-                        backgroundColor: _primary.withOpacity(0.15),
-                        child: Text(
-                            '${e.key + 1}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _primary)
-                        )
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                        child: Text(
-                            e.value.description,
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: isDark ? Colors.white : _onSurface
-                            )
-                        )
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _pasos.removeAt(e.key)),
-                      child: Icon(
-                          Icons.delete_outline,
-                          color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.4),
-                          size: 18
-                      ),
-                    ),
-                  ],
-                ),
-              )).toList(),
-            ),
+          Column(
+            children: List.generate(_pasos.length, (index) => _stepItem(_pasos[index], index)),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _stepItem(_RecipeStep step, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white, // Color consistente
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          // Flechas de orden
+          Column(
+            children: [
+              GestureDetector(
+                onTap: index > 0 ? () => setState(() {
+                  final item = _pasos.removeAt(index);
+                  _pasos.insert(index - 1, item);
+                }) : null,
+                child: Icon(Icons.keyboard_arrow_up, color: index > 0 ? _primary : Colors.grey.withOpacity(0.5), size: 20),
+              ),
+              GestureDetector(
+                onTap: index < _pasos.length - 1 ? () => setState(() {
+                  final item = _pasos.removeAt(index);
+                  _pasos.insert(index + 1, item);
+                }) : null,
+                child: Icon(Icons.keyboard_arrow_down, color: index < _pasos.length - 1 ? _primary : Colors.grey.withOpacity(0.5), size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+                step.description,
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : _onSurface)
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: _error, size: 20),
+            onPressed: () => setState(() => _pasos.removeAt(index)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1194,45 +1374,33 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   // STEP 4 – Parámetros de Cierre y Finalización Completo Original
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep4() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _card(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _fieldLabel('PORCIONES RINDE'),
-              const SizedBox(height: 8),
-              _textField(
-                controller: _porcionesCtrl,
-                hint: 'Ej: 4',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _fieldLabel('PESO ESTIMADO POR PORCIÓN (gr/ml)'),
-              const SizedBox(height: 8),
-              _textField(
-                controller: _pesoPorcionCtrl,
-                hint: 'Ej: 250',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _fieldLabel('TIEMPO DE PREPARACIÓN (minutos)'),
-              const SizedBox(height: 8),
-              _textField(
-                controller: _tiempoCtrl,
-                hint: 'Ej: 45',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _fieldLabel('CALORÍAS TOTALES ESTIMADAS (kcal)'),
-              const SizedBox(height: 8),
-              _textField(
-                controller: _caloriasCtrl,
-                hint: 'Ej: 1200',
-                keyboardType: TextInputType.number,
-              ),
+              Row(children: [
+                Expanded(child: _fieldLabel('PORCIONES')),
+                const SizedBox(width: 8),
+                Expanded(child: _fieldLabel('PESO/PORC (gr)')),
+              ]),
+              Row(children: [
+                Expanded(child: _textField(controller: _porcionesCtrl, hint: 'Ej: 4', keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(child: _textField(controller: _pesoPorcionCtrl, hint: 'Ej: 250', keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: _fieldLabel('TIEMPO (min)')),
+                const SizedBox(width: 8),
+                Expanded(child: _fieldLabel('CALORÍAS (kcal)')),
+              ]),
+              Row(children: [
+                Expanded(child: _textField(controller: _tiempoCtrl, hint: 'Ej: 45', keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(child: _textField(controller: _caloriasCtrl, hint: 'Ej: 1200', keyboardType: TextInputType.number)),
+              ]),
             ],
           ),
         ),
@@ -1243,50 +1411,65 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             children: [
               _fieldLabel('DIFICULTAD DE LA RECETA'),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _dificultadTile(0, 'Principiante', Icons.child_care)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _dificultadTile(1, 'Intermedio', Icons.fitness_center)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _dificultadTile(2, 'Experto', Icons.local_fire_department)),
-                ],
-              ),
+              _dificultadSelector(),
             ],
           ),
         ),
-        if (_isDebug) ...[
-          const SizedBox(height: 16),
-          _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.bug_report_outlined, color: Colors.amber, size: 18),
-                    SizedBox(width: 6),
-                    Text(
-                      'DEBUG METADATA PAYLOAD',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'User ID: ${widget.user.id}\n'
-                      'Ingredientes agregados: ${_ingredients.length}\n'
-                      'Pasos cargados: ${_pasos.length}\n'
-                      'Costo Calculado: \$${_calcularCostoTotal().toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: isDark ? Colors.white60 : Colors.black54,
-                  ),
-                ),
-              ],
+      ],
+    );
+  }
+
+  Widget _dificultadSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Obtenemos la dificultad actual basada en el ID (restando 1 para el índice)
+    final currentData = _dificultadData[_dificultad];
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Botón -
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              color: _dificultad > 0 ? _primary : Colors.grey,
+              onPressed: _dificultad > 0 ? () => setState(() => _dificultad--) : null,
             ),
-          ),
-        ],
+            // Indicador visual (Puntos)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(5, (index) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _dificultad == index ? _primary : (isDark ? Colors.white24 : Colors.grey[300]),
+                  ),
+                )),
+              ),
+            ),
+            // Botón +
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              color: _dificultad < 4 ? _primary : Colors.grey,
+              onPressed: _dificultad < 4 ? () => setState(() => _dificultad++) : null,
+            ),
+          ],
+        ),
+        // Leyenda única
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(currentData['icon'], size: 20, color: _primary),
+            const SizedBox(width: 8),
+            Text(
+              currentData['label'].toUpperCase(),
+              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : _onSurface),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -1440,7 +1623,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   ? null
                   : () {
                 if (esUltimoPaso) {
-                  _persistirRecetaFinal();
+                  _showResumenDialog();
                 } else {
                   setState(() => _step++);
                 }
@@ -1510,6 +1693,50 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       ),
     );
   }
+  void _showResumenDialog() {
+    final List<String> diffLabels = ['Principiante', 'Aficionado', 'Intermedio', 'Profesional', 'Experto'];
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resumen de la Receta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _resumenRow('Ingredientes:', '${_ingredients.length} items'),
+              _resumenRow('Monto Total:', '\$${_calcularCostoTotal().toStringAsFixed(2)}'),
+              _resumenRow('Instrucciones:', '${_pasos.length} pasos'),
+              _resumenRow('Porciones:', '${_porcionesCtrl.text} (${_pesoPorcionCtrl.text} gr c/u)'),
+              _resumenRow('Calorías:', '${_caloriasCtrl.text} kcal'),
+              _resumenRow('Tiempo:', '${_tiempoCtrl.text} min'),
+              _resumenRow('Dificultad:', _dificultadData[_dificultad]['label']),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _persistirRecetaFinal(); // Aquí mantienes tu lógica original de guardar
+            },
+            child: const Text('CONFIRMAR'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resumenRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(value, style: const TextStyle(fontSize: 13)),
+      ],
+    ),
+  );
 }
 
 extension _ElevatedOnButton on ButtonStyle {
