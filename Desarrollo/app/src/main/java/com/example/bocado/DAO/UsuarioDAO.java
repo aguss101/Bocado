@@ -98,6 +98,69 @@ public class UsuarioDAO implements IUsuario {
             cb.onError(ErrorCode.ERROR_JSON, "Error eliminando al usuario: " + e.getMessage(), null);
         }
     }
+    public void seguirUsuario(int idSeguidor, int idSeguido, CallbackCB cb){
+        try{
+            JSONObject json = new JSONObject();
+            json.put("p_idseguidor", idSeguidor);
+            json.put("p_idseguido", idSeguido);
+
+            RpcCallHelper.callAsync("seguir_usuario", json, new CallbackCB() {
+                @Override
+                public void onSuccess(String result) {
+                    try {
+                        JSONObject responseOBJ = new JSONObject(result);
+                        if(responseOBJ.getBoolean("ok")){
+                            String mensaje = responseOBJ.getString("mensaje");
+                            cb.onSuccess(mensaje);
+                        } else {
+                            cb.onError(ErrorCode.ERROR_INTERNO, "Se rechazó la acción.", null);
+                        }
+                    } catch (Exception e) {
+                        cb.onError(ErrorCode.PARSE_ERROR, "Error leyendo la respuestsa" + e.getMessage(), null);
+                    }
+                }
+
+                @Override
+                public void onError(String code, String message, Object details) {
+                    cb.onError(code, message, details);
+                }
+            });
+
+        } catch(Exception e){
+            cb.onError(ErrorCode.ERROR_JSON, "Error siguiendo al usuario: " + e.getMessage(), null);
+        }
+    }
+    public void dejarDeSeguir(int idSeguidor, int idSeguido, CallbackCB cb){
+        try {
+            JSONObject json = new JSONObject();
+            json.put("p_idseguidor", idSeguidor);
+            json.put("p_idseguido", idSeguido);
+
+            RpcCallHelper.callAsync("dejar_seguir", json, new CallbackCB() {
+                @Override
+                public void onSuccess(String result) {
+                    try {
+                        JSONObject responseOBJ = new JSONObject(result);
+                        if(responseOBJ.getBoolean("ok")){
+                            String mensaje = responseOBJ.getString("mensaje");
+                            cb.onSuccess(mensaje);
+                        } else {
+                            cb.onError(ErrorCode.ERROR_INTERNO, "Se rechazó la acción.", null);
+                        }
+                    } catch (Exception e) {
+                        cb.onError(ErrorCode.PARSE_ERROR, "Error leyendo la respuestsa" + e.getMessage(), null);
+                    }
+                }
+
+                @Override
+                public void onError(String code, String message, Object details) {
+                    cb.onError(code, message, details);
+                }
+            });
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error dejando de seguir al usuario: " + e.getMessage(), null);
+        }
+    }
 
     private CallbackCB primeraFilaOError(CallbackCB cb, String errorCode, String errorMsg) {
         return new CallbackCB() {

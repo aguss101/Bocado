@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.core.splashscreen.SplashScreen;
 
 import com.example.bocado.channels.AccessChannel;
+import com.example.bocado.channels.InteraccionesChannel;
 import com.example.bocado.channels.RecetasChannel;
 import com.example.bocado.channels.ImagesChannel;
 
@@ -28,5 +29,6 @@ public class MainActivity extends FlutterActivity {
         new AccessChannel(this, messenger);
         new RecetasChannel(this, messenger);
         new ImagesChannel(this, messenger);
+        new InteraccionesChannel(this, messenger);
     }
 }

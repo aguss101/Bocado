@@ -37,7 +37,7 @@ public class RecetasChannel {
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
             case "getGuardadosUsuario" -> handleGetGuardadosUsuario(call, result);
-            case "toggleInteraction"-> handleToggleInteraction(call, result);
+
             default                -> result.notImplemented();
         }
     }
@@ -176,62 +176,5 @@ public class RecetasChannel {
                 }
             }
         });
-    }
-    // ── toggleInteraccion ─────────────────────────────────────────────────────
-    private void handleToggleInteraction(MethodCall call, MethodChannel.Result result) {
-        Integer idUsuario = call.argument("id_usuario");
-        Integer idReceta  = call.argument("id_receta");
-        String tipo       = call.argument("tipo"); // "like" o "guardado"
-        Boolean isAdding  = call.argument("is_adding"); // true si agrega, false si quita
-
-        if (isAdding != null && isAdding) {
-            String jsonBody = String.format(
-                    "{\"id_usuario\": %d, \"id_receta\": %d, \"tipo_interaccion\": \"%s\"}",
-                    idUsuario, idReceta, tipo
-            );
-
-            HttpClientManager.getInstance().post(
-                    "/rest/v1/interacciones_usuario",
-                    jsonBody,
-                    new okhttp3.Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                        }
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            if (response.isSuccessful()) {
-                                activity.runOnUiThread(() -> result.success(true));
-                            } else {
-                                activity.runOnUiThread(() -> result.error("API_ERROR", "Fallo insert: " + response.code(), null));
-                            }
-                        }
-                    }
-            );
-
-        } else {
-            String endpoint = String.format(
-                    "/rest/v1/interacciones_usuario?id_usuario=eq.%d&id_receta=eq.%d&tipo_interaccion=eq.%s",
-                    idUsuario, idReceta, tipo
-            );
-
-            HttpClientManager.getInstance().delete(
-                    endpoint,
-                    new okhttp3.Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                        }
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            if (response.isSuccessful()) {
-                                activity.runOnUiThread(() -> result.success(true));
-                            } else {
-                                activity.runOnUiThread(() -> result.error("API_ERROR", "Fallo delete: " + response.code(), null));
-                            }
-                        }
-                    }
-            );
-        }
     }
 }

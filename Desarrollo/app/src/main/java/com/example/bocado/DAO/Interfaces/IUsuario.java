@@ -9,5 +9,7 @@ public interface IUsuario {
     void registrar(Usuario nuevoUsuario, CallbackCB cb);
     void actualizar(int idUsuario, JSONObject camposActualizados, CallbackCB cb);
     void eliminar(int idUsuario, CallbackCB cb);
+    void seguirUsuario(int idSeguidor, int idSeguido, CallbackCB cb);
+    void dejarDeSeguir(int idSeguidor, int idSeguido, CallbackCB cb);
 
 }

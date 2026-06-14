@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:flutter_module/services/interacciones_service.dart';
 import 'package:flutter_module/services/receta_service.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
@@ -32,6 +33,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   late usuario_Logged _user;
   late bool _isMiPerfil;
   bool _estaCargandoPerfil = false;
+  bool _isFollowing = false;
+  bool _isLoadingFollow = false;
 
   @override
   void initState() {
@@ -64,6 +67,43 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       }
     }
+  }
+
+  Future <void> _toggleSeguir() async{
+    if(_isLoadingFollow) return;
+
+    final siguiendoActual = _isFollowing;
+
+    setState(() {
+      _isLoadingFollow = true;
+    });
+
+    try{
+      await InteraccionesService.actualizarSeguido({
+        'id_seguidor': widget.user.id,
+        'id_seguido': widget.idUsuarioTarget,
+        'siguiendo': _isFollowing
+      });
+      if(mounted) {
+        setState(() {
+          _isLoadingFollow = false;
+        });
+      }
+    } catch (e){
+        if(mounted){
+          setState(() {
+            _isFollowing = !_isFollowing;
+            _isLoadingFollow = false;
+          });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al actualizar el estado. Revisa tu conexión.')),
+        );
+      }
+    }
+
+    setState(() {
+      _isFollowing = !siguiendoActual;
+    });
   }
 
   @override
@@ -299,18 +339,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ) : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: _isFollowing ? Colors.transparent : AppTheme.primary,
+                        foregroundColor: _isFollowing ? muted : Colors.white,
+                        side: _isFollowing ? BorderSide(color: border) : null,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Siguiendo...')));
-                      },
-                      child: const Text('Seguir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: _isLoadingFollow ? null : _toggleSeguir,
+                      child: _isLoadingFollow
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(_isFollowing ? 'Siguiendo' : 'Seguir',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                     const SizedBox(width: 8),
                     // Compartir

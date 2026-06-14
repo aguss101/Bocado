@@ -69,4 +69,16 @@ public class UsuarioManager {
     public void eliminar(int idUsuario, CallbackCB cb) {
         usuarioDAO.eliminar(idUsuario, cb);
     }
+    public void actualizarSeguido(int idUsuarioSeguidor, int idUsuarioSeguido, Boolean siguiendo, CallbackCB cb){
+        if(idUsuarioSeguidor == idUsuarioSeguido){
+            cb.onError("NEGOCIO", "Un usuario no puede seguirse a si mismo", null);
+            return;
+        }
+
+        if(siguiendo){
+            usuarioDAO.dejarDeSeguir(idUsuarioSeguidor,idUsuarioSeguido, cb);
+        } else {
+            usuarioDAO.seguirUsuario(idUsuarioSeguidor,idUsuarioSeguido,cb);
+        }
+    }
 }

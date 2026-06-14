@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
 import 'package:flutter_module/screens/profile_screen.dart';
+import 'package:flutter_module/services/interacciones_service.dart';
 import '../theme/theme_notifier.dart';
 import '../theme/app_theme.dart';
 import '../models/receta_feed.dart';
@@ -200,7 +201,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     });
 
     try{
-      await RecetaService.toggleInteraction({
+      await InteraccionesService.toggleInteraction({
         'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'like',
@@ -220,7 +221,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     setState(()=> _isSaved = !_isSaved);
 
     try{
-      await RecetaService.toggleInteraction({
+      await InteraccionesService.toggleInteraction({
         'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'save',
