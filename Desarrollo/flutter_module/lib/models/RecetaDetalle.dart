@@ -1,5 +1,5 @@
-import 'package:flutter_module/models/receta_feed.dart';
-import 'package:flutter_module/screens/recipe_detail.dart';
+import 'package:flutter_module/models/RecetaFeed.dart';
+import 'package:flutter_module/screens/DetailRecipe.dart';
 
 class RecetaDetail {
   final RecetaFeed receta;

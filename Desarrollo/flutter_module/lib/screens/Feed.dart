@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'package:flutter_module/screens/profile_screen.dart';
-import 'package:flutter_module/services/interacciones_service.dart';
-import '../theme/theme_notifier.dart';
-import '../theme/app_theme.dart';
-import '../models/receta_feed.dart';
-import '../services/receta_service.dart';
-import 'recipe_detail.dart';
-import 'shared_drawer.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'package:flutter_module/screens/Profil.dart';
+import '../theme/Notifier.dart';
+import '../theme/App.dart';
+import '../models/RecetaFeed.dart';
+import '../services/Receta.dart';
+import '../services/Instructions.dart';
+import 'DetailRecipe.dart';
+import 'BarraNavegacion.dart';
 import 'package:share_plus/share_plus.dart';
+
+
 
 class FeedScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;

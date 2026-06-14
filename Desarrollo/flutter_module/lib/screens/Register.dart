@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/usuario_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/theme_notifier.dart';
-import '../widgets/auth_scaffold.dart';
-import 'feed_screen.dart';
-import 'login_screen.dart';
-import 'complete_google_profile_screen.dart';
-import '../utils/validaciones.dart';
+import '../services/Usuario.dart';
+import '../theme/App.dart';
+import '../theme/Notifier.dart';
+import '../widgets/AuthDetails.dart';
+import 'Feed.dart';
+import 'LogIn.dart';
+import 'OnboardingGoogle.dart';
+import '../utils/validations.dart';
 
 class RegisterScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;

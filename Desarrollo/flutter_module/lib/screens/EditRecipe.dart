@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'package:flutter_module/services/receta_service.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'package:flutter_module/services/Receta.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/image_upload_service.dart';
-import '../theme/theme_notifier.dart';
+import '../services/UploadImg.dart';
+import '../theme/Notifier.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const _primary = Color(0xFFD96E11);

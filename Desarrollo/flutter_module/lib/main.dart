@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'theme/app_theme.dart';
-import 'theme/theme_notifier.dart';
-import 'screens/login_screen.dart';
-import 'screens/feed_screen.dart';
-import 'screens/recipe_editor_screen.dart';
-import 'services/session_service.dart';
-import 'services/usuario_service.dart';
-import 'config/debug_config.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'theme/App.dart';
+import 'theme/Notifier.dart';
+import 'screens/LogIn.dart';
+import 'screens/Feed.dart';
+import 'screens/EditRecipe.dart';
+import 'services/Session.dart';
+import 'services/Usuario.dart';
+import 'config/DebugConfig.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

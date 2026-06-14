@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
-import '../models/receta_feed.dart';
+import '../models/RecetaFeed.dart';
 
 class RecetaService {
   static const _channel = MethodChannel('com.example.bocado/recetas');

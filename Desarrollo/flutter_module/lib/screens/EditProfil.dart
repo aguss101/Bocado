@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:image_picker/image_picker.dart';
-import '../theme/theme_notifier.dart';
-import '../theme/app_theme.dart';
-import '../services/image_upload_service.dart';
-import '../services/usuario_service.dart';
-import '../services/session_service.dart';
-import 'shared_drawer.dart';
+import '../theme/Notifier.dart';
+import '../theme/App.dart';
+import '../services/UploadImg.dart';
+import '../services/Usuario.dart';
+import '../services/Session.dart';
+import 'BarraNavegacion.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final usuario_Logged user;

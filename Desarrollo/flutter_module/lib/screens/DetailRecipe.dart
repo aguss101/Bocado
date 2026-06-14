@@ -1,12 +1,12 @@
 import 'dart:core';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'package:flutter_module/screens/feed_screen.dart';
-import 'package:flutter_module/screens/shared_drawer.dart';
-import '../services/receta_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/theme_notifier.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'package:flutter_module/screens/Feed.dart';
+import 'package:flutter_module/screens/BarraNavegacion.dart';
+import '../services/Receta.dart';
+import '../theme/App.dart';
+import '../theme/Notifier.dart';
 
 class RecipeDetailData {
   final String titulo;

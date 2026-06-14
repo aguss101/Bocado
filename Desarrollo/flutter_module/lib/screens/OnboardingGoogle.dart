@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/usuario_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/theme_notifier.dart';
-import '../widgets/auth_scaffold.dart';
-import 'feed_screen.dart';
+import '../services/Usuario.dart';
+import '../theme/App.dart';
+import '../theme/Notifier.dart';
+import '../widgets/AuthDetails.dart';
+import 'Feed.dart';
 
 /// Paso 2 del alta con Google: completa los datos que Google no provee
 /// (nación, género, fecha de nacimiento) y recién ahí crea el usuario.

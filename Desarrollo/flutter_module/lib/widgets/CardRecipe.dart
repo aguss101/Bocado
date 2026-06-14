@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'macros_ribbon.dart';
+import 'Macros.dart';
 
 class RecipeCardData {
   final String title;

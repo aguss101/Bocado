@@ -2,7 +2,7 @@ package com.example.bocado.Channels;
 
 import android.app.Activity;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
-import com.example.bocado.DAO.UserDAO;
+import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.UsuarioManager;
 import com.example.bocado.Estaticos.RpcCallHelper;
@@ -21,7 +21,7 @@ public class AccessChannel {
 
     public AccessChannel(Activity activity, BinaryMessenger messenger) {
         this.activity = activity;
-        this.usuarioManager = new UsuarioManager(new UsarioDAO());
+        this.usuarioManager = new UsuarioManager(new UsuarioDAO());
 
         new MethodChannel(messenger, CHANNEL)
                 .setMethodCallHandler(this::handleCall);

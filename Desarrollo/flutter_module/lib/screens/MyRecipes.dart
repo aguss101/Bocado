@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import '../theme/app_theme.dart';
-import '../theme/theme_notifier.dart';
-import '../models/receta_feed.dart';
-import '../services/receta_service.dart';
-import 'shared_drawer.dart';
-import 'recipe_detail.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import '../theme/App.dart';
+import '../theme/Notifier.dart';
+import '../models/RecetaFeed.dart';
+import '../services/Receta.dart';
+import 'BarraNavegacion.dart';
+import 'DetailRecipe.dart';
 
 class MyRecipesScreen extends StatefulWidget {
   final usuario_Logged user;

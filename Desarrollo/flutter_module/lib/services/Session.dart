@@ -1,5 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/usuario_Logged.dart';
+import '../models/UsuarioLogged.dart';
 
 class SessionService {
   static const _keyId        = 'session_id';

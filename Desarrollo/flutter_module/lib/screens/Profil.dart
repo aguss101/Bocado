@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import 'package:flutter_module/services/interacciones_service.dart';
-import 'package:flutter_module/services/receta_service.dart';
-import '../theme/theme_notifier.dart';
-import '../theme/app_theme.dart';
-import 'shared_drawer.dart';
-import 'edit_profile_screen.dart';
-import '../services/usuario_service.dart';
-import '../models/receta_feed.dart';
-import '../screens/recipe_editor_screen.dart';
-import '../screens/recipe_detail.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'package:flutter_module/services/Receta.dart';
+import '../theme/Notifier.dart';
+import '../theme/App.dart';
+import 'BarraNavegacion.dart';
+import 'EditProfil.dart';
+import '../services/Usuario.dart';
+import '../services/Instructions.dart';
+import '../models/RecetaFeed.dart';
+import '../screens/EditRecipe.dart';
+import '../screens/DetailRecipe.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -82,28 +82,24 @@ class _ProfileScreenState extends State<ProfileScreen>
       await InteraccionesService.actualizarSeguido({
         'id_seguidor': widget.user.id,
         'id_seguido': widget.idUsuarioTarget,
-        'siguiendo': _isFollowing
+        'siguiendo': siguiendoActual
       });
       if(mounted) {
         setState(() {
+          _isFollowing = !siguiendoActual;
           _isLoadingFollow = false;
         });
       }
     } catch (e){
-        if(mounted){
-          setState(() {
-            _isFollowing = !_isFollowing;
-            _isLoadingFollow = false;
-          });
+      if(mounted){
+        setState(() {
+          _isLoadingFollow = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error al actualizar el estado. Revisa tu conexión.')),
         );
       }
     }
-
-    setState(() {
-      _isFollowing = !siguiendoActual;
-    });
   }
 
   @override

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_module/models/usuario_Logged.dart';
-import '../services/session_service.dart';
-import '../theme/theme_notifier.dart';
-import '../theme/app_theme.dart';
-import 'feed_screen.dart';
-import 'login_screen.dart';
-import 'my_recipes_screen.dart';
-import 'profile_screen.dart';
-import 'recipe_editor_screen.dart';
+import 'package:flutter_module/models/UsuarioLogged.dart';
+import '../services/Session.dart';
+import '../theme/App.dart';
+import '../theme/Notifier.dart';
+import 'Feed.dart';
+import 'LogIn.dart';
+import 'MyRecipes.dart';
+import 'Profil.dart';
+import 'EditRecipe.dart';
+
 
 class SharedDrawer extends StatelessWidget {
   final usuario_Logged user;

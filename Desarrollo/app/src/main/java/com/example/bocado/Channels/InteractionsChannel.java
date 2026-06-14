@@ -30,6 +30,7 @@ public class InteractionsChannel {
             case "updateSeguido" -> handleUpdateFollow(call, result);
             //case "getSeguidos" -> handleGetSeguidos(call, result); CORREGIR Agregando el Handle
             case "toggleInteraction"-> handleToggleInteraction(call, result);
+            default -> result.notImplemented();
         }
     }
 
