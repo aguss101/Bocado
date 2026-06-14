@@ -83,7 +83,7 @@ public class HttpClientManager {
     }
 
     /** Sube bytes de imagen a un bucket de Storage (upsert). Async, responde por callback. */
-    public void uploadImage(String bucket, String path, byte[] bytes, Callback callback) {
+    public void uploadImg(String bucket, String path, byte[] bytes, Callback callback) {
         RequestBody body = RequestBody.create(bytes, MediaType.parse("image/jpeg"));
         Request request = new Request.Builder()
                 .url(baseUrl() + "/storage/v1/object/" + bucket + "/" + path)

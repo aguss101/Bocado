@@ -23,14 +23,14 @@ public class RecetaManager implements IReceta {
     }
 
     @Override
-    public void crear(Map<String, Object> args, MethodChannel.Result result) {
+    public void create(Map<String, Object> args, MethodChannel.Result result) {
         try {
             if (args == null || !args.containsKey("nombre") || !args.containsKey("id_usuario")) {
                 result.error("ARGS_INVALIDOS", "Faltan parámetros obligatorios", null);
                 return;
             }
 
-            recetaDAO.crear(args, new CallbackCB() {
+            recetaDAO.create(args, new CallbackCB() {
                 @Override
                 public void onSuccess(String data) {
                     result.success(data);

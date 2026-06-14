@@ -1,7 +1,7 @@
 package com.example.bocado.Estaticos;
 
-import com.example.bocado.entidades.Usuario;
-import com.example.bocado.entidades.Receta;
+import com.example.bocado.Entidades.Usuario;
+import com.example.bocado.Entidades.Receta;
 import org.json.JSONObject;
 import org.json.JSONException;
 import java.math.BigDecimal;

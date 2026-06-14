@@ -29,12 +29,12 @@ public class AlimentoDAO {
         return lista;
     }
 
-    public static List<Map<String, Object>> ListarParaFlutter() throws Exception {
+    public static List<Map<String, Object>> listarParaFlutter() throws Exception {
         String response = RpcCallHelper.callSync("listar_alimentos", new JSONObject());
         return parseLista(response);
     }
 
-    public static int CrearSimple(String nombre, int idUsuario) throws Exception {
+    public static int crearSimple(String nombre, int idUsuario) throws Exception {
         JSONObject json = new JSONObject();
         json.put("p_nombre", nombre);
         json.put("p_id_usuario", idUsuario);
@@ -43,7 +43,7 @@ public class AlimentoDAO {
         return Integer.parseInt(response);
     }
 
-    public static void Crear(JSONObject alimentoJson, CallbackCB cb) throws Exception {
+    public static void crear(JSONObject alimentoJson, CallbackCB cb) throws Exception {
         JSONObject json = new JSONObject();
         json.put("p_data", alimentoJson);
 

@@ -1,4 +1,4 @@
-package com.example.bocado.entidades;
+package com.example.bocado.Entidades;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;

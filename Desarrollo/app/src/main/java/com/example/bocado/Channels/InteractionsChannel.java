@@ -1,28 +1,23 @@
-package com.example.bocado.channels;
+package com.example.bocado.Channels;
 import android.app.Activity;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.DAO.UsuarioDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.UsuarioManager;
-import com.example.bocado.Estaticos.RpcCallHelper;
-import com.example.bocado.Estaticos.Mapper;
-import com.example.bocado.entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
 import okhttp3.Call;
 import okhttp3.Response;
-import org.json.JSONObject;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
-public class InteraccionesChannel {
+public class InteractionsChannel {
     private static final String CHANNEL = "com.example.bocado/interacciones";
     private final Activity activity;
     private final UsuarioManager usuarioManager;
 
-    public InteraccionesChannel(Activity activity, BinaryMessenger messenger) {
+    public InteractionsChannel(Activity activity, BinaryMessenger messenger) {
         this.activity = activity;
         this.usuarioManager = new UsuarioManager(new UsuarioDAO());
 
@@ -32,19 +27,19 @@ public class InteraccionesChannel {
 
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         switch (call.method) {
-            case "updateSeguido" -> handleUpdateSeguido(call, result);
-            case "getSeguidos" -> handleGetSeguidos(call, result);
+            case "updateSeguido" -> handleUpdateFollow(call, result);
+            //case "getSeguidos" -> handleGetSeguidos(call, result); CORREGIR Agregando el Handle
             case "toggleInteraction"-> handleToggleInteraction(call, result);
         }
     }
 
     // ── updateSeguido ───────────────────────────────────────────────────────────
-    private void handleUpdateSeguido(MethodCall call, MethodChannel.Result result) {
+    private void handleUpdateFollow(MethodCall call, MethodChannel.Result result) {
         int idSeguidor = call.argument("id_seguidor");
         int idSeguido = call.argument("id_seguido");
         Boolean siguiendo = call.argument("siguiendo");
 
-        usuarioManager.actualizarSeguido(idSeguidor, idSeguido, siguiendo, new CallbackCB() {
+        usuarioManager.updatefollow(idSeguidor, idSeguido, siguiendo, new CallbackCB() {
             @Override
             public void onSuccess(String data) {
                 activity.runOnUiThread(() -> result.success(data));

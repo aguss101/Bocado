@@ -1,13 +1,6 @@
 package com.example.bocado;
 
-import com.example.bocado.DAO.AlimentoDAO;
-import com.example.bocado.entidades.Alimento;
-import com.example.bocado.entidades.Alimento_Nutriente;
-
 import org.junit.Test;
-
-import java.sql.SQLException;
-import java.util.List;
 
 
 public class ExampleUnitTest {

@@ -1,4 +1,4 @@
-package com.example.bocado.entidades;
+package com.example.bocado.Entidades;
 
 import java.sql.Timestamp;
 public class Usuario
@@ -12,13 +12,13 @@ public class Usuario
     private String correo;
     private String usuario;
     private String contrasena;
-    private String fecha_Nacimiento; // ISO 8601 crudo desde Flutter. Reduce conversiones de formato innecesarias
+    private String fecha_Nacimiento;
     private Timestamp fecha_Creacion;
     private Timestamp fecha_Acceso;
     private boolean activo;
     private boolean visibilidad;
-    private String foto;   // URL de Storage (bucket avatars) — la BD guarda texto, no binario
-    private String banner; // URL de Storage — idem
+    private String foto;
+    private String banner;
 
     public Usuario() {
     }

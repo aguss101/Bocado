@@ -1,4 +1,4 @@
-package com.example.bocado.channels;
+package com.example.bocado.Channels;
 
 import android.app.Activity;
 import com.example.bocado.Managers.HttpClientManager;
@@ -22,14 +22,14 @@ public class ImagesChannel {
 
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         if ("subirImagen".equals(call.method)) {
-            handleSubirImagen(call, result);
+            handleUploadImg(call, result);
         } else {
             result.notImplemented();
         }
     }
 
     /** Sube los bytes recibidos a {bucket}/{path} y devuelve la URL pública. */
-    private void handleSubirImagen(MethodCall call, MethodChannel.Result result) {
+    private void handleUploadImg(MethodCall call, MethodChannel.Result result) {
         String bucket = call.argument("bucket");
         String path   = call.argument("path");
         byte[] bytes  = call.argument("bytes");
@@ -39,7 +39,7 @@ public class ImagesChannel {
             return;
         }
 
-        HttpClientManager.getInstance().uploadImage(bucket, path, bytes, new okhttp3.Callback() {
+        HttpClientManager.getInstance().uploadImg(bucket, path, bytes, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }

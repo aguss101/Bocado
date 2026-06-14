@@ -74,11 +74,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _newPasswordController.text,
       );
       if (!mounted) return;
-      _snack('¡Contraseña reestablecida con éxito!');
+      _snack('¡Contraseña restablecida con éxito!');
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (_) {
       if (mounted) {
-        _snack('No se pudo reestablecer. El código pudo vencer o ya se usó.', isError: true);
+        _snack('No se pudo restablecer. El código pudo vencer o ya se usó.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -102,7 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 children: [
                   // ── Title ───────────────────────────────────────
                   Text(
-                    'Reestablecer contraseña',
+                    'Restablecer contraseña',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 22,

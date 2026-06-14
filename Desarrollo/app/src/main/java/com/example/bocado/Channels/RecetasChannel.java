@@ -1,4 +1,4 @@
-package com.example.bocado.channels;
+package com.example.bocado.Channels;
 
 import android.app.Activity;
 
@@ -30,23 +30,23 @@ public class RecetasChannel {
 
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         switch (call.method) {
-            case "getAlimentos"    -> handleGetAlimentos(result);
+            case "getAlimentos"    -> handleGetAlimento(result);
             case "addAlimento"     -> handleAddAlimento(call, result);
             case "saveReceta"      -> handleSaveReceta(call, result);
             case "getRecetas"      -> handleGetRecetas(result);
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
-            case "getGuardadosUsuario" -> handleGetGuardadosUsuario(call, result);
+            case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
 
             default                -> result.notImplemented();
         }
     }
 
     // ── getAlimentos ──────────────────────────────────────────────────────────
-    private void handleGetAlimentos(MethodChannel.Result result) {
+    private void handleGetAlimento(MethodChannel.Result result) {
         new Thread(() -> {
             try {
-                List<Map<String, Object>> lista = AlimentoDAO.ListarParaFlutter();
+                List<Map<String, Object>> lista = AlimentoDAO.listarParaFlutter();
                 activity.runOnUiThread(() -> result.success(lista));
             } catch (Exception e) {
                 activity.runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
@@ -61,7 +61,7 @@ public class RecetasChannel {
 
         new Thread(() -> {
             try {
-                int nuevoId = AlimentoDAO.CrearSimple(nombre, idUsuario);
+                int nuevoId = AlimentoDAO.crearSimple(nombre, idUsuario);
                 Map<String, Object> res = new HashMap<>();
                 res.put("id", nuevoId);
                 activity.runOnUiThread(() -> result.success(res));
@@ -75,7 +75,7 @@ public class RecetasChannel {
     private void handleSaveReceta(MethodCall call, MethodChannel.Result result) {
         Map<String, Object> args = call.arguments();
 
-        RecetaManager.getInstance().crear(args, new MethodChannel.Result() {
+        RecetaManager.getInstance().create(args, new MethodChannel.Result() {
             @Override
             public void success(Object data) {
                 activity.runOnUiThread(() -> result.success(data));
@@ -112,7 +112,7 @@ public class RecetasChannel {
     }
 
     // ── getGuardadosUsuario ────────────────────────────────────────────────────────────
-    private void handleGetGuardadosUsuario(MethodCall call, MethodChannel.Result result) {
+    private void handleGetSaveUser(MethodCall call, MethodChannel.Result result) {
         Integer usuarioId = call.argument("usuarioId");
 
         HttpClientManager.getInstance().get(

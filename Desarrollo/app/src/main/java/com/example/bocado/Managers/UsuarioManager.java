@@ -2,7 +2,7 @@ package com.example.bocado.Managers;
 
 import com.example.bocado.DAO.Interfaces.IUsuario;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
-import com.example.bocado.entidades.Usuario;
+import com.example.bocado.Entidades.Usuario;
 import org.json.JSONObject;
 
 public class UsuarioManager {
@@ -24,7 +24,7 @@ public class UsuarioManager {
 
         usuarioDAO.loginOrCreateGoogle(email, googleId, nombre, apellido, foto, cb);
     }
-    public void registrar(Usuario u, CallbackCB cb) {
+    public void register(Usuario u, CallbackCB cb) {
         if (u.getNombre().trim().isEmpty() || u.getCorreo().trim().isEmpty() || u.getContrasena().trim().isEmpty()) {
             cb.onError("NEGOCIO", "El nombre, correo y contraseña son obligatorios.", null);
             return;
@@ -40,7 +40,7 @@ public class UsuarioManager {
             return;
         }
 
-        usuarioDAO.registrar(u, cb);
+        usuarioDAO.register(u, cb);
     }
     public void login(String usuario, String contrasena, CallbackCB cb) {
         if (usuario.trim().isEmpty() || contrasena.trim().isEmpty()) {
@@ -50,7 +50,7 @@ public class UsuarioManager {
 
         usuarioDAO.login(usuario, contrasena, cb);
     }
-    public void actualizar(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
+    public void update(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
         if (actualizaciones.length() == 0) {
             cb.onError("NEGOCIO", "No hay cambios para guardar.", null);
             return;
@@ -64,21 +64,21 @@ public class UsuarioManager {
             }
         }
 
-        usuarioDAO.actualizar(idUsuario, actualizaciones, cb);
+        usuarioDAO.update(idUsuario, actualizaciones, cb);
     }
-    public void eliminar(int idUsuario, CallbackCB cb) {
-        usuarioDAO.eliminar(idUsuario, cb);
+    public void delete(int idUsuario, CallbackCB cb) {
+        usuarioDAO.delete(idUsuario, cb);
     }
-    public void actualizarSeguido(int idUsuarioSeguidor, int idUsuarioSeguido, Boolean siguiendo, CallbackCB cb){
+    public void updatefollow(int idUsuarioSeguidor, int idUsuarioSeguido, Boolean siguiendo, CallbackCB cb){
         if(idUsuarioSeguidor == idUsuarioSeguido){
             cb.onError("NEGOCIO", "Un usuario no puede seguirse a si mismo", null);
             return;
         }
 
         if(siguiendo){
-            usuarioDAO.dejarDeSeguir(idUsuarioSeguidor,idUsuarioSeguido, cb);
+            usuarioDAO.stopFollow(idUsuarioSeguidor,idUsuarioSeguido, cb);
         } else {
-            usuarioDAO.seguirUsuario(idUsuarioSeguidor,idUsuarioSeguido,cb);
+            usuarioDAO.followUser(idUsuarioSeguidor,idUsuarioSeguido,cb);
         }
     }
 }

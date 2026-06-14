@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class RecetaDAO {
 
-    public void crear(Map<String, Object> args, CallbackCB callback) {
+    public void create(Map<String, Object> args, CallbackCB callback) {
         try {
             JSONObject recetaJson = new JSONObject();
             recetaJson.put("id_usuario", args.get("id_usuario"));

@@ -5,7 +5,7 @@ import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.ErrorCode;
 import com.example.bocado.Estaticos.Mapper;
 import com.example.bocado.Estaticos.RpcCallHelper;
-import com.example.bocado.entidades.Usuario;
+import com.example.bocado.Entidades.Usuario;
 
 import org.json.JSONObject;
 
@@ -29,7 +29,7 @@ public class UsuarioDAO implements IUsuario {
         }
     }
     @Override
-    public void registrar(Usuario u, CallbackCB cb) {
+    public void register(Usuario u, CallbackCB cb) {
         try {
             JSONObject data = Mapper.usuarioToJson(u);
             JSONObject json = new JSONObject();
@@ -59,7 +59,7 @@ public class UsuarioDAO implements IUsuario {
     }
 
     @Override
-    public void actualizar(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
+    public void update(int idUsuario, JSONObject actualizaciones, CallbackCB cb) {
         try {
             JSONObject json = new JSONObject();
             json.put("p_id", idUsuario);
@@ -73,7 +73,7 @@ public class UsuarioDAO implements IUsuario {
     }
 
     @Override
-    public void eliminar(int idUsuario, CallbackCB cb) {
+    public void delete(int idUsuario, CallbackCB cb) {
         try {
             JSONObject json = new JSONObject();
             json.put("p_id", idUsuario);
@@ -98,7 +98,7 @@ public class UsuarioDAO implements IUsuario {
             cb.onError(ErrorCode.ERROR_JSON, "Error eliminando al usuario: " + e.getMessage(), null);
         }
     }
-    public void seguirUsuario(int idSeguidor, int idSeguido, CallbackCB cb){
+    public void followUser(int idSeguidor, int idSeguido, CallbackCB cb){
         try{
             JSONObject json = new JSONObject();
             json.put("p_idseguidor", idSeguidor);
@@ -130,7 +130,7 @@ public class UsuarioDAO implements IUsuario {
             cb.onError(ErrorCode.ERROR_JSON, "Error siguiendo al usuario: " + e.getMessage(), null);
         }
     }
-    public void dejarDeSeguir(int idSeguidor, int idSeguido, CallbackCB cb){
+    public void stopFollow(int idSeguidor, int idSeguido, CallbackCB cb){
         try {
             JSONObject json = new JSONObject();
             json.put("p_idseguidor", idSeguidor);

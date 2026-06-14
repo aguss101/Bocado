@@ -1,13 +1,13 @@
-package com.example.bocado.channels;
+package com.example.bocado.Channels;
 
 import android.app.Activity;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
-import com.example.bocado.DAO.UsuarioDAO;
+import com.example.bocado.DAO.UserDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.UsuarioManager;
 import com.example.bocado.Estaticos.RpcCallHelper;
 import com.example.bocado.Estaticos.Mapper;
-import com.example.bocado.entidades.Usuario;
+import com.example.bocado.Entidades.Usuario;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
@@ -21,7 +21,7 @@ public class AccessChannel {
 
     public AccessChannel(Activity activity, BinaryMessenger messenger) {
         this.activity = activity;
-        this.usuarioManager = new UsuarioManager(new UsuarioDAO());
+        this.usuarioManager = new UsuarioManager(new UsarioDAO());
 
         new MethodChannel(messenger, CHANNEL)
                 .setMethodCallHandler(this::handleCall);
@@ -32,7 +32,7 @@ public class AccessChannel {
             case "loginJava"         -> handleLogin(call, result);
             case "registerJava"      -> handleRegister(call, result);
             case "loginGoogle"       -> handleLoginGoogle(call, result);
-            case "registrarGoogle"   -> handleRegistrarGoogle(call, result);
+            case "registrarGoogle"   -> handleRegisterGoogle(call, result);
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
@@ -40,7 +40,7 @@ public class AccessChannel {
             case "validarSesion"    -> handleValidarSesion(call, result);
             case "solicitarOtp"     -> handleSolicitarOtp(call, result);
             case "verificarOtp"     -> handleVerificarOtp(call, result);
-            case "resetearPassword" -> handleResetearPassword(call, result);
+            case "resetearPassword" -> handleResetPass(call, result);
             default -> result.notImplemented();
         }
     }
@@ -74,7 +74,7 @@ public class AccessChannel {
     }
 
     // Crear usuario con Google
-    private void handleRegistrarGoogle(MethodCall call, MethodChannel.Result result) {
+    private void handleRegisterGoogle(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject data = new JSONObject();
             data.put("correo", (String) call.argument("correo"));
@@ -136,7 +136,7 @@ public class AccessChannel {
         u.setGenero(String.valueOf((Object) idGenero));
         u.setFecha_Nacimiento(call.argument("fechaNacimiento"));
 
-        usuarioManager.registrar(u, new CallbackCB() {
+        usuarioManager.register(u, new CallbackCB() {
             @Override public void onSuccess(String data) {
                 responderUsuarioLimpio(data, result);
             }
@@ -183,7 +183,7 @@ public class AccessChannel {
             if (bannerUrl != null && !bannerUrl.trim().isEmpty())
                 actualizaciones.put("banner", bannerUrl.trim());
 
-            usuarioManager.actualizar(id, actualizaciones, new CallbackCB() {
+            usuarioManager.update(id, actualizaciones, new CallbackCB() {
                 @Override public void onSuccess(String response) {
                     activity.runOnUiThread(() -> result.success("ok"));
                 }
@@ -299,7 +299,7 @@ public class AccessChannel {
     }
 
     /** Paso 3: re-verifica el OTP y cambia la contraseña (RPC reset_pass → boolean). */
-    private void handleResetearPassword(MethodCall call, MethodChannel.Result result) {
+    private void handleResetPass(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject body = new JSONObject();
             body.put("p_correo", (String) call.argument("correo"));
