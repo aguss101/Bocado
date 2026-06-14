@@ -17,6 +17,7 @@ public class RecetaDAO {
             JSONObject recetaJson = new JSONObject();
             recetaJson.put("id_usuario", args.get("id_usuario"));
             recetaJson.put("nombre", args.get("nombre"));
+            recetaJson.put("foto", args.get("foto"));
             recetaJson.put("calorias_totales", args.get("calorias_totales"));
             recetaJson.put("porciones", args.get("porciones"));
             recetaJson.put("porciones_peso", args.get("porciones_peso")); // <-- ¿Está aquí?

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_module/models/usuario_Logged.dart';
+import 'package:flutter_module/services/receta_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/image_upload_service.dart';
 import '../theme/theme_notifier.dart';
@@ -249,10 +250,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         }
       }
 
+      String? urlFotoReceta;
+      if(_portadaBytes != null){
+        urlFotoReceta = await ImageUploadService.uploadRecetaImage(
+            'user_${widget.user.id}_${DateTime.now().millisecondsSinceEpoch}',
+            _portadaBytes!
+        );
+      }
+
       // 4: Ahora que todos los ingredientes tienen ID real, guardamos la receta
       final Map<String, dynamic> recetaData = {
         'id_usuario': widget.user.id,
         'nombre': _nombreCtrl.text,
+        'foto': urlFotoReceta,
         'calorias_totales': double.tryParse(_caloriasCtrl.text) ?? 0,
         'porciones': int.tryParse(_porcionesCtrl.text) ?? 1,
         'porciones_peso': double.tryParse(_pesoPorcionCtrl.text) ?? 0,
@@ -267,8 +277,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         }).toList(),
       };
 
-      await const MethodChannel('com.example.bocado/recetas')
-          .invokeMethod('saveReceta', recetaData);
+      RecetaService.saveReceta(recetaData);
 
       _snack('Receta guardada con éxito');
       Navigator.pop(context);
@@ -1289,7 +1298,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   _fieldLabel('NUEVA INSTRUCCIÓN'),
                   GestureDetector(
                     onTap: () {
-                      final text = _prepCtrl.text.trim();
+                      final text = _prepCtrl.text.trim() + "|";
                       if (text.isNotEmpty) {
                         setState(() {
                           _pasos.add(_RecipeStep(description: text));

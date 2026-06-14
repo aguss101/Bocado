@@ -64,8 +64,8 @@ class ImageUploadService {
       _pickCompressUpload(source, _presetBanner, 'avatars', '$userId/banner.jpg');
 
   /// Elige y sube la imagen de una receta.
-  static Future<String?> uploadRecetaImage(int recetaId, ImageSource source) =>
-      _pickCompressUpload(source, _presetReceta, 'recetas', '$recetaId/portada.jpg');
+  static Future<String?> uploadRecetaImage(String id, Uint8List source) =>
+      _upload('recetas', '$id/portada.jpg', source);
 
   /// Elegir y comprimir (sin subir).
   static Future<Uint8List?> pickAndCompressReceta(ImageSource source) async {
