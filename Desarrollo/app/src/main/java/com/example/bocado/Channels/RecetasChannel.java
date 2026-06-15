@@ -37,6 +37,7 @@ public class RecetasChannel {
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
             case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
+            case "contarRecetas"   -> handleContarRecetas(call, result);
 
             default                -> result.notImplemented();
         }
@@ -126,6 +127,30 @@ public class RecetasChannel {
                     public void onResponse(Call call, Response response) throws IOException {
                         String body = response.body() != null ? response.body().string() : "[]";
                         activity.runOnUiThread(() -> result.success(body));
+                    }
+                }
+        );
+    }
+
+    // ── contarRecetas (conteo liviano: trae solo los id, no las recetas enteras) ─
+    private void handleContarRecetas(MethodCall call, MethodChannel.Result result) {
+        Integer usuarioId = call.argument("usuarioId");
+        HttpClientManager.getInstance().get(
+                "/rest/v1/recetas?select=id&activo=eq.true&id_usuario=eq." + usuarioId,
+                new okhttp3.Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                    }
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        String body = response.body() != null ? response.body().string() : "[]";
+                        try {
+                            int total = new org.json.JSONArray(body).length();
+                            activity.runOnUiThread(() -> result.success(total));
+                        } catch (org.json.JSONException e) {
+                            activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                        }
                     }
                 }
         );

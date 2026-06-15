@@ -19,6 +19,13 @@ class RecetaService {
   static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId) =>
       _fetchRecetas('getGuardadosUsuario', {'usuarioId': usuarioId});
 
+  /// Conteo liviano de recetas activas del usuario (Java trae solo los ids).
+  static Future<int> contarRecetas(int usuarioId) async {
+    final result =
+        await _channel.invokeMethod('contarRecetas', {'usuarioId': usuarioId});
+    return result as int;
+  }
+
   static Future<Map<String, dynamic>> getRecetaDetalle(int idReceta) async {
     final String json = await _channel.invokeMethod(
       'getRecetaDetalle',

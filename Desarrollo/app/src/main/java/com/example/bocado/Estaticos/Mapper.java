@@ -65,6 +65,16 @@ public class Mapper {
 
         return json;
     }
+
+    // ENVIAMOS al cliente los campos EDITABLES del propio perfil (incluye correo).
+    // Separado de usuarioToClientJson para NO filtrar el correo al ver perfiles ajenos.
+    public static JSONObject usuarioToEditJson(Usuario u) throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("usuario", u.getUsuario());
+        json.put("correo", u.getCorreo());
+        json.put("id_genero", Integer.parseInt(u.getGenero()));
+        return json;
+    }
     
     public static Receta jsonToReceta(JSONObject json) throws JSONException {
         Receta r = new Receta();

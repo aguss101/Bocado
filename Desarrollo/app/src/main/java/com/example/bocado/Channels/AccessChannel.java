@@ -37,10 +37,13 @@ public class AccessChannel {
             case "getGeneros"        -> handleGetGeneros(result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
+            case "getPerfilEditable" -> handleGetPerfilEditable(call, result);
+            case "contarSeguidores" -> handleContarSeguidores(call, result);
             case "validarSesion"    -> handleValidarSesion(call, result);
             case "solicitarOtp"     -> handleSolicitarOtp(call, result);
             case "verificarOtp"     -> handleVerificarOtp(call, result);
             case "resetearPassword" -> handleResetPass(call, result);
+            case "actualizarPerfilOtp" -> handleActualizarPerfilOtp(call, result);
             default -> result.notImplemented();
         }
     }
@@ -171,9 +174,9 @@ public class AccessChannel {
             if (correo != null && !correo.trim().isEmpty())
                 actualizaciones.put("correo", correo.trim());
 
-            String genero = call.argument("genero");
-            if (genero != null && !genero.trim().isEmpty())
-                actualizaciones.put("genero", genero.trim());
+            Integer idGenero = call.argument("id_genero");
+            if (idGenero != null)
+                actualizaciones.put("id_genero", idGenero);
 
             String fotoUrl = call.argument("fotoUrl");
             if (fotoUrl != null && !fotoUrl.trim().isEmpty())
@@ -237,6 +240,50 @@ public class AccessChannel {
                         return;
                     }
                     responderUsuarioLimpio(filas.getJSONObject(0).toString(), result);
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
+            }
+        });
+    }
+
+    /** Cuenta los seguidores de un usuario (filas en seguidos_usuario con id_seguido = X). */
+    private void handleContarSeguidores(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        HttpClientManager.getInstance().get("/rest/v1/seguidos_usuario?select=id_seguidor&id_seguido=eq." + idUsuario, new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                try {
+                    int total = new org.json.JSONArray(body).length();
+                    activity.runOnUiThread(() -> result.success(total));
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
+            }
+        });
+    }
+
+    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero). */
+    private void handleGetPerfilEditable(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=usuario,correo,id_genero", new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                try {
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    if (filas.length() == 0) {
+                        activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
+                        return;
+                    }
+                    Usuario u = Mapper.jsonToUsuario(filas.getJSONObject(0));
+                    String json = Mapper.usuarioToEditJson(u).toString();
+                    activity.runOnUiThread(() -> result.success(json));
                 } catch (org.json.JSONException e) {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
@@ -311,6 +358,39 @@ public class AccessChannel {
                         activity.runOnUiThread(() -> result.success(true));
                     } else {
                         activity.runOnUiThread(() -> result.error("RESET_FALLIDO", "El código no es válido o venció.", null));
+                    }
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+        }
+    }
+
+    /** Aplica cambios de perfil tras re-verificar el OTP (RPC actualizar_perfil_otp, atómico). */
+    private void handleActualizarPerfilOtp(MethodCall call, MethodChannel.Result result) {
+        try {
+            Integer id = call.argument("id");
+            String codigo = call.argument("codigo");
+            java.util.Map<String, Object> datos = call.argument("datos");
+            JSONObject body = new JSONObject();
+            body.put("p_id", id);
+            body.put("p_codigo", codigo);
+            body.put("p_data", new JSONObject(datos));
+            RpcCallHelper.callAsync("actualizar_perfil_otp", body, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    try {
+                        JSONObject obj = new JSONObject(response);
+                        if (obj.optBoolean("ok", false)) {
+                            activity.runOnUiThread(() -> result.success(true));
+                        } else {
+                            String err = obj.optString("error", "desconocido");
+                            activity.runOnUiThread(() -> result.error("OTP_FALLIDO", err, null));
+                        }
+                    } catch (org.json.JSONException e) {
+                        activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                     }
                 }
                 @Override public void onError(String code, String message, Object details) {

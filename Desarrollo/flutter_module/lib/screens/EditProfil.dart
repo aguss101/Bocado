@@ -6,7 +6,11 @@ import '../theme/App.dart';
 import '../services/UploadImg.dart';
 import '../services/Usuario.dart';
 import '../services/Session.dart';
+import '../services/Receta.dart';
+import '../utils/validations.dart';
 import 'BarraNavegacion.dart';
+import 'ForgotPass.dart';
+import 'ConfirmEdit.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -28,7 +32,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usuarioCtrl;
   late TextEditingController _correoCtrl;
-  String _genero = 'masculino';
+  int? _generoId;
+  List<dynamic> _generos = [];
+  int _cantRecetas = 0;
+  int _cantSeguidores = 0;
+  String _correoOriginal = '';
+  String _usuarioOriginal = '';
+  bool _cargando = true;
   String? _fotoUrl;
   String? _bannerUrl;
   bool _uploading = false;
@@ -39,6 +49,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _usuarioCtrl = TextEditingController(text: widget.user.usuario);
     _correoCtrl  = TextEditingController();
+    _cargarDatos();
+  }
+
+  /// Trae el catálogo de géneros y los datos editables del propio perfil
+  /// (usuario, correo, id_genero) y precarga el formulario.
+  Future<void> _cargarDatos() async {
+    try {
+      final generos = await UsuarioService.getGeneros();
+      final perfil  = await UsuarioService.getPerfilEditable(widget.user.id);
+      final cantRecetas = await RecetaService.contarRecetas(widget.user.id);
+      final cantSeguidores = await UsuarioService.contarSeguidores(widget.user.id);
+      if (!mounted) return;
+      setState(() {
+        _generos = generos;
+        _usuarioCtrl.text = perfil['usuario'] ?? widget.user.usuario;
+        _correoCtrl.text  = perfil['correo'] ?? '';
+        _usuarioOriginal  = _usuarioCtrl.text;
+        _correoOriginal   = _correoCtrl.text;
+        _generoId = perfil['id_genero'] as int?;
+        _cantRecetas = cantRecetas;
+        _cantSeguidores = cantSeguidores;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudieron cargar tus datos: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -50,43 +91,86 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _guardarCambios() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final usuarioNuevo = _usuarioCtrl.text.trim();
+    final correoNuevo  = _correoCtrl.text.trim();
+    // ¿Cambió correo o usuario? → confirmación por OTP (pantalla estilo reset).
+    final cambioSensible =
+        correoNuevo != _correoOriginal || usuarioNuevo != _usuarioOriginal;
+
+    if (!cambioSensible) {
+      await _aplicarCambios(); // foto/género/etc. → directo, sin OTP
+      return;
+    }
+
+    // Los cambios se aplican atómicamente (RPC) recién tras validar el OTP.
+    final datos = <String, dynamic>{
+      'usuario': usuarioNuevo,
+      'correo': correoNuevo,
+      if (_generoId != null) 'id_genero': _generoId,
+      if (_fotoUrl != null) 'foto': _fotoUrl,
+      if (_bannerUrl != null) 'banner': _bannerUrl,
+    };
+    final confirmado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfirmEditScreen(
+          themeNotifier: widget.themeNotifier,
+          idUsuario: widget.user.id,
+          correo: _correoOriginal, // el código va al correo ACTUAL
+          datos: datos,
+        ),
+      ),
+    );
+    if (confirmado == true) await _finalizarYsalir(); // ya quedó guardado en la BD
+  }
+
+  /// Guarda directo (sin OTP) — para cambios no sensibles (foto/banner/género).
+  Future<void> _aplicarCambios() async {
     setState(() => _saving = true);
     try {
       await UsuarioService.actualizarPerfil(
         id:        widget.user.id,
         usuario:   _usuarioCtrl.text.trim(),
         correo:    _correoCtrl.text.trim().isEmpty ? null : _correoCtrl.text.trim(),
-        genero:    _genero,
+        idGenero:  _generoId,
         fotoUrl:   _fotoUrl,
         bannerUrl: _bannerUrl,
       );
-      final updatedUser = usuario_Logged(
-        widget.user.id,
-        widget.user.id_Cuenta,
-        _usuarioCtrl.text.trim(),
-        widget.user.fotoBase64,
-        widget.user.bannerBase64,
-        fotoUrl:   _fotoUrl   ?? widget.user.fotoUrl,
-        bannerUrl: _bannerUrl ?? widget.user.bannerUrl,
-      );
-      await SessionService.saveSession(updatedUser);
-      widget.onSaved?.call(updatedUser);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cambios guardados correctamente'),
-          backgroundColor: AppTheme.primary,
-        ),
-      );
-      Navigator.pop(context);
+      await _finalizarYsalir();
     } on Exception catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e')),
-      );
+      if (mounted) _snack('Error al guardar: $e', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// Actualiza la sesión local y cierra la pantalla (los datos ya están en la BD).
+  Future<void> _finalizarYsalir() async {
+    final updatedUser = usuario_Logged(
+      widget.user.id,
+      widget.user.id_Cuenta,
+      _usuarioCtrl.text.trim(),
+      widget.user.fotoBase64,
+      widget.user.bannerBase64,
+      fotoUrl:   _fotoUrl   ?? widget.user.fotoUrl,
+      bannerUrl: _bannerUrl ?? widget.user.bannerUrl,
+    );
+    await SessionService.saveSession(updatedUser);
+    widget.onSaved?.call(updatedUser);
+    if (!mounted) return;
+    _snack('Cambios guardados correctamente');
+    Navigator.pop(context);
+  }
+
+  void _snack(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
+      ),
+    );
   }
 
   void _mostrarProximamente(String feature) {
@@ -98,17 +182,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _cambiarFoto() => _pickAndUpload(
         label: 'foto',
         upload: (src) => ImageUploadService.uploadFotoPerfil(widget.user.id, src),
-        onDone: (url){
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          setState(() => _fotoUrl = '$url?t=$timestamp');
-          },
+        onDone: (url) => setState(() => _fotoUrl = _bustCache(url)),
       );
 
   Future<void> _cambiarBanner() => _pickAndUpload(
         label: 'banner',
         upload: (src) => ImageUploadService.uploadBanner(widget.user.id, src),
-        onDone: (url) => setState(() => _bannerUrl = url),
+        onDone: (url) => setState(() => _bannerUrl = _bustCache(url)),
       );
+
+  /// Storage sobrescribe la imagen en la MISMA URL (upsert), así que NetworkImage
+  /// la mostraría cacheada. Le sumamos ?t=<timestamp> para forzar que la recargue.
+  String _bustCache(String url) => '$url?t=${DateTime.now().millisecondsSinceEpoch}';
 
   Future<void> _pickAndUpload({
     required String label,
@@ -212,7 +297,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,8 +436,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           runSpacing: 8,
           alignment: WrapAlignment.center,
           children: [
-            _chipStat('12 Recetas', border, text),
-            _chipStat('845 Seguidores', border, text),
+            _chipStat('$_cantRecetas ${_cantRecetas == 1 ? 'Receta' : 'Recetas'}', border, text),
+            _chipStat('$_cantSeguidores ${_cantSeguidores == 1 ? 'Seguidor' : 'Seguidores'}', border, text),
           ],
         ),
         const SizedBox(height: 16),
@@ -439,8 +526,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     border: border,
                     muted: muted,
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                  validator: (v) => Validaciones.usuario(v ?? ''),
                 ),
                 const SizedBox(height: 18),
 
@@ -458,14 +544,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     border: border,
                     muted: muted,
                   ),
+                  // Obligatorio + formato válido (ej: nombre@dominio.com).
+                  validator: (v) => Validaciones.correo(v ?? ''),
                 ),
                 const SizedBox(height: 18),
 
                 // ── Género ──
                 _fieldLabel('Género'),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: _genero,
+                DropdownButtonFormField<int>(
+                  value: _generoId,
                   dropdownColor: surface,
                   style: TextStyle(color: text, fontSize: 14),
                   decoration: _inputDecoration(
@@ -475,20 +563,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     border: border,
                     muted: muted,
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'masculino', child: Text('Masculino')),
-                    DropdownMenuItem(
-                        value: 'femenino', child: Text('Femenino')),
-                    DropdownMenuItem(
-                        value: 'no_binario', child: Text('No binario')),
-                    DropdownMenuItem(
-                        value: 'prefiero_no',
-                        child: Text('Prefiero no decir')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setState(() => _genero = v);
-                  },
+                  items: _generos
+                      .map((g) => DropdownMenuItem<int>(
+                            value: g['id'] as int,
+                            child: Text(g['nombre'] as String),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _generoId = v),
+                  validator: (v) => v == null ? 'Seleccioná un género' : null,
                 ),
 
                 const SizedBox(height: 28),
@@ -554,7 +636,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 border: border,
                 text: text,
                 muted: muted,
-                onTap: () => _mostrarProximamente('Seguridad'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ForgotPasswordScreen(
+                      themeNotifier: widget.themeNotifier,
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),

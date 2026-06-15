@@ -111,7 +111,7 @@ class UsuarioService {
     required int id,
     required String usuario,
     String? correo,
-    String? genero,
+    int? idGenero,
     String? fotoUrl,
     String? bannerUrl,
   }) async {
@@ -119,9 +119,37 @@ class UsuarioService {
       'id': id,
       'usuario': usuario,
       if (correo != null && correo.isNotEmpty) 'correo': correo,
-      if (genero != null) 'genero': genero,
+      if (idGenero != null) 'id_genero': idGenero,
       if (fotoUrl != null) 'fotoUrl': fotoUrl,
       if (bannerUrl != null) 'bannerUrl': bannerUrl,
+    });
+  }
+
+  /// Trae los campos editables del PROPIO perfil: { usuario, correo, id_genero }.
+  static Future<Map<String, dynamic>> getPerfilEditable(int id) async {
+    final String response =
+        await _channel.invokeMethod('getPerfilEditable', {'id_usuario': id});
+    return jsonDecode(response) as Map<String, dynamic>;
+  }
+
+  /// Conteo liviano de seguidores del usuario (Java trae solo los id_seguidor).
+  static Future<int> contarSeguidores(int id) async {
+    final result = await _channel.invokeMethod('contarSeguidores', {'id_usuario': id});
+    return result as int;
+  }
+
+  /// Aplica cambios de perfil tras verificar el OTP, de forma atómica
+  /// (RPC actualizar_perfil_otp). [datos] = p_data: usuario, correo, id_genero, foto, banner.
+  /// Lanza PlatformException si el código es inválido/vencido.
+  static Future<void> actualizarPerfilOtp({
+    required int id,
+    required String codigo,
+    required Map<String, dynamic> datos,
+  }) async {
+    await _channel.invokeMethod('actualizarPerfilOtp', {
+      'id': id,
+      'codigo': codigo,
+      'datos': datos,
     });
   }
 
