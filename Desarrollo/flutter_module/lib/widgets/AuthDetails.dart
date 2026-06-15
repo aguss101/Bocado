@@ -135,7 +135,7 @@ class _AuthFooter extends StatelessWidget {
         runSpacing: 8,
         children: [
           Text(
-            '© 2024 Bocado Culinary',
+            '© 2026 Bocado Culinario',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
@@ -143,9 +143,6 @@ class _AuthFooter extends StatelessWidget {
               letterSpacing: 1,
             ),
           ),
-          _FooterLink('Privacidad', secondary),
-          _FooterLink('Términos', secondary),
-          _FooterLink('Ayuda', secondary),
         ],
       ),
     );
@@ -365,7 +362,6 @@ class GoogleButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Google logo SVG simplified as colored text
             _GoogleLogo(),
             const SizedBox(width: 10),
             Text(
@@ -397,40 +393,59 @@ class _GoogleLogo extends StatelessWidget {
 class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paths = [
-      (const Color(0xFF4285F4), 'M 20 10.2 C 20 9.5 19.9 8.8 19.8 8.2 H 10 V 12 H 15.6 C 15.3 13.4 14.6 14.5 13.5 15.3 V 17.7 H 16.8 C 18.8 15.9 20 13.3 20 10.2 Z'),
-      (const Color(0xFF34A853), 'M 10 20 C 12.7 20 14.9 19.1 16.8 17.7 L 13.5 15.3 C 12.6 15.9 11.4 16.3 10 16.3 C 7.4 16.3 5.1 14.5 4.3 12.1 H 0.9 V 14.5 C 2.8 18.3 6.2 20 10 20 Z'),
-      (const Color(0xFFFBBC05), 'M 4.3 12.1 C 4.1 11.5 4 10.8 4 10.1 C 4 9.4 4.1 8.7 4.3 8.1 V 5.7 H 0.9 C 0.3 7 0 8.5 0 10.1 C 0 11.7 0.3 13.2 0.9 14.5 L 4.3 12.1 Z'),
-      (const Color(0xFFEA4335), 'M 10 3.9 C 11.5 3.9 12.8 4.4 13.8 5.4 L 16.9 2.3 C 14.9 0.4 12.7 0 10 0 C 6.2 0 2.8 2.4 0.9 5.7 L 4.3 8.1 C 5.1 5.7 7.4 3.9 10 3.9 Z'),
-    ];
+    final double scaleX = size.width / 24.0;
+    final double scaleY = size.height / 24.0;
+    canvas.scale(scaleX, scaleY);
 
-    for (final (color, _) in paths) {
-      final paint = Paint()..color = color;
-      // Simple colored circle as Google logo approximation
-    }
+    final Paint paint = Paint()..style = PaintingStyle.fill;
 
-    // Draw a simple 'G' colored circle
-    final paint = Paint()..color = const Color(0xFF4285F4);
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 2, paint);
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        text: 'G',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        (size.width - textPainter.width) / 2,
-        (size.height - textPainter.height) / 2,
-      ),
-    );
+    paint.color = const Color(0xFF4285F4);
+    final pathAzul = Path()
+      ..moveTo(23.49, 12.27)
+      ..cubicTo(23.49, 11.48, 23.42, 10.73, 23.3, 10.0)
+      ..lineTo(12.0, 10.0)
+      ..lineTo(12.0, 14.51)
+      ..lineTo(18.44, 14.51)
+      ..cubicTo(18.16, 16.02, 17.31, 17.3, 16.03, 18.16)
+      ..lineTo(16.03, 21.14)
+      ..lineTo(19.93, 21.14)
+      ..cubicTo(22.21, 19.04, 23.49, 15.94, 23.49, 12.27);
+    canvas.drawPath(pathAzul, paint);
+
+    paint.color = const Color(0xFF34A853);
+    final pathVerde = Path()
+      ..moveTo(12.0, 24.0)
+      ..cubicTo(15.24, 24.0, 17.96, 22.92, 19.93, 21.14)
+      ..lineTo(16.03, 18.16)
+      ..cubicTo(14.95, 18.88, 13.6, 19.32, 12.0, 19.32)
+      ..cubicTo(8.87, 19.32, 6.22, 17.21, 5.27, 14.36)
+      ..lineTo(1.23, 14.36)
+      ..lineTo(1.23, 17.49)
+      ..cubicTo(3.21, 21.42, 7.28, 24.0, 12.0, 24.0);
+    canvas.drawPath(pathVerde, paint);
+
+    paint.color = const Color(0xFFFBBC05);
+    final pathAmarillo = Path()
+      ..moveTo(5.27, 14.36)
+      ..cubicTo(5.03, 13.64, 4.9, 12.87, 4.9, 12.0)
+      ..cubicTo(4.9, 11.13, 5.03, 10.36, 5.27, 9.64)
+      ..lineTo(5.27, 6.51)
+      ..lineTo(1.23, 6.51)
+      ..cubicTo(0.45, 8.16, 0.0, 10.01, 0.0, 12.0)
+      ..cubicTo(0.0, 13.99, 0.45, 15.84, 1.23, 17.49)
+      ..lineTo(5.27, 14.36);
+    canvas.drawPath(pathAmarillo, paint);
+
+    paint.color = const Color(0xFFEA4335);
+    final pathRojo = Path()
+      ..moveTo(12.0, 4.68)
+      ..cubicTo(13.76, 4.68, 15.35, 5.29, 16.59, 6.48)
+      ..lineTo(20.02, 3.05)
+      ..cubicTo(17.95, 1.12, 15.23, 0.0, 12.0, 0.0)
+      ..cubicTo(7.28, 0.0, 3.21, 2.58, 1.23, 6.51)
+      ..lineTo(5.27, 9.64)
+      ..cubicTo(6.22, 6.79, 8.87, 4.68, 12.0, 4.68);
+    canvas.drawPath(pathRojo, paint);
   }
 
   @override

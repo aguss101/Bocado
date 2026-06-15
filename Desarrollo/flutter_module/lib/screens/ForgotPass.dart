@@ -262,11 +262,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               // ── Back to login ─────────────────────────────────
               Divider(color: outline),
               const SizedBox(height: 16),
-              Center(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'Volver al inicio de sesión',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

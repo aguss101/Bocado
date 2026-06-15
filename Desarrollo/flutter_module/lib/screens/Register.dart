@@ -116,9 +116,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  /// Alta/login con Google. No exige aceptar términos (decisión de producto).
-  /// Usa el mismo método compartido que Login: el backend hace login-or-create.
   Future<void> _registrarConGoogle() async {
     if (_isLoading) return;
     setState(() {
@@ -127,10 +124,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       final outcome = await UsuarioService.signInWithGoogle();
-      if (outcome.cancelado) return; // canceló — el finally limpia _isLoading
+      if (outcome.cancelado) return;
 
       if (outcome.existente != null) {
-        // Ya tenía cuenta → entra directo.
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -140,7 +136,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       } else {
-        // Usuario nuevo → completar nación/género/fecha.
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -276,6 +271,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+            const Center(
+                            child: Icon(
+                              Icons.restaurant_menu,
+                              color: AppTheme.primary,
+                              size: 40,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Center(
+                            child: Text(
+                              'PLATAFORMA GOURMET',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
               // ── Title ─────────────────────────────────────────
               Text(
                 'Crea tu cuenta',
@@ -288,13 +303,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Uníte a la comunidad de chefs más exclusiva',
+                'Uníte a la comunidad de chefs más popular',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: secondary),
               ),
               const SizedBox(height: 28),
-
-              // ── Nombre / Apellido ──────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -305,7 +318,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         AuthTextField(
                           controller: _nombreController,
-                          hint: 'Ej. Juan',
+                          hint: 'Alfredo',
                           prefixIcon: Icons.person_outline,
                         ),
                       ],
@@ -320,7 +333,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         AuthTextField(
                           controller: _apellidoController,
-                          hint: 'Ej. Pérez',
+                          hint: 'Gusteau',
                           prefixIcon: Icons.person_outline,
                         ),
                       ],
@@ -335,17 +348,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 8),
               AuthTextField(
                 controller: _emailController,
-                hint: 'tu@email.com',
+                hint: 'Chefsito@gmail.com',
                 prefixIcon: Icons.mail_outline,
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 20),
-              // ── Fecha de Nacimiento ───────────────────────────
               const AuthFieldLabel('Fecha de nacimiento'),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () => _seleccionarFecha(context),
-                child: AbsorbPointer( // Esto evita que aparezca el teclado de texto
+                child: AbsorbPointer(
                   child: AuthTextField(
                     controller: _fechaController,
                     hint: 'DD/MM/AAAA',
@@ -354,7 +366,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // ── Nación / Género ──────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -372,7 +383,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Seleccionar',
+                            hintText: 'Elegir',
                             hintStyle: TextStyle(color: secondary, fontSize: 14),
                             prefixIcon: Icon(Icons.public, color: secondary, size: 20),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -416,7 +427,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Seleccionar',
+                            hintText: 'Elegir',
                             hintStyle: TextStyle(color: secondary, fontSize: 14),
                             prefixIcon: Icon(Icons.people_outline, color: secondary, size: 20),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -447,13 +458,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // ── Usuario ───────────────────────────────────────
               const AuthFieldLabel('Nombre de usuario'),
               const SizedBox(height: 8),
               AuthTextField(
                 controller: _usuarioController,
-                hint: '@tu_usuario',
+                hint: 'Remy',
                 prefixIcon: Icons.alternate_email,
               ),
               const SizedBox(height: 20),
@@ -580,15 +589,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ),
-              // ── Divider ───────────────────────────────────────
               const AuthDivider(label: 'O REGISTRATE CON'),
               const SizedBox(height: 20),
 
-              // ── Google ────────────────────────────────────────
               GoogleButton(onTap: _registrarConGoogle),
               const SizedBox(height: 20),
 
-              // ── Security badge ────────────────────────────────
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(

@@ -96,10 +96,9 @@ _errorMessage = null;
 });
 try {
 final outcome = await UsuarioService.signInWithGoogle();
-if (outcome.cancelado) return; // canceló — el finally limpia _isLoading
+if (outcome.cancelado) return;
 
 if (outcome.existente != null) {
-// Ya tenía cuenta → entra directo.
 final user = outcome.existente!;
 if (_rememberMe) await SessionService.saveSession(user);
 if (mounted) {
@@ -114,7 +113,6 @@ user: user,
 );
 }
 } else {
-// Usuario nuevo → completar nación/género/fecha.
 if (mounted) {
 Navigator.pushReplacement(
 context,
@@ -181,7 +179,7 @@ size: 40,
 const SizedBox(height: 4),
 const Center(
 child: Text(
-'PLATAFORMA GOURMET PRO',
+'PLATAFORMA GOURMET',
 style: TextStyle(
 fontSize: 10,
 fontWeight: FontWeight.w700,
@@ -211,7 +209,7 @@ const AuthFieldLabel('Correo electrónico o usuario'),
 const SizedBox(height: 8),
 AuthTextField(
 controller: _emailController,
-hint: 'chef@bocado.app',
+hint: 'Chefsito@gmail.com',
 prefixIcon: Icons.person_outline,
 keyboardType: TextInputType.emailAddress,
 ),
@@ -386,7 +384,7 @@ children: [
 Icon(Icons.shield_outlined, size: 12, color: secondary),
 const SizedBox(width: 4),
 Text(
-'BOCADO SECURE AUTHENTICATION V2.5',
+'BOCADO',
 style: TextStyle(
 fontSize: 9,
 fontWeight: FontWeight.w700,
