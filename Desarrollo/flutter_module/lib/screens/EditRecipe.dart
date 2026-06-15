@@ -6,15 +6,16 @@ import 'package:flutter_module/services/Receta.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/UploadImg.dart';
 import '../theme/Notifier.dart';
+import '../theme/App.dart';
 
-// ─── Palette ────────────────────────────────────────────────────────────────
-const _primary = Color(0xFFD96E11);
-const _bg = Color(0xFFFFFBF5);
-const _surface = Color(0xFFFFFFFF);
-const _surfaceDim = Color(0xFFF5F5F5);
-const _outline = Color(0xFFE8CCB1);
-const _onSurface = Color(0xFF0F172A);
-const _onSurfaceVariant = Color(0xFF475569);
+// ─── Palette (AppTheme) ─────────────────────────────────────────────────────
+const _primary = AppTheme.primary;
+const _bg = AppTheme.surfaceContainerLight;
+const _surface = AppTheme.surfaceLight;
+const _surfaceDim = AppTheme.surfaceContainerLight;
+const _outline = AppTheme.outlineLight;
+const _onSurface = AppTheme.onSurfaceLight;
+const _onSurfaceVariant = AppTheme.secondaryLight;
 const _error = Color(0xFFB91C1C);
 const bool _isDebug = true;
 
@@ -337,8 +338,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final fondoPantalla = isDark ? const Color(0xFF0F172A) : _bg;
-    final fondoTarjetas = isDark ? const Color(0xFF1E293B) : _surface;
+    final fondoPantalla = isDark ? AppTheme.bgDark : _bg;
+    final fondoTarjetas = isDark ? AppTheme.surfaceDark : _surface;
     return Scaffold(
       backgroundColor: fondoPantalla,
       body: SafeArea(
@@ -371,7 +372,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withOpacity(0.92) : _surface.withOpacity(0.92),
+        color: isDark ? AppTheme.surfaceDark.withOpacity(0.92) : _surface.withOpacity(0.92),
         border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
       ),
       child: Row(
@@ -523,7 +524,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   width: double.infinity,
                   height: 140,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : Colors.grey.withOpacity(0.05),
+                    color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: isDark ? Colors.white10 : _outline.withOpacity(0.6),
@@ -580,7 +581,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     margin: EdgeInsets.only(left: i == 0 ? 0 : 8),
                     height: 72,
                     decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : Colors.grey.withOpacity(0.05),
+                        color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: isDark ? Colors.white10 : _outline.withOpacity(0.4))
                     ),
@@ -648,7 +649,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         // Lista de ingredientes
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : _surface,
+            color: isDark ? AppTheme.surfaceDark : _surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
           ),
@@ -1211,7 +1212,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       width: 54,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+        color: isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06)),
       ),
@@ -1234,7 +1235,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A)
+                  color: isDark ? Colors.white : AppTheme.bgDark
               ),
               textAlign: TextAlign.center,
               onChanged: onChanged,
@@ -1256,7 +1257,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       width: 44,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF334155).withOpacity(0.5) : Colors.grey.withOpacity(0.05),
+        color: isDark ? AppTheme.surfaceContainerDark.withOpacity(0.5) : Colors.grey.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.03)),
       ),
@@ -1352,7 +1353,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white, // Color consistente
+        color: isDark ? AppTheme.surfaceDark : Colors.white, // Color consistente
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
       ),
@@ -1509,7 +1510,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         decoration: BoxDecoration(
           color: selected
               ? _primary
-              : (isDark ? const Color(0xFF1E293B) : Colors.grey.withOpacity(0.05)),
+              : (isDark ? AppTheme.surfaceDark : Colors.grey.withOpacity(0.05)),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected
@@ -1561,7 +1562,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : _surface,
+        color: isDark ? AppTheme.surfaceDark : _surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
         boxShadow: [
@@ -1586,7 +1587,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.grey.withOpacity(0.05),
+        color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: isDark ? Colors.white10 : _outline.withOpacity(0.3)),
       ),
@@ -1611,7 +1612,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : _surface,
+        color: isDark ? AppTheme.surfaceDark : _surface,
         border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05))),
       ),
       child: Row(
@@ -1673,7 +1674,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.grey.withOpacity(0.05),
+        color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.black.withOpacity(0.08),
@@ -1693,7 +1694,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               focusNode: focusNode,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                color: isDark ? Colors.white : AppTheme.bgDark,
               ),
               decoration: InputDecoration(
                 hintText: hint,
