@@ -1,188 +1,190 @@
-CREATE TABLE "Usuarios" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "id_cuenta" integer NOT NULL,
-  "id_nacion" integer NOT NULL,
-  "id_genero" integer NOT NULL,
-  "nombre" text NOT NULL,
-  "apellido" text NOT NULL,
-  "correo" text NOT NULL,
-  "usuario" text NOT NULL,
-  "contrasena" text NOT NULL,
-  "fecha_nacimiento" timestamp NOT NULL,
-  "fecha_creacion" timestamp NOT NULL,
-  "fecha_acceso" timestamp NOT NULL,
-  "activo" boolean NOT NULL,
-  "visibilidad" boolean NOT NULL,
-  "foto" bytea NOT NULL,
-  "banner" bytea NOT NULL
+CREATE TABLE public.usuarios (
+  id integer NOT NULL DEFAULT nextval('"Usuarios_id_seq"'::regclass),
+  id_cuenta integer NOT NULL DEFAULT 1,
+  id_nacion integer NOT NULL,
+  id_genero integer NOT NULL,
+  nombre text NOT NULL,
+  apellido text NOT NULL,
+  correo text NOT NULL,
+  usuario text NOT NULL,
+  contrasena text NOT NULL,
+  fecha_nacimiento timestamp without time zone NOT NULL,
+  fecha_creacion timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc'::text),
+  fecha_acceso timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc'::text),
+  activo boolean NOT NULL DEFAULT true,
+  visibilidad boolean NOT NULL DEFAULT true,
+  foto text,
+  banner text,
+  CONSTRAINT usuarios_pkey PRIMARY KEY (id),
+  CONSTRAINT CU FOREIGN KEY (id_cuenta) REFERENCES public.cuentas(id),
+  CONSTRAINT NU FOREIGN KEY (id_nacion) REFERENCES public.naciones(id),
+  CONSTRAINT GU FOREIGN KEY (id_genero) REFERENCES public.generos(id)
 );
-
-CREATE TABLE "Cuentas" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL
+CREATE TABLE public.cuentas (
+  id integer NOT NULL DEFAULT nextval('"Cuentas_id_seq"'::regclass),
+  nombre text NOT NULL,
+  CONSTRAINT cuentas_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE "Naciones" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL
+CREATE TABLE public.naciones (
+  id integer NOT NULL DEFAULT nextval('"Naciones_id_seq"'::regclass),
+  nombre text NOT NULL,
+  CONSTRAINT naciones_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE "Generos" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL
+CREATE TABLE public.generos (
+  id integer NOT NULL DEFAULT nextval('"Generos_id_seq"'::regclass),
+  nombre text NOT NULL,
+  CONSTRAINT generos_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE "Alimentos" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL,
-  "id_usuario" integer NOT NULL,
-  "id_medida" integer NOT NULL
+CREATE TABLE public.alimentos (
+  id integer NOT NULL DEFAULT nextval('"Alimentos_id_seq"'::regclass),
+  nombre text NOT NULL,
+  id_usuario integer NOT NULL,
+  id_medida integer NOT NULL,
+  CONSTRAINT alimentos_pkey PRIMARY KEY (id),
+  CONSTRAINT UA FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id),
+  CONSTRAINT MA FOREIGN KEY (id_medida) REFERENCES public.medidas(id)
 );
-
-CREATE TABLE "Nutrientes" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL,
-  "esMacro" boolean NOT NULL,
-  "id_medida" int NOT NULL
+CREATE TABLE public.nutrientes (
+  id integer NOT NULL DEFAULT nextval('"Nutrientes_id_seq"'::regclass),
+  nombre text NOT NULL,
+  esMacro boolean NOT NULL,
+  id_medida integer NOT NULL,
+  CONSTRAINT nutrientes_pkey PRIMARY KEY (id),
+  CONSTRAINT MN FOREIGN KEY (id_medida) REFERENCES public.medidas(id)
 );
-
-CREATE TABLE "Alimentos_Nutrientes" (
-  "id_alimento" integer,
-  "id_nutriente" integer,
-  "valor100gr" integer,
-  PRIMARY KEY ("id_alimento", "id_nutriente")
+CREATE TABLE public.alimentos_nutrientes (
+  id_alimento integer NOT NULL,
+  id_nutriente integer NOT NULL,
+  valor100gr integer,
+  CONSTRAINT alimentos_nutrientes_pkey PRIMARY KEY (id_alimento, id_nutriente),
+  CONSTRAINT AAN FOREIGN KEY (id_alimento) REFERENCES public.alimentos(id),
+  CONSTRAINT NAN FOREIGN KEY (id_nutriente) REFERENCES public.nutrientes(id)
 );
-
-CREATE TABLE "Medidas" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL,
-  "tipo" integer NOT NULL
+CREATE TABLE public.medidas (
+  id integer NOT NULL DEFAULT nextval('"Medidas_id_seq"'::regclass),
+  nombre text NOT NULL,
+  tipo integer NOT NULL,
+  CONSTRAINT medidas_pkey PRIMARY KEY (id),
+  CONSTRAINT MTM FOREIGN KEY (tipo) REFERENCES public.medidas_tipos(id)
 );
-
-CREATE TABLE "Medidas_Tipos" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "nombre" text NOT NULL
+CREATE TABLE public.medidas_tipos (
+  id integer NOT NULL DEFAULT nextval('"Medidas_Tipos_id_seq"'::regclass),
+  nombre text NOT NULL,
+  CONSTRAINT medidas_tipos_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE "Medidas_Conversiones" (
-  "id_medida1" integer,
-  "id_medida2" integer,
-  "factor" decimal NOT NULL,
-  PRIMARY KEY ("id_medida1", "id_medida2")
+CREATE TABLE public.medidas_conversiones (
+  id_medida1 integer NOT NULL,
+  id_medida2 integer NOT NULL,
+  factor numeric NOT NULL,
+  CONSTRAINT medidas_conversiones_pkey PRIMARY KEY (id_medida1, id_medida2),
+  CONSTRAINT MMC FOREIGN KEY (id_medida1) REFERENCES public.medidas(id),
+  CONSTRAINT MMC2 FOREIGN KEY (id_medida2) REFERENCES public.medidas(id)
 );
-
-CREATE TABLE "Recetas" (
-  "id" SERIAL UNIQUE PRIMARY KEY NOT NULL,
-  "id_usuario" integer NOT NULL,
-  "nombre" text NOT NULL,
-  "foto" bytea,
-  "calorias_totales" decimal,
-  "porciones" integer,
-  "porciones_peso" decimal,
-  "instrucciones" text NOT NULL,
-  "fecha_creacion" timestamp,
-  "visibilidad" bool NOT NULL,
-  "activo" bool NOT NULL,
-  "precio" decimal NOT NULL
+CREATE TABLE public.recetas (
+  id integer NOT NULL DEFAULT nextval('"Recetas_id_seq"'::regclass),
+  id_usuario integer NOT NULL,
+  nombre text NOT NULL,
+  foto text,
+  calorias_totales numeric,
+  porciones integer,
+  porciones_peso numeric,
+  instrucciones text NOT NULL,
+  fecha_creacion timestamp without time zone,
+  visibilidad boolean NOT NULL,
+  activo boolean NOT NULL,
+  precio numeric NOT NULL,
+  id_dificultad integer,
+  CONSTRAINT recetas_pkey PRIMARY KEY (id),
+  CONSTRAINT UR FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id),
+  CONSTRAINT recetas_dificultad_fk FOREIGN KEY (id_dificultad) REFERENCES public.dificultades(id)
 );
-
-CREATE TABLE "Recetas_Alimentos" (
-  "id_receta" integer NOT NULL,
-  "id_alimento" integer NOT NULL,
-  "cantidad" decimal NOT NULL,
-  "precio" decimal NOT NULL,
-  PRIMARY KEY ("id_receta", "id_alimento")
+CREATE TABLE public.recetas_alimentos (
+  id_receta integer NOT NULL,
+  id_alimento integer NOT NULL,
+  cantidad numeric NOT NULL,
+  precio numeric NOT NULL,
+  CONSTRAINT recetas_alimentos_pkey PRIMARY KEY (id_receta, id_alimento),
+  CONSTRAINT RRA FOREIGN KEY (id_receta) REFERENCES public.recetas(id),
+  CONSTRAINT ARA FOREIGN KEY (id_alimento) REFERENCES public.alimentos(id)
 );
-
-CREATE TABLE "Comentarios" (
-  "id_comentario" int UNIQUE PRIMARY KEY,
-  "id_comentario_padre" int,
-  "id_receta" integer,
-  "id_comentarista" integer,
-  "comentario" text NOT NULL
+CREATE TABLE public.comentarios (
+  id_comentario integer NOT NULL,
+  id_comentario_padre integer,
+  id_receta integer,
+  id_comentarista integer,
+  comentario text NOT NULL,
+  CONSTRAINT comentarios_pkey PRIMARY KEY (id_comentario),
+  CONSTRAINT CC FOREIGN KEY (id_comentario_padre) REFERENCES public.comentarios(id_comentario),
+  CONSTRAINT RC FOREIGN KEY (id_receta) REFERENCES public.recetas(id),
+  CONSTRAINT UC FOREIGN KEY (id_comentarista) REFERENCES public.usuarios(id)
 );
-
-CREATE TABLE "Calificaciones" (
-  "id_receta" integer,
-  "id_usuario" integer,
-  "calificacion" decimal,
-  PRIMARY KEY ("id_receta", "id_usuario")
+CREATE TABLE public.calificaciones (
+  id_receta integer NOT NULL,
+  id_usuario integer NOT NULL,
+  calificacion numeric,
+  CONSTRAINT calificaciones_pkey PRIMARY KEY (id_receta, id_usuario),
+  CONSTRAINT RC2 FOREIGN KEY (id_receta) REFERENCES public.recetas(id),
+  CONSTRAINT UC2 FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
 );
-
-CREATE TABLE "Favoritos" (
-  "id_receta" integer,
-  "id_usuario" integer,
-  PRIMARY KEY ("id_receta", "id_usuario")
+CREATE TABLE public.interacciones_usuario (
+  id_receta integer NOT NULL,
+  id_usuario integer NOT NULL,
+  tipo_interaccion text NOT NULL,
+  CONSTRAINT interacciones_usuario_pkey PRIMARY KEY (id_receta, id_usuario, tipo_interaccion),
+  CONSTRAINT RF FOREIGN KEY (id_receta) REFERENCES public.recetas(id),
+  CONSTRAINT UF FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
 );
-
-CREATE TABLE "Etiquetas" (
-  "id_etiqueta" int UNIQUE PRIMARY KEY,
-  "nombre" text,
-  "id_usuario" int
+CREATE TABLE public.etiquetas (
+  id_etiqueta integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nombre text NOT NULL,
+  id_usuario integer NOT NULL,
+  CONSTRAINT etiquetas_pkey PRIMARY KEY (id_etiqueta),
+  CONSTRAINT etiquetas_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
 );
-
-CREATE TABLE "Etiquetas_Recetas" (
-  "id_recetas" int,
-  "id_etiquetas" int,
-  PRIMARY KEY ("id_recetas", "id_etiquetas")
+CREATE TABLE public.etiquetas_recetas (
+  id_recetas integer NOT NULL,
+  id_etiquetas integer NOT NULL,
+  CONSTRAINT etiquetas_recetas_pkey PRIMARY KEY (id_recetas, id_etiquetas),
+  CONSTRAINT RER FOREIGN KEY (id_recetas) REFERENCES public.recetas(id),
+  CONSTRAINT EER FOREIGN KEY (id_etiquetas) REFERENCES public.etiquetas(id_etiqueta)
 );
-
-CREATE INDEX "Alimentos_Nutrientes_index_0" ON "Alimentos_Nutrientes" ("id_alimento", "id_nutriente");
-
-CREATE INDEX "Medidas_Conversiones_index_1" ON "Medidas_Conversiones" ("id_medida1", "id_medida2");
-
-CREATE INDEX "Recetas_Alimentos_index_2" ON "Recetas_Alimentos" ("id_receta", "id_alimento");
-
-CREATE INDEX "Calificaciones_index_3" ON "Calificaciones" ("id_receta", "id_usuario");
-
-CREATE INDEX "Favoritos_index_4" ON "Favoritos" ("id_receta", "id_usuario");
-
-CREATE INDEX "Etiquetas_Recetas_index_5" ON "Etiquetas_Recetas" ("id_recetas", "id_etiquetas");
-
-ALTER TABLE "Usuarios" ADD CONSTRAINT "CU" FOREIGN KEY ("id_cuenta") REFERENCES "Cuentas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Usuarios" ADD CONSTRAINT "NU" FOREIGN KEY ("id_nacion") REFERENCES "Naciones" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Usuarios" ADD CONSTRAINT "GU" FOREIGN KEY ("id_genero") REFERENCES "Generos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Alimentos" ADD CONSTRAINT "UA" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Alimentos" ADD CONSTRAINT "MA" FOREIGN KEY ("id_medida") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Medidas" ADD CONSTRAINT "MTM" FOREIGN KEY ("tipo") REFERENCES "Medidas_Tipos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Medidas_Conversiones" ADD CONSTRAINT "MMC" FOREIGN KEY ("id_medida1") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Medidas_Conversiones" ADD CONSTRAINT "MMC2" FOREIGN KEY ("id_medida2") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Nutrientes" ADD CONSTRAINT "MN" FOREIGN KEY ("id_medida") REFERENCES "Medidas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Alimentos_Nutrientes" ADD CONSTRAINT "AAN" FOREIGN KEY ("id_alimento") REFERENCES "Alimentos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Alimentos_Nutrientes" ADD CONSTRAINT "NAN" FOREIGN KEY ("id_nutriente") REFERENCES "Nutrientes" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Recetas" ADD CONSTRAINT "UR" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Recetas_Alimentos" ADD CONSTRAINT "RRA" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Recetas_Alimentos" ADD CONSTRAINT "ARA" FOREIGN KEY ("id_alimento") REFERENCES "Alimentos" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Comentarios" ADD CONSTRAINT "CC" FOREIGN KEY ("id_comentario_padre") REFERENCES "Comentarios" ("id_comentario") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Comentarios" ADD CONSTRAINT "RC" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Comentarios" ADD CONSTRAINT "UC" FOREIGN KEY ("id_comentarista") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Calificaciones" ADD CONSTRAINT "RC2" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Calificaciones" ADD CONSTRAINT "UC2" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Favoritos" ADD CONSTRAINT "RF" FOREIGN KEY ("id_receta") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Favoritos" ADD CONSTRAINT "UF" FOREIGN KEY ("id_usuario") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Etiquetas_Recetas" ADD CONSTRAINT "RER" FOREIGN KEY ("id_recetas") REFERENCES "Recetas" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Etiquetas_Recetas" ADD CONSTRAINT "EER" FOREIGN KEY ("id_etiquetas") REFERENCES "Etiquetas" ("id_etiqueta") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "Etiquetas" ADD CONSTRAINT "UE" FOREIGN KEY ("id_etiqueta") REFERENCES "Usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+CREATE TABLE public.dificultades (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nombre text NOT NULL,
+  CONSTRAINT dificultades_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.pass_reset (
+  id bigint NOT NULL DEFAULT nextval('pass_reset_id_seq'::regclass),
+  id_usuario integer NOT NULL,
+  codigo_hash text NOT NULL,
+  expira_en timestamp without time zone NOT NULL,
+  usado boolean NOT NULL DEFAULT false,
+  intentos integer NOT NULL DEFAULT 0,
+  creado_en timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc'::text),
+  CONSTRAINT pass_reset_pkey PRIMARY KEY (id),
+  CONSTRAINT pass_reset_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.seguidos_usuario (
+  id_seguidor integer NOT NULL,
+  id_seguido integer NOT NULL,
+  fecha_seguido timestamp without time zone DEFAULT now(),
+  CONSTRAINT seguidos_usuario_pkey PRIMARY KEY (id_seguidor, id_seguido),
+  CONSTRAINT seguidos_usuario_id_seguido_fkey FOREIGN KEY (id_seguido) REFERENCES public.usuarios(id),
+  CONSTRAINT seguidos_usuario_id_seguidor_fkey FOREIGN KEY (id_seguidor) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.estadisticas_usuario (
+  id_usuario integer NOT NULL,
+  cant_recetas integer NOT NULL DEFAULT 0,
+  cant_seguidores integer NOT NULL DEFAULT 0,
+  cant_siguiendo integer NOT NULL DEFAULT 0,
+  CONSTRAINT estadisticas_usuario_pkey PRIMARY KEY (id_usuario),
+  CONSTRAINT estadisticas_usuario_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.estadisticas_receta (
+  id_receta integer NOT NULL,
+  cant_likes integer NOT NULL DEFAULT 0,
+  cant_saves integer NOT NULL DEFAULT 0,
+  promedio_calificacion numeric,
+  CONSTRAINT estadisticas_receta_pkey PRIMARY KEY (id_receta),
+  CONSTRAINT estadisticas_receta_id_receta_fkey FOREIGN KEY (id_receta) REFERENCES public.recetas(id)
+);
