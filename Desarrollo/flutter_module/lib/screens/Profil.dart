@@ -778,15 +778,20 @@ Widget _recipeCard({
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (receta.foto != null && receta.foto!.isNotEmpty)
-                Image.network(receta.foto!, fit: BoxFit.cover)
-              else
-                Container(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  child: Icon(Icons.restaurant,
-                      size: 40,
-                      color: AppTheme.primary.withValues(alpha: 0.3)),
+              // ── AQUÍ EL CAMBIO ──
+              (receta.foto != null && receta.foto!.isNotEmpty)
+                  ? Image.network(
+                  receta.foto!.split('|')[0],
+                  fit: BoxFit.cover
+              )
+                  : Container(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                child: Icon(
+                    Icons.restaurant,
+                    size: 40,
+                    color: AppTheme.primary.withValues(alpha: 0.3)
                 ),
+              ),
 
               // ── BADGE SUPERIOR DERECHO (Calorías) ──
               Positioned(

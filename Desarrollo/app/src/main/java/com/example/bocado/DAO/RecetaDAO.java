@@ -15,27 +15,39 @@ public class RecetaDAO {
     public void create(Map<String, Object> args, CallbackCB callback) {
         try {
             JSONObject recetaJson = new JSONObject();
+            // Datos básicos
             recetaJson.put("id_usuario", args.get("id_usuario"));
             recetaJson.put("nombre", args.get("nombre"));
-            recetaJson.put("foto", args.get("foto"));
             recetaJson.put("calorias_totales", args.get("calorias_totales"));
             recetaJson.put("porciones", args.get("porciones"));
-            recetaJson.put("porciones_peso", args.get("porciones_peso")); // <-- ¿Está aquí?
-            recetaJson.put("id_dificultad", args.get("id_dificultad"));   // <-- ¿Está aquí?
-            recetaJson.put("instrucciones", args.get("instrucciones"));
+            recetaJson.put("porciones_peso", args.get("porciones_peso"));
+            recetaJson.put("id_dificultad", args.get("id_dificultad"));
             recetaJson.put("precio", args.get("precio"));
-            recetaJson.put("ingredientes", args.get("ingredientes"));
+            recetaJson.put("visibilidad", args.get("visibilidad"));
+            recetaJson.put("es_borrador", args.get("es_borrador"));
 
+            if (args.containsKey("fotos")) {
+                List<String> listaFotos = (List<String>) args.get("fotos");
+                String fotosConcatenadas = String.join("|", listaFotos);
+                recetaJson.put("foto", fotosConcatenadas);
+            }
+            if (args.containsKey("instrucciones")) {
+                List<String> listaPasos = (List<String>) args.get("instrucciones");
+                String instruccionesConcatenadas = String.join("|", listaPasos);
+                recetaJson.put("instrucciones", instruccionesConcatenadas);
+            }
+            if (args.containsKey("tags_ids")) {
+                recetaJson.put("tags_ids", new JSONArray((List<?>) args.get("tags_ids")));
+            }
             if (args.containsKey("ingredientes")) {
                 Object ingredientesObj = args.get("ingredientes");
                 if (ingredientesObj instanceof List) {
-                    // Esto convierte la lista de Maps de Flutter a un JSONArray de Java
-                    JSONArray jsonArray = new JSONArray((List<?>) ingredientesObj);
-                    recetaJson.put("ingredientes", jsonArray);
+                    recetaJson.put("ingredientes", new JSONArray((List<?>) ingredientesObj));
                 } else {
                     recetaJson.put("ingredientes", ingredientesObj);
                 }
             }
+
             JSONObject body = new JSONObject();
             body.put("p_data", recetaJson);
 

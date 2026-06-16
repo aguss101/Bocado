@@ -246,7 +246,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final String fotoUrl = widget.receta.foto ?? '';
+    final String fotoRaw =widget.receta.foto ?? '';
+    final String fotoUrl = fotoRaw.isNotEmpty ? fotoRaw.split('|')[0] : '';
     final Widget imageHeader = AspectRatio(
       aspectRatio: 16 / 9,
       child: fotoUrl.startsWith('http')

@@ -229,6 +229,22 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   List<Map<String, dynamic>> _tagsSeleccionadas = [];
   List<Map<String, dynamic>> _tagsDisponibles = [];
   bool _esPublico = true; // Estado del switch
+  final TextEditingController _tagsSearchCtrl = TextEditingController();
+
+  String? _validarReceta() {
+    List<String> faltantes = [];
+
+    if (_nombreCtrl.text.isEmpty) faltantes.add("- Título de la receta");
+    if (_listaFotos.isEmpty) faltantes.add("- Al menos una foto");
+    if (_ingredients.isEmpty) faltantes.add("- Ingredientes");
+    if (_pasos.isEmpty) faltantes.add("- Pasos de preparación");
+    if (_porcionesCtrl.text.isEmpty) faltantes.add("- Cantidad de porciones");
+    if (_tiempoCtrl.text.isEmpty) faltantes.add("- Tiempo de cocción");
+    if (faltantes.isNotEmpty) {
+      return "Para publicar tu receta, primero completa:\n\n${faltantes.join('\n')}";
+    }
+    return null;
+  }
 
 
   @override
@@ -237,6 +253,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     _cargarAlimentosDesdeDB();
     _ingSearchCtrl.addListener(_onSearchChanged);
     _cargarEtiquetasDesdeBD();
+    _tagsSearchCtrl.addListener(() {
+      if (_tagsSearchCtrl.text.isEmpty) {
+      }
+    });
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
         // Pequeño delay para asegurar que el teclado abrió
@@ -366,56 +386,78 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return _ingredients.fold<double>(0.0, (sum, item) => sum + item.subtotal);
   }
 
-  Future<void> _persistirRecetaFinal() async {
+  Future<void> _persistirRecetaFinal({bool esBorrador = false}) async {
+    // 1. Validación solo si NO es borrador
+    if (!esBorrador) {
+      final error = _validarReceta();
+      if (error != null) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('⚠️ Faltan datos'),
+            content: Text(error!),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO')
+              )
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      // 1 y 2: Procesar ingredientes nuevos
-      // Recorremos la lista de ingredientes que el usuario cargó
+      // 2. Procesar ingredientes (se mantiene tu lógica)
       for (var ing in _ingredients) {
-        if (ing.idAlimento <= 0) { // Asumimos que <= 0 significa "nuevo"
-          // Llamamos al MethodChannel para crear el alimento
+        if (ing.idAlimento <= 0) {
           final Map<String, dynamic> response = await const MethodChannel('com.example.bocado/recetas')
-              .invokeMethod('addAlimento', {
-            'nombre': ing.name,
-            'id_usuario': widget.user.id,
-          });
-
-          // 3: Actualizamos el ID local con el ID real que nos devolvió la BD
+              .invokeMethod('addAlimento', {'nombre': ing.name, 'id_usuario': widget.user.id});
           ing.idAlimento = response['id'];
         }
       }
 
-      String? urlFotoReceta;
-      if(_portadaBytes != null){
-        urlFotoReceta = await ImageUploadService.uploadRecetaImage(
-            'user_${widget.user.id}_${DateTime.now().millisecondsSinceEpoch}',
-            _portadaBytes!
+      // 3. Subir TODAS las imágenes (ahora usamos _listaFotos)
+      List<String> urlsFotos = [];
+      for (var bytes in _listaFotos) {
+        String? url = await ImageUploadService.uploadRecetaImage(
+            'user_${widget.user.id}_${DateTime.now().millisecondsSinceEpoch}_${_listaFotos.indexOf(bytes)}',
+            bytes
         );
+        if (url != null) urlsFotos.add(url);
       }
 
-      // 4: Ahora que todos los ingredientes tienen ID real, guardamos la receta
+
+      List<int> idsTags = _tagsSeleccionadas.map((t) => t['id'] as int).toList();
+
       final Map<String, dynamic> recetaData = {
         'id_usuario': widget.user.id,
         'nombre': _nombreCtrl.text,
-        'foto': urlFotoReceta,
-        'calorias_totales': double.tryParse(_caloriasCtrl.text) ?? 0,
+        'fotos': urlsFotos,
+        'visibilidad': _esPublico,
+        'es_borrador': esBorrador,
+        'tags_ids': idsTags,
+        'calorias_totales': double.tryParse(_caloriasCtrl.text) ?? 0.0,
         'porciones': int.tryParse(_porcionesCtrl.text) ?? 1,
-        'porciones_peso': double.tryParse(_pesoPorcionCtrl.text) ?? 0,
+        'porciones_peso': double.tryParse(_pesoPorcionCtrl.text) ?? 0.0,
         'id_dificultad': _dificultadData[_dificultad]['id'],
-        'instrucciones': _pasos.map((s) => s.description).join('\n'),
+        'instrucciones': _pasos.map((s) => s.description).toList(),
         'precio': _calcularCostoTotal(),
+
         'ingredientes': _ingredients.map((ing) => {
           'id_alimento': ing.idAlimento,
           'nombre': ing.name,
-          'cantidad': double.tryParse(ing.quantity) ?? 0,
+          'cantidad': double.tryParse(ing.quantity) ?? 0.0,
           'precio': ing.priceBase,
-        }).toList(),
+        } as Map<String, dynamic>).toList(),
       };
 
-      RecetaService.saveReceta(recetaData);
+      await RecetaService.saveReceta(recetaData);
 
-      _snack('Receta guardada con éxito');
+      _snack(esBorrador ? 'Borrador guardado' : 'Receta publicada con éxito');
       Navigator.pop(context);
 
     } catch (e) {
@@ -1442,7 +1484,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   _fieldLabel('NUEVA INSTRUCCIÓN'),
                   GestureDetector(
                     onTap: () {
-                      final text = _prepCtrl.text.trim() + "|";
+                      final text = _prepCtrl.text.trim();
                       if (text.isNotEmpty) {
                         setState(() {
                           _pasos.add(_RecipeStep(description: text));
@@ -1546,6 +1588,106 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       children: [
         _card(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fieldLabel('ETIQUETAS'),
+              const SizedBox(height: 8),
+              Autocomplete<Map<String, dynamic>>(
+
+                // 2. Aquí conectamos el controlador externo
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  _tagsSearchCtrl.addListener(() {
+                    if (_tagsSearchCtrl.text.isEmpty && controller.text.isNotEmpty) {
+                      controller.text = "";
+                    }
+                  });
+                  return TextFormField(
+                    controller: controller, // Usamos tu instancia
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Escribe para buscar...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  );
+                },
+
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  final query = textEditingValue.text.toLowerCase();
+
+                  if (query.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
+
+                  // 1. Filtramos las etiquetas que coinciden con el texto
+                  // 2. Y restamos las que ya están en _tagsSeleccionadas
+                  return _tagsDisponibles.where((tag) {
+                    final matchesQuery = tag['nombre'].toString().toLowerCase().contains(query);
+                    final isAlreadySelected = _tagsSeleccionadas.any((t) => t['id'] == tag['id']);
+
+                    return matchesQuery && !isAlreadySelected;
+                  });
+                },
+
+                displayStringForOption: (option) => option['nombre'],
+
+                onSelected: (selection) {
+                  // 3. Ahora esto SÍ limpiará el campo porque usamos la misma instancia
+                  setState(() {
+                    _tagsSearchCtrl.clear();
+                    FocusScope.of(context).unfocus();
+
+                    if (!_tagsSeleccionadas.any((t) => t['id'] == selection['id'])) {
+                      _tagsSeleccionadas.add(selection);
+                    }
+                  });
+                },
+
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4,
+                      color: Theme.of(context).cardColor, // Respeta el tema claro/oscuro
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width - 40, // Ancho adaptado
+                        height: 200, // Altura máxima para que no sea infinita
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: options.length,
+                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final option = options.elementAt(index);
+                            return ListTile(
+                              title: Text(
+                                option['nombre'],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              onTap: () => onSelected(option),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: _tagsSeleccionadas.map((tagMap) => Chip(
+                  label: Text(tagMap['nombre']),
+                  onDeleted: () => setState(() => _tagsSeleccionadas.remove(tagMap)),
+                  backgroundColor: _primary.withOpacity(0.1),
+                )).toList(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _card(
+          child: Column(
             children: [
               Row(children: [
                 Expanded(child: _fieldLabel('PORCIONES')),
@@ -1604,52 +1746,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             ],
           ),
         ),
-        const SizedBox(height: 16),
-
-        // NUEVO: Buscador y Tags
-        _card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _fieldLabel('ETIQUETAS'),
-              const SizedBox(height: 8),
-              // Buscador simple (podrías usar un Autocomplete aquí)
-              // Cambiamos el tipo a Map<String, dynamic>
-              DropdownButtonFormField<Map<String, dynamic>>(
-                decoration: const InputDecoration(
-                    hintText: 'Buscar y agregar etiqueta...',
-                    border: OutlineInputBorder()
-                ),
-                items: _tagsDisponibles.map((tagMap) {
-                  return DropdownMenuItem<Map<String, dynamic>>(
-                    value: tagMap,
-                    // Accedemos al campo 'nombre' del mapa
-                    child: Text(tagMap['nombre'] ?? 'Sin nombre'),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    // Verificamos si ya está en la lista (usando el ID)
-                    if (!_tagsSeleccionadas.any((t) => t['id'] == val['id'])) {
-                      setState(() => _tagsSeleccionadas.add(val));
-                    }
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              // Chips seleccionados
-              Wrap(
-                spacing: 8,
-                children: _tagsSeleccionadas.map((tagMap) => Chip(
-                  label: Text(tagMap['nombre']), // Muestra el nombre
-                  onDeleted: () => setState(() => _tagsSeleccionadas.remove(tagMap)),
-                  backgroundColor: _primary.withOpacity(0.1),
-                )).toList(),
-              ),
-            ],
-          ),
-        ),
-
         const SizedBox(height: 16),
         _card(
           child: Column(
@@ -1940,7 +2036,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
   void _showResumenDialog() {
-    final List<String> diffLabels = ['Principiante', 'Aficionado', 'Intermedio', 'Profesional', 'Experto'];
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1949,22 +2044,35 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              _resumenRow('Imágenes:', '${_listaFotos.length} fotos'),
               _resumenRow('Ingredientes:', '${_ingredients.length} items'),
               _resumenRow('Monto Total:', '\$${_calcularCostoTotal().toStringAsFixed(2)}'),
               _resumenRow('Instrucciones:', '${_pasos.length} pasos'),
+              _resumenRow('Etiquetas:', '${_tagsSeleccionadas.length} seleccionadas'),
               _resumenRow('Porciones:', '${_porcionesCtrl.text} (${_pesoPorcionCtrl.text} gr c/u)'),
               _resumenRow('Calorías:', '${_caloriasCtrl.text} kcal'),
               _resumenRow('Tiempo:', '${_tiempoCtrl.text} min'),
               _resumenRow('Dificultad:', _dificultadData[_dificultad]['label']),
+              _resumenRow('Visibilidad:', _esPublico ? 'Pública' : 'Privada'),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCELAR')
+          ),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _persistirRecetaFinal(esBorrador: true);
+            },
+            child: const Text('BORRADOR'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _persistirRecetaFinal();
+              _persistirRecetaFinal(esBorrador: false);
             },
             child: const Text('CONFIRMAR'),
           ),
