@@ -114,6 +114,7 @@ class UsuarioService {
     int? idGenero,
     String? fotoUrl,
     String? bannerUrl,
+    bool? visibilidad,
   }) async {
     await _channel.invokeMethod('actualizarPerfil', {
       'id': id,
@@ -122,6 +123,7 @@ class UsuarioService {
       if (idGenero != null) 'id_genero': idGenero,
       if (fotoUrl != null) 'fotoUrl': fotoUrl,
       if (bannerUrl != null) 'bannerUrl': bannerUrl,
+      if (visibilidad != null) 'visibilidad': visibilidad,
     });
   }
 
@@ -136,6 +138,21 @@ class UsuarioService {
   static Future<int> contarSeguidores(int id) async {
     final result = await _channel.invokeMethod('contarSeguidores', {'id_usuario': id});
     return result as int;
+  }
+
+  /// Conteo liviano de usuarios a los que sigue este usuario (id_seguidor = id).
+  static Future<int> contarSiguiendo(int id) async {
+    final result = await _channel.invokeMethod('contarSiguiendo', {'id_usuario': id});
+    return result as int;
+  }
+
+  /// Comprueba si [idSeguidor] ya sigue a [idSeguido].
+  static Future<bool> estasSiguiendo(int idSeguidor, int idSeguido) async {
+    final result = await _channel.invokeMethod('estasSiguiendo', {
+      'id_seguidor': idSeguidor,
+      'id_seguido': idSeguido,
+    });
+    return result as bool;
   }
 
   /// Aplica cambios de perfil tras verificar el OTP, de forma atómica

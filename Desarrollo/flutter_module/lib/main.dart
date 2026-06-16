@@ -5,9 +5,11 @@ import 'theme/App.dart';
 import 'theme/Notifier.dart';
 import 'screens/LogIn.dart';
 import 'screens/Feed.dart';
+import 'screens/Profil.dart';
 import 'screens/EditRecipe.dart';
 import 'services/Session.dart';
 import 'services/Usuario.dart';
+import 'services/Navigation.dart';
 import 'config/DebugConfig.dart';
 
 void main() async {
@@ -15,6 +17,7 @@ void main() async {
 
   String? initError;
   usuario_Logged? savedUser;
+  int? deepLinkPerfilId;
 
   try {
     savedUser = await SessionService.loadSession();
@@ -29,17 +32,20 @@ void main() async {
         // Sin conexión: confiamos en la sesión cacheada (modo offline).
       }
     }
+    final deepLink = await NavigationService.getInitialDeepLink();
+    if (deepLink != null) deepLinkPerfilId = NavigationService.parsePerfilId(deepLink);
   } catch (e) {
     initError ??= 'SessionService.loadSession() falló: $e';
   }
 
-  runApp(BocadoApp(savedUser: savedUser, initError: initError));
+  runApp(BocadoApp(savedUser: savedUser, initError: initError, deepLinkPerfilId: deepLinkPerfilId));
 }
 
 class BocadoApp extends StatefulWidget {
   final usuario_Logged? savedUser;
   final String? initError;
-  const BocadoApp({super.key, this.savedUser, this.initError});
+  final int? deepLinkPerfilId;
+  const BocadoApp({super.key, this.savedUser, this.initError, this.deepLinkPerfilId});
 
   @override
   State<BocadoApp> createState() => _BocadoAppState();
@@ -65,6 +71,13 @@ class _BocadoAppState extends State<BocadoApp> {
       );
     }
     if (widget.savedUser != null) {
+      if (widget.deepLinkPerfilId != null) {
+        return _DeepLinkLauncher(
+          user: widget.savedUser!,
+          themeNotifier: _themeNotifier,
+          perfilId: widget.deepLinkPerfilId!,
+        );
+      }
       return FeedScreen(themeNotifier: _themeNotifier, user: widget.savedUser!);
     }
     return LoginScreen(themeNotifier: _themeNotifier);
@@ -85,6 +98,37 @@ class _BocadoAppState extends State<BocadoApp> {
         );
       },
     );
+  }
+}
+
+class _DeepLinkLauncher extends StatefulWidget {
+  final usuario_Logged user;
+  final ThemeNotifier themeNotifier;
+  final int perfilId;
+  const _DeepLinkLauncher({required this.user, required this.themeNotifier, required this.perfilId});
+
+  @override
+  State<_DeepLinkLauncher> createState() => _DeepLinkLauncherState();
+}
+
+class _DeepLinkLauncherState extends State<_DeepLinkLauncher> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          themeNotifier: widget.themeNotifier,
+          user: widget.user,
+          idUsuarioTarget: widget.perfilId,
+        ),
+      ));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FeedScreen(themeNotifier: widget.themeNotifier, user: widget.user);
   }
 }
 

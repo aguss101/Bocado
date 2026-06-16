@@ -36,6 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   List<dynamic> _generos = [];
   int _cantRecetas = 0;
   int _cantSeguidores = 0;
+  bool _visibilidad = true;
   String _correoOriginal = '';
   String _usuarioOriginal = '';
   bool _cargando = true;
@@ -68,6 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _usuarioOriginal  = _usuarioCtrl.text;
         _correoOriginal   = _correoCtrl.text;
         _generoId = perfil['id_genero'] as int?;
+        _visibilidad = (perfil['visibilidad'] as bool?) ?? true;
         _cantRecetas = cantRecetas;
         _cantSeguidores = cantSeguidores;
         _cargando = false;
@@ -177,6 +179,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$feature — Próximamente')),
     );
+  }
+
+  Future<void> _actualizarVisibilidad(bool value) async {
+    setState(() => _visibilidad = value);
+    try {
+      await UsuarioService.actualizarPerfil(
+        id: widget.user.id,
+        usuario: _usuarioCtrl.text.trim(),
+        visibilidad: value,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _visibilidad = !value);
+        _snack('Error al actualizar privacidad', isError: true);
+      }
+    }
   }
 
   Future<void> _cambiarFoto() => _pickAndUpload(
@@ -594,26 +612,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 48),
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: _saving ? null : _guardarCambios,
+                        child: _saving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Guardar cambios',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
-                      onPressed: _saving ? null : _guardarCambios,
-                      child: _saving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('Guardar cambios',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -648,16 +668,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _actionCard(
-                icon: Icons.verified_user_outlined,
-                title: 'Privacidad',
-                subtitle: 'Gestioná quién puede ver tu perfil',
-                surface: surface,
-                border: border,
-                text: text,
-                muted: muted,
-                onTap: () => _mostrarProximamente('Privacidad'),
-              ),
+              child: _privacidadCard(surface, border, text, muted),
             ),
           ],
         ),
@@ -703,6 +714,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+      ),
+    );
+  }
+
+  Widget _privacidadCard(
+      Color surface, Color border, Color text, Color muted) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.verified_user_outlined,
+                  color: AppTheme.primary, size: 26),
+              const Spacer(),
+              Switch(
+                value: _visibilidad,
+                onChanged: _actualizarVisibilidad,
+                activeColor: AppTheme.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text('Privacidad',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 14, color: text)),
+          const SizedBox(height: 4),
+          Text(
+            _visibilidad ? 'Perfil Público' : 'Perfil Privado',
+            style: TextStyle(fontSize: 11, color: muted, height: 1.4),
+          ),
+        ],
       ),
     );
   }

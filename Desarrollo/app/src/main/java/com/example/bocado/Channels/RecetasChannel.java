@@ -146,11 +146,11 @@ public class RecetasChannel {
         );
     }
 
-    // ── contarRecetas (conteo liviano: trae solo los id, no las recetas enteras) ─
+    // ── contarRecetas (lectura O(1) del contador mantenido por trigger) ──────────
     private void handleContarRecetas(MethodCall call, MethodChannel.Result result) {
         Integer usuarioId = call.argument("usuarioId");
         HttpClientManager.getInstance().get(
-                "/rest/v1/recetas?select=id&activo=eq.true&id_usuario=eq." + usuarioId,
+                "/rest/v1/estadisticas_usuario?select=cant_recetas&id_usuario=eq." + usuarioId,
                 new okhttp3.Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
@@ -160,7 +160,8 @@ public class RecetasChannel {
                     public void onResponse(Call call, Response response) throws IOException {
                         String body = response.body() != null ? response.body().string() : "[]";
                         try {
-                            int total = new org.json.JSONArray(body).length();
+                            org.json.JSONArray filas = new org.json.JSONArray(body);
+                            int total = filas.length() > 0 ? filas.getJSONObject(0).optInt("cant_recetas", 0) : 0;
                             activity.runOnUiThread(() -> result.success(total));
                         } catch (org.json.JSONException e) {
                             activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));

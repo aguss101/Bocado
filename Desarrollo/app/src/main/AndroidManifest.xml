@@ -20,11 +20,18 @@
         <activity
             android:name=".MainActivity"
             android:theme="@style/Theme.Bocado.Splash"
-            android:exported="true" >
+            android:exported="true"
+            android:launchMode="singleTop" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Deep links: bocado://perfil/{id} -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bocado" android:host="perfil" />
             </intent-filter>
         </activity>
     </application>

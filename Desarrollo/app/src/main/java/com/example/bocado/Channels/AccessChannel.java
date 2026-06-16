@@ -39,6 +39,8 @@ public class AccessChannel {
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             case "getPerfilEditable" -> handleGetPerfilEditable(call, result);
             case "contarSeguidores" -> handleContarSeguidores(call, result);
+            case "contarSiguiendo"  -> handleContarSiguiendo(call, result);
+            case "estasSiguiendo"   -> handleEstasSiguiendo(call, result);
             case "validarSesion"    -> handleValidarSesion(call, result);
             case "solicitarOtp"     -> handleSolicitarOtp(call, result);
             case "verificarOtp"     -> handleVerificarOtp(call, result);
@@ -186,6 +188,10 @@ public class AccessChannel {
             if (bannerUrl != null && !bannerUrl.trim().isEmpty())
                 actualizaciones.put("banner", bannerUrl.trim());
 
+            Boolean visibilidad = call.argument("visibilidad");
+            if (visibilidad != null)
+                actualizaciones.put("visibilidad", visibilidad);
+
             usuarioManager.update(id, actualizaciones, new CallbackCB() {
                 @Override public void onSuccess(String response) {
                     activity.runOnUiThread(() -> result.success("ok"));
@@ -247,17 +253,18 @@ public class AccessChannel {
         });
     }
 
-    /** Cuenta los seguidores de un usuario (filas en seguidos_usuario con id_seguido = X). */
+    /** Lee el contador de seguidores (O(1), mantenido por trigger en estadisticas_usuario). */
     private void handleContarSeguidores(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/seguidos_usuario?select=id_seguidor&id_seguido=eq." + idUsuario, new okhttp3.Callback() {
+        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_seguidores&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }
             @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
                 String body = response.body() != null ? response.body().string() : "[]";
                 try {
-                    int total = new org.json.JSONArray(body).length();
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    int total = filas.length() > 0 ? filas.getJSONObject(0).optInt("cant_seguidores", 0) : 0;
                     activity.runOnUiThread(() -> result.success(total));
                 } catch (org.json.JSONException e) {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
@@ -266,10 +273,53 @@ public class AccessChannel {
         });
     }
 
-    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero). */
+    /** Lee el contador de seguidos (O(1), mantenido por trigger en estadisticas_usuario). */
+    private void handleContarSiguiendo(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_siguiendo&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                try {
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    int total = filas.length() > 0 ? filas.getJSONObject(0).optInt("cant_siguiendo", 0) : 0;
+                    activity.runOnUiThread(() -> result.success(total));
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
+            }
+        });
+    }
+
+    /** Comprueba si id_seguidor ya sigue a id_seguido (true/false). */
+    private void handleEstasSiguiendo(MethodCall call, MethodChannel.Result result) {
+        Integer idSeguidor = call.argument("id_seguidor");
+        Integer idSeguido  = call.argument("id_seguido");
+        HttpClientManager.getInstance().get(
+            "/rest/v1/seguidos_usuario?select=id_seguidor&id_seguidor=eq." + idSeguidor + "&id_seguido=eq." + idSeguido,
+            new okhttp3.Callback() {
+                @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                    activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+                }
+                @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                    String body = response.body() != null ? response.body().string() : "[]";
+                    try {
+                        boolean siguiendo = new org.json.JSONArray(body).length() > 0;
+                        activity.runOnUiThread(() -> result.success(siguiendo));
+                    } catch (org.json.JSONException e) {
+                        activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                    }
+                }
+            }
+        );
+    }
+
+    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero, visibilidad). */
     private void handleGetPerfilEditable(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=usuario,correo,id_genero", new okhttp3.Callback() {
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=usuario,correo,id_genero,visibilidad", new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }

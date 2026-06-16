@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Receta.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import 'BarraNavegacion.dart';
@@ -35,6 +36,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _estaCargandoPerfil = false;
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
+  int _cantRecetas = 0;
+  int _cantSeguidores = 0;
+  int _cantSiguiendo = 0;
+  bool _estaCargandoStats = true;
 
   @override
   void initState() {
@@ -47,6 +52,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       _user = widget.user;
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
+    _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
+    if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
   }
 
   Future<void> _cargarPerfilTercero(int idTarget) async {
@@ -69,6 +76,33 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  Future<void> _cargarStats(int idUsuario) async {
+    try {
+      final results = await Future.wait([
+        RecetaService.contarRecetas(idUsuario),
+        UsuarioService.contarSeguidores(idUsuario),
+        UsuarioService.contarSiguiendo(idUsuario),
+      ]);
+      if (mounted) {
+        setState(() {
+          _cantRecetas   = results[0];
+          _cantSeguidores = results[1];
+          _cantSiguiendo  = results[2];
+          _estaCargandoStats = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _estaCargandoStats = false);
+    }
+  }
+
+  Future<void> _cargarEstadoSeguimiento(int idTarget) async {
+    try {
+      final siguiendo = await UsuarioService.estasSiguiendo(widget.user.id, idTarget);
+      if (mounted) setState(() => _isFollowing = siguiendo);
+    } catch (_) {}
+  }
+
   Future <void> _toggleSeguir() async{
     if(_isLoadingFollow) return;
 
@@ -88,6 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         setState(() {
           _isFollowing = !siguiendoActual;
           _isLoadingFollow = false;
+          _cantSeguidores += siguiendoActual ? -1 : 1;
         });
       }
     } catch (e){
@@ -335,9 +370,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ) : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFollowing ? Colors.transparent : AppTheme.primary,
-                        foregroundColor: _isFollowing ? muted : Colors.white,
-                        side: _isFollowing ? BorderSide(color: border) : null,
+                        backgroundColor: _isFollowing
+                            ? Color.lerp(AppTheme.primary, Colors.black, 0.30)
+                            : AppTheme.primary,
+                        foregroundColor: Colors.white,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         shape: RoundedRectangleBorder(
@@ -346,7 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       onPressed: _isLoadingFollow ? null : _toggleSeguir,
                       child: _isLoadingFollow
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : Text(_isFollowing ? 'Siguiendo' : 'Seguir',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
@@ -359,9 +395,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       child: IconButton(
                         icon: Icon(Icons.share_outlined, color: muted),
-                        onPressed: () => ScaffoldMessenger.of(context)
-                            .showSnackBar(
-                                const SnackBar(content: Text('Compartir'))),
+                        onPressed: () {
+                          final username = _user.usuario;
+                          SharePlus.instance.share(ShareParams(
+                            text: '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
+                          ));
+                        },
                         constraints: const BoxConstraints(
                             minWidth: 40, minHeight: 40),
                         padding: EdgeInsets.zero,
@@ -391,23 +430,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                   style: TextStyle(color: muted, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
-                // Badges
-                Row(
-                  children: [
-                    if (_user.id_Cuenta == 2)
-                      _badge(
-                          icon: Icons.verified_outlined,
-                          label: 'PRO',
-                          bg: AppTheme.primary.withValues(alpha: 0.12),
-                          textColor: AppTheme.primary),
-                    const SizedBox(width: 8),
-                    _badge(
-                        icon: Icons.location_on_outlined,
-                        label: 'Bocado Chef',
-                        bg: Colors.transparent,
-                        textColor: muted),
-                  ],
-                ),
+                // Badge PRO
+                if (_user.id_Cuenta == 2)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_outlined, size: 12, color: AppTheme.primary),
+                        const SizedBox(width: 4),
+                        const Text('PRO',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary)),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -456,11 +499,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _statItem('12', 'Recetas', text, muted),
+          _statItem(_estaCargandoStats ? '—' : '$_cantRecetas', 'Recetas', text, muted),
           _dividerV(border),
-          _statItem('845', 'Seguidores', text, muted),
+          _statItem(_estaCargandoStats ? '—' : '$_cantSeguidores', 'Seguidores', text, muted),
           _dividerV(border),
-          _statItem('150', 'Siguiendo', text, muted),
+          _statItem(_estaCargandoStats ? '—' : '$_cantSiguiendo', 'Siguiendo', text, muted),
         ],
       ),
     );
@@ -948,36 +991,6 @@ Widget _recipeCard({
       ),
     );
   }
-
-Widget _badge({
-  required IconData icon,
-  required String label,
-  required Color bg,
-  required Color textColor,
-}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: textColor),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
 // ── DELEGATE PARA TAB BAR STICKY ─────────────────────────────────────────────
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {

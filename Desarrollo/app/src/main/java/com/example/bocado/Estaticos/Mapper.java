@@ -73,6 +73,7 @@ public class Mapper {
         json.put("usuario", u.getUsuario());
         json.put("correo", u.getCorreo());
         json.put("id_genero", Integer.parseInt(u.getGenero()));
+        json.put("visibilidad", u.isVisibilidad());
         return json;
     }
     
