@@ -3,6 +3,7 @@ package com.example.bocado.Channels;
 import android.app.Activity;
 
 import com.example.bocado.DAO.AlimentoDAO;
+import com.example.bocado.DAO.EtiquetaDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.RecetaManager;
 
@@ -38,9 +39,22 @@ public class RecetasChannel {
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
             case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
             case "contarRecetas"   -> handleContarRecetas(call, result);
+            case "getEtiquetas" -> handleGetEtiquetas(call, result);
 
             default                -> result.notImplemented();
         }
+    }
+
+    private void handleGetEtiquetas(MethodCall call,MethodChannel.Result result) {
+        new Thread(() -> {
+            try {
+                int userId = call.argument("id_usuario");
+                List<Map<String, Object>> lista = EtiquetaDAO.listarMisEtiquetas(userId);
+                activity.runOnUiThread(() -> result.success(lista));
+            } catch (Exception e) {
+                activity.runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
+            }
+        }).start();
     }
 
     // ── getAlimentos ──────────────────────────────────────────────────────────

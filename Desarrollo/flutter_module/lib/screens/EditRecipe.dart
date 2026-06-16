@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/UploadImg.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import 'package:image_picker/image_picker.dart';
 
 // ─── Palette (AppTheme) ─────────────────────────────────────────────────────
 const _primary = AppTheme.primary;
@@ -71,7 +72,7 @@ class RecipeEditorScreen extends StatefulWidget {
 
 class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     with TickerProviderStateMixin {
-
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
   static const MethodChannel _channel = MethodChannel('com.example.bocado/recetas');
   int _step = 1;
 
@@ -80,7 +81,121 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   bool _uploadingPortada = false;
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
+  List<Uint8List> _listaFotos = [];
+  final int _maxFotos = 4;
 
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _agregarFotos() async {
+    if (_listaFotos.length >= _maxFotos) {
+      // Aquí puedes mostrar un snackbar o diálogo diciendo que ya llegó al límite
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ya has alcanzado el límite de 4 fotos')),
+      );
+      return;
+    }
+
+    // Mostramos el menú desplegable (Bottom Sheet)
+    await _mostrarOpcionesPicker();
+  }
+
+  Future<void> _mostrarOpcionesPicker() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? Colors.grey[900] : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: bgColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext ctx) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Espaciador superior (la "rayita")
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Opción Cámara
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: textColor),
+              title: Text('Tomar Foto', style: TextStyle(color: textColor)),
+              onTap: () {
+                Navigator.pop(ctx); // Cierra el menú
+                _tomarFotoConCamara();
+              },
+            ),
+            // Opción Galería
+            ListTile(
+              leading: Icon(Icons.photo_library, color: textColor),
+              title: Text('Subir de Galería', style: TextStyle(color: textColor)),
+              onTap: () {
+                Navigator.pop(ctx); // Cierra el menú
+                _subirDesdeGaleriaMultiple();
+              },
+            ),
+            const SizedBox(height: 12), // Margen inferior
+          ],
+        );
+      },
+    );
+  }
+
+  // Función para tomar una sola foto con la cámara
+  Future<void> _tomarFotoConCamara() async {
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85, // Opcional: compresión equilibrada
+    );
+
+    if (photo != null) {
+      // Convertimos a bytes
+      final bytes = await photo.readAsBytes();
+      // Agregamos a la lista
+      setState(() {
+        _listaFotos.add(bytes);
+      });
+    }
+  }
+
+// Función para seleccionar múltiples fotos de la galería (con límite)
+  Future<void> _subirDesdeGaleriaMultiple() async {
+    // Calculamos cuántos espacios libres quedan
+    final int espaciosDisponibles = _maxFotos - _listaFotos.length;
+
+    if (espaciosDisponibles <= 0) return;
+
+    // Abrimos el selector múltiple
+    final List<XFile> images = await _picker.pickMultiImage(
+      imageQuality: 85, // Opcional: compresión equilibrada
+    );
+
+    if (images.isNotEmpty) {
+      // Tomamos solo las imágenes que caben
+      final List<XFile> imagenesAProcesar = images.take(espaciosDisponibles).toList();
+
+      List<Uint8List> nuevasFotos = [];
+
+      // Convertimos XFile a bytes
+      for (var xFile in imagenesAProcesar) {
+        final bytes = await xFile.readAsBytes();
+        nuevasFotos.add(bytes);
+      }
+
+      // Actualizamos el estado agregando las nuevas fotos
+      setState(() {
+        _listaFotos.addAll(nuevasFotos);
+      });
+    }
+  }
 
   // Step 2
   final _ingSearchCtrl = TextEditingController();
@@ -111,6 +226,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     {'label': 'Profesional',  'icon': Icons.work_outline, 'id': 4},
     {'label': 'Experto',      'icon': Icons.local_fire_department, 'id': 5},
   ];
+  List<Map<String, dynamic>> _tagsSeleccionadas = [];
+  List<Map<String, dynamic>> _tagsDisponibles = [];
+  bool _esPublico = true; // Estado del switch
 
 
   @override
@@ -118,6 +236,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     super.initState();
     _cargarAlimentosDesdeDB();
     _ingSearchCtrl.addListener(_onSearchChanged);
+    _cargarEtiquetasDesdeBD();
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
         // Pequeño delay para asegurar que el teclado abrió
@@ -163,6 +282,22 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     } catch (e) {
       setState(() => _cargandoAlimentos = false);
       _snack('Error al sincronizar catálogo de alimentos: $e');
+    }
+  }
+
+  Future<void> _cargarEtiquetasDesdeBD() async {
+    try {
+      final Map<String, dynamic> params = {'id_usuario': widget.user.id};
+
+      final List<dynamic>? res = await _channel.invokeMethod('getEtiquetas', params);
+
+      if (res != null) {
+        setState(() {
+          _tagsDisponibles = res.map((e) => Map<String, dynamic>.from(e)).toList();
+        });
+      }
+    } catch (e) {
+      _snack('Error al sincronizar etiquetas: $e');
     }
   }
 
@@ -398,7 +533,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             ),
           ),
           const Spacer(),
-          _pillButton(icon: Icons.visibility_outlined, label: 'VISTA PREVIA', onTap: () {}),
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: widget.themeNotifier,
+            builder: (_, mode, __) => IconButton(
+              onPressed: widget.themeNotifier.toggle,
+              icon: Icon(
+                mode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                color: AppTheme.primary,
+              ),
+            ),
+          ),
+          _pillButton(icon: Icons.visibility_outlined, label: '', onTap: () {}),
         ],
       ),
     );
@@ -416,11 +561,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         ),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: _onSurfaceVariant),
+            Icon(icon, size: 18, color: _onSurfaceVariant),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: _onSurfaceVariant),
+              style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: _onSurfaceVariant),
             ),
           ],
         ),
@@ -514,89 +659,62 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                           color: isDark ? Colors.white : _onSurface
                       )
                   ),
-                  Text('MÍNIMO 1 FOTO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary.withOpacity(0.6), letterSpacing: 1.5)),
+                  Text('${_listaFotos.length}/$_maxFotos FOTOS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 1.5)),
                 ],
               ),
               const SizedBox(height: 14),
-              GestureDetector(
-                onTap: _uploadingPortada ? null : _mostrarPickerPortada,
-                child: Container(
-                  width: double.infinity,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: isDark ? Colors.white10 : _outline.withOpacity(0.6),
-                        width: 1.5,
-                        strokeAlign: BorderSide.strokeAlignInside
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: _portadaBytes != null
-                      ? Stack(
+
+              // Contenedor dinámico de fotos
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _listaFotos.length < _maxFotos ? _listaFotos.length + 1 : _maxFotos,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemBuilder: (context, index) {
+                  // Si es el último espacio y aún podemos agregar más fotos
+                  if (index == _listaFotos.length) {
+                    return GestureDetector(
+                      onTap: _agregarFotos, // Tu función para abrir picker
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: isDark ? Colors.white10 : _outline.withOpacity(0.4)),
+                        ),
+                        child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFFCBD5E1), size: 28),
+                      ),
+                    );
+                  }
+
+                  // Renderizado de las fotos ya cargadas
+                  return Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.memory(_portadaBytes!, fit: BoxFit.cover),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(_listaFotos[index], fit: BoxFit.cover),
+                      ),
                       Positioned(
-                        bottom: 6,
-                        right: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
-                          child: const Text('CAMBIAR', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+                        top: 4, right: 4,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _listaFotos.removeAt(index)),
+                          child: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
                         ),
                       ),
                     ],
-                  )
-                      : _uploadingPortada
-                      ? const Center(child: CircularProgressIndicator(color: _primary))
-                      : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(color: _primary.withOpacity(0.12), shape: BoxShape.circle),
-                        child: const Icon(Icons.add_photo_alternate_outlined, color: _primary, size: 24),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                          'SUBIR FOTO PRINCIPAL',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white60 : _onSurfaceVariant.withOpacity(0.8),
-                              letterSpacing: 1.2
-                          )
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: List.generate(3, (i) => Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(left: i == 0 ? 0 : 8),
-                    height: 72,
-                    decoration: BoxDecoration(
-                        color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isDark ? Colors.white10 : _outline.withOpacity(0.4))
-                    ),
-                    child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFFCBD5E1), size: 22),
-                  ),
-                )),
-              ),
+
               const SizedBox(height: 12),
               Center(
                   child: Text(
-                      'JPG, PNG • Máx 10 MB \n • Recomendamos luz natural',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.6)
-                      ),
+                      'JPG, PNG • Máx 10 MB por foto',
+                      style: TextStyle(fontSize: 10, color: isDark ? Colors.white38 : _onSurfaceVariant.withOpacity(0.6)),
                       textAlign: TextAlign.center
                   )
               ),
@@ -895,10 +1013,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
   void _showIngredientDialog({_Ingredient? ing, String? newName}) {
     final isEditing = ing != null;
-    // Definición de controladores DENTRO del método
     final TextEditingController _cantCtrl = TextEditingController(text: isEditing ? ing.quantity : '100');
     final TextEditingController _precioCtrl = TextEditingController(text: isEditing ? ((double.tryParse(ing.quantity) ?? 1) * (ing.priceBase / (ing.idMedida < 3 ? 100 : 1))).toStringAsFixed(2) : '');
     int _medida = isEditing ? ing.idMedida : 1;
+
+    // Mapa para obtener el texto del sufijo según la medida seleccionada
+    String _getSufijo(int medida) {
+      switch (medida) {
+        case 1: return 'gramos';
+        case 2: return 'mililitros';
+        case 3: return 'unidades';
+        default: return '';
+      }
+    }
 
     showDialog(
       context: context,
@@ -917,15 +1044,28 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 ],
                 onChanged: (v) => setDialogState(() => _medida = v!),
               ),
-              TextField(controller: _cantCtrl, decoration: const InputDecoration(labelText: 'Cantidad Comprada'), keyboardType: TextInputType.number),
-              TextField(controller: _precioCtrl, decoration: const InputDecoration(labelText: 'Precio Total Pagado \$'), keyboardType: TextInputType.number),
+              TextField(
+                controller: _cantCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Cantidad Comprada',
+                  // Aquí se añade el sufijo dinámico
+                  suffixText: _getSufijo(_medida),
+                  // Opcional: estilizar el sufijo para que resalte un poco
+                  suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+              ),
+              TextField(
+                controller: _precioCtrl,
+                decoration: const InputDecoration(labelText: 'Precio Total Pagado \$'),
+                keyboardType: TextInputType.number,
+              ),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
             ElevatedButton(
               onPressed: () {
-                // Ahora sí, _precioCtrl es accesible desde aquí porque está en el scope del padre
                 double cantComprada = double.tryParse(_cantCtrl.text) ?? 0;
                 double precioTotal = double.tryParse(_precioCtrl.text) ?? 0;
 
@@ -940,25 +1080,28 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                         idAlimento: ing.idAlimento,
                         name: ing.name,
                         category: ing.category,
-                        quantity: ing.quantity,
+                        quantity: _cantCtrl.text, // Usamos el valor del controlador
                         unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
-                        priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: ing.idUsuario
+                        priceBase: nuevoPriceBase,
+                        idMedida: _medida,
+                        idUsuario: ing.idUsuario
                     );
                   } else {
                     _ingredients.add(_Ingredient(
                         idAlimento: DateTime.now().millisecondsSinceEpoch,
                         name: newName!,
                         category: 'Personalizado',
-                        quantity: '100',
+                        quantity: _cantCtrl.text, // Usamos el valor del controlador
                         unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
-                        priceBase: nuevoPriceBase, idMedida: _medida, idUsuario: widget.user.id
+                        priceBase: nuevoPriceBase,
+                        idMedida: _medida,
+                        idUsuario: widget.user.id
                     ));
                     _ingSearchCtrl.clear();
                   }
                 });
 
                 Navigator.pop(context);
-                // Desenfoque global para cerrar teclado
                 FocusManager.instance.primaryFocus?.unfocus();
                 _snack('Configuración guardada');
               },
@@ -1428,6 +1571,85 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             ],
           ),
         ),
+        const SizedBox(height: 12),// NUEVO: Switch Público/Privado
+        _card(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Usamos RichText o simplemente una concatenación de Text
+              RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : _onSurface,
+                  ),
+                  children: [
+                    const TextSpan(text: 'VISIBILIDAD: '),
+                    TextSpan(
+                      text: _esPublico ? 'PÚBLICA' : 'PRIVADA',
+                      style: TextStyle(
+                        color: _esPublico ? _primary : Colors.grey,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _esPublico,
+                activeColor: _primary,
+                onChanged: (val) => setState(() => _esPublico = val),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // NUEVO: Buscador y Tags
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fieldLabel('ETIQUETAS'),
+              const SizedBox(height: 8),
+              // Buscador simple (podrías usar un Autocomplete aquí)
+              // Cambiamos el tipo a Map<String, dynamic>
+              DropdownButtonFormField<Map<String, dynamic>>(
+                decoration: const InputDecoration(
+                    hintText: 'Buscar y agregar etiqueta...',
+                    border: OutlineInputBorder()
+                ),
+                items: _tagsDisponibles.map((tagMap) {
+                  return DropdownMenuItem<Map<String, dynamic>>(
+                    value: tagMap,
+                    // Accedemos al campo 'nombre' del mapa
+                    child: Text(tagMap['nombre'] ?? 'Sin nombre'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    // Verificamos si ya está en la lista (usando el ID)
+                    if (!_tagsSeleccionadas.any((t) => t['id'] == val['id'])) {
+                      setState(() => _tagsSeleccionadas.add(val));
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              // Chips seleccionados
+              Wrap(
+                spacing: 8,
+                children: _tagsSeleccionadas.map((tagMap) => Chip(
+                  label: Text(tagMap['nombre']), // Muestra el nombre
+                  onDeleted: () => setState(() => _tagsSeleccionadas.remove(tagMap)),
+                  backgroundColor: _primary.withOpacity(0.1),
+                )).toList(),
+              ),
+            ],
+          ),
+        ),
+
         const SizedBox(height: 16),
         _card(
           child: Column(
@@ -1742,7 +1964,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _persistirRecetaFinal(); // Aquí mantienes tu lógica original de guardar
+              _persistirRecetaFinal();
             },
             child: const Text('CONFIRMAR'),
           ),
