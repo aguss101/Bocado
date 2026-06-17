@@ -36,9 +36,9 @@ class _Ingredient {
   final String name;
   final String category;
   String quantity;
-  final String unit;
-  final double priceBase;
-  final int idMedida;
+  String unit;
+  double priceBase;
+  int idMedida;
   final int? idUsuario;
 
   _Ingredient({
@@ -315,7 +315,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   double _calcularCostoTotal() {
-    return _ingredients.fold<double>(0.0, (sum, item) => sum + item.subtotal);
+    return _ingredients.fold<double>(0.0, (sum, item) {
+      final double sub = item.subtotal;
+      if (sub <= 0) {return sum;}
+      return sum + sub;
+    });
   }
 
   Future<void> _persistirRecetaFinal({bool esBorrador = false}) async {
@@ -727,17 +731,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     final idDinamico = (s['id_alimento'] ?? s['id'] ?? -1);
     return GestureDetector(
       onTap: () {
-        double precioNum = 0.50;
+        double precioNum = 0.00;
         if (s['sub'] != null) {
           final String subString = s['sub'].toString();
           if (subString.contains('•')) {
             final partePrecio = subString.split('•').last.replaceAll(RegExp(r'[^\d.]'), '').trim();
-            precioNum = double.tryParse(partePrecio) ?? 0.50;
+            precioNum = double.tryParse(partePrecio) ?? 0.00;
           } else {
-            precioNum = double.tryParse(subString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.50;
+            precioNum = double.tryParse(subString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.00;
           }
         } else if (s['precio'] != null) {
-          precioNum = double.tryParse(s['precio'].toString()) ?? 0.50;
+          precioNum = double.tryParse(s['precio'].toString()) ?? 0.00;
         }
 
         final idDinamico = s['id_alimento'] ?? s['id'] ?? 0;
@@ -760,7 +764,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 idAlimento: idDinamico,
                 name: nombreFormateado,
                 category: s['categoria'] ?? 'Añadido',
-                quantity: '100',
+                quantity: '0',
                 unit: s['unidad'] ?? 'gr',
                 priceBase: precioNum,
                 idMedida: 1
@@ -825,6 +829,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   Widget _ingredientRow(_Ingredient ing, int index) {
     final textColor = isDark ? Colors.white : _onSurface;
     final subtextColor = isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5);
+    final double currentSubtotal = ing.subtotal;
+    final bool isInvalid = currentSubtotal <=0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -847,6 +853,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Row(
                 children: [
                   Text(
+                    isInvalid ? "Inválido" :
                     '\$${ing.subtotal.toStringAsFixed(2)}',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textColor),
                   ),
@@ -870,16 +877,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   SizedBox(
                     width: 50, height: 26,
                     child: TextFormField(
-                      initialValue: ing.quantity,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
                       onFieldSubmitted: (v) {
-                        if (v.isEmpty || v == '0') {
-                          _showResetQuantityDialog(ing, index);
-                        } else {
-                          setState(() => ing.quantity = v);
-                        }
+                        FocusScope.of(context).unfocus();
+                        final initialValue = ing.quantity == "0" ? "" : ing.quantity;
+                        final normalized = v.replaceAll(",",".");
+                        final parsed = double.tryParse(normalized);
+                        setState((){
+                          ing.quantity = (parsed != null && parsed > 0) ? normalized : "0";
+                        });
                       },
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.zero,
@@ -962,26 +970,20 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
             ElevatedButton(
               onPressed: () {
-                double cantComprada = double.tryParse(cantCtrl.text) ?? 0;
-                double precioTotal = double.tryParse(precioCtrl.text) ?? 0;
-
-                if (cantComprada <= 0) return;
-
-                double nuevoPriceBase = (precioTotal / cantComprada);
-                if (medida == 1 || medida == 2) nuevoPriceBase *= 100;
 
                 setState(() {
+                  double cantComprada = double.tryParse(cantCtrl.text) ?? 0;
+                  double precioTotal = double.tryParse(precioCtrl.text) ?? 0;
+
+                  if (cantComprada <= 0) return;
+
+                  double nuevoPriceBase = (precioTotal / cantComprada);
+                  if (medida == 1 || medida == 2) nuevoPriceBase *= 100;
+
                   if (isEditing) {
-                    _ingredients[_ingredients.indexOf(ing!)] = _Ingredient(
-                        idAlimento: ing.idAlimento,
-                        name: ing.name,
-                        category: ing.category,
-                        quantity: cantCtrl.text,
-                        unit: _unitForMedida(medida),
-                        priceBase: nuevoPriceBase,
-                        idMedida: medida,
-                        idUsuario: ing.idUsuario
-                    );
+                    ing.priceBase = nuevoPriceBase;
+                    ing.idMedida = medida;
+                    ing.unit = _unitForMedida(medida);
                   } else {
                     _ingredients.add(_Ingredient(
                         idAlimento: DateTime.now().millisecondsSinceEpoch,
@@ -996,7 +998,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                     _ingSearchCtrl.clear();
                   }
                 });
-
                 Navigator.pop(context);
                 FocusManager.instance.primaryFocus?.unfocus();
                 _snack('Configuración guardada');
