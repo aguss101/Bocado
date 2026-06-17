@@ -80,8 +80,11 @@ public class RecetaDAO {
     }
     public void getById(int idReceta, CallbackCB callback) {
         try {
+            JSONObject data = new JSONObject();
+            data.put("id_receta", idReceta);
+
             JSONObject body = new JSONObject();
-            body.put("id_receta", idReceta);
+            body.put("p_data", data);
 
             RpcCallHelper.callAsync("obtener_receta_por_id", body, new CallbackCB() {
                 @Override

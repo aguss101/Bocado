@@ -100,18 +100,12 @@ class _FeedScreenState extends State<FeedScreen> {
             IconButton(
               icon: const Icon(Icons.bug_report, color: Colors.blue),
               onPressed: () async {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Botón presionado, intentando...')),
-                );
                 try {
                   const channel = MethodChannel('com.example.bocado/recetas');
-                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 1});
+                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 21});
                   final Map<String, dynamic> recetaData = jsonDecode(jsonString);
 
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Datos recibidos, navegando...')),
-                    );
                     Navigator.push(
                       context,
                       MaterialPageRoute(

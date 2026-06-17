@@ -245,6 +245,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   @override
   void initState() {
     super.initState();
+    print("Datos de receta recibidos: ${widget.recetaExistente}");
     _inicializarPantalla();
     _ingSearchCtrl.addListener(_onSearchChanged);
     _searchFocusNode.addListener(() {
@@ -273,7 +274,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   void _cargarRecetaExistente(Map<String, dynamic> recetaData) {
-    final List<dynamic> fotosGuardadas = (recetaData['fotos'] as List<dynamic>?) ?? [];
+    final String fotosRaw = recetaData['foto']?.toString() ?? '';
+    final List<dynamic> fotosGuardadas = fotosRaw.isNotEmpty ? fotosRaw.split('|') : [];
     final List<_FotoItem> fotosCargadas = fotosGuardadas
         .map((url) => _FotoItem.fromUrl(url.toString()))
         .toList();
@@ -302,7 +304,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
       return _Ingredient(
         idAlimento: idAlimento,
-        name: ing['nombre']?.toString() ?? 'Ingrediente',
+        name: ing['nombre_alimento']?.toString() ?? 'Ingrediente',
         category: alimentoCatalogo['categoria']?.toString() ?? 'Añadido',
         quantity: _formatNumero(cantidad),
         unit: _unitForMedida(idMedida),
@@ -312,9 +314,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       );
     }).toList();
 
-    final List<dynamic> pasosGuardados = (recetaData['instrucciones'] as List<dynamic>?) ?? [];
+    final String instruccionesRaw = recetaData['instrucciones']?.toString() ?? '';
+    final List<String> pasosGuardados = instruccionesRaw.isNotEmpty ? instruccionesRaw.split('|') : [];
     final List<_RecipeStep> pasosCargados = pasosGuardados
-        .map((descripcion) => _RecipeStep(description: descripcion.toString()))
+        .map((descripcion) => _RecipeStep(description: descripcion))
         .toList();
 
     final List<dynamic> idsTagsGuardados = (recetaData['tags_ids'] as List<dynamic>?) ?? [];
@@ -1005,15 +1008,17 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   SizedBox(
                     width: 50, height: 26,
                     child: TextFormField(
+                      controller: TextEditingController(text: ing.quantity == "0" ? "" : ing.quantity),
+
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
                       onFieldSubmitted: (v) {
                         FocusScope.of(context).unfocus();
-                        final initialValue = ing.quantity == "0" ? "" : ing.quantity;
-                        final normalized = v.replaceAll(",",".");
+                        final normalized = v.replaceAll(",", ".");
                         final parsed = double.tryParse(normalized);
-                        setState((){
+
+                        setState(() {
                           ing.quantity = (parsed != null && parsed > 0) ? normalized : "0";
                         });
                       },
