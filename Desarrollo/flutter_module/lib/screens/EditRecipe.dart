@@ -66,6 +66,14 @@ class _RecipeStep {
   _RecipeStep({required this.description});
 }
 
+class _FotoItem {
+  final Uint8List? bytes;
+  final String? url;
+
+  _FotoItem.fromBytes(this.bytes) : url = null;
+  _FotoItem.fromUrl(this.url) : bytes = null;
+}
+
 class RecipeEditorScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final Map<String, dynamic>? recetaExistente;
@@ -83,12 +91,13 @@ class RecipeEditorScreen extends StatefulWidget {
 
 class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get _esEdicion => widget.recetaExistente != null;
   static const MethodChannel _channel = MethodChannel('com.example.bocado/recetas');
   int _step = 1;
 
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
-  List<Uint8List> _listaFotos = [];
+  List<_FotoItem> _listaFotos = [];
   final int _maxFotos = 4;
 
   final ImagePicker _picker = ImagePicker();
@@ -159,7 +168,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     if (photo != null) {
       final bytes = await photo.readAsBytes();
       setState(() {
-        _listaFotos.add(bytes);
+        _listaFotos.add(_FotoItem.fromBytes(bytes));
       });
     }
   }
@@ -176,11 +185,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     if (images.isNotEmpty) {
       final List<XFile> imagenesAProcesar = images.take(espaciosDisponibles).toList();
 
-      List<Uint8List> nuevasFotos = [];
+      List<_FotoItem> nuevasFotos = [];
 
       for (var xFile in imagenesAProcesar) {
         final bytes = await xFile.readAsBytes();
-        nuevasFotos.add(bytes);
+        nuevasFotos.add(_FotoItem.fromBytes(bytes));
       }
 
       setState(() {
@@ -236,15 +245,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   @override
   void initState() {
     super.initState();
-    /*
-    if(widget.recetaExistente != null){
-      _tituloController.text = widget.recetaExistente.titulo;
-      _porcionesController.text = widget.recetaExistente.porciones.toString();
-      _ingredients = widget.recetaExistente.ingredients;
-    }
-     */
-    _cargarAlimentosDesdeDB();
-    _cargarEtiquetasDesdeBD();
+    _inicializarPantalla();
     _ingSearchCtrl.addListener(_onSearchChanged);
     _searchFocusNode.addListener(() {
       if (!_searchFocusNode.hasFocus) return;
@@ -258,6 +259,117 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         }
       });
     });
+  }
+
+  Future<void> _inicializarPantalla() async {
+    await Future.wait([
+      _cargarAlimentosDesdeDB(),
+      _cargarEtiquetasDesdeBD(),
+    ]);
+
+    if (widget.recetaExistente != null) {
+      _cargarRecetaExistente(widget.recetaExistente!);
+    }
+  }
+
+  void _cargarRecetaExistente(Map<String, dynamic> recetaData) {
+    final List<dynamic> fotosGuardadas = (recetaData['fotos'] as List<dynamic>?) ?? [];
+    final List<_FotoItem> fotosCargadas = fotosGuardadas
+        .map((url) => _FotoItem.fromUrl(url.toString()))
+        .toList();
+
+    final List<dynamic> ingredientesGuardados = (recetaData['ingredientes'] as List<dynamic>?) ?? [];
+    final List<_Ingredient> ingredientesCargados = ingredientesGuardados.map((raw) {
+      final Map<String, dynamic> ing = Map<String, dynamic>.from(raw as Map);
+
+      final int idAlimento = ing['id_alimento'] is int
+          ? ing['id_alimento'] as int
+          : int.tryParse(ing['id_alimento'].toString()) ?? -1;
+      final int idMedida = ing['id_medida'] is int
+          ? ing['id_medida'] as int
+          : int.tryParse(ing['id_medida'].toString()) ?? 1;
+      final double cantidad = ing['cantidad'] is num
+          ? (ing['cantidad'] as num).toDouble()
+          : double.tryParse(ing['cantidad'].toString()) ?? 0.0;
+      final double precio = ing['precio'] is num
+          ? (ing['precio'] as num).toDouble()
+          : double.tryParse(ing['precio'].toString()) ?? 0.0;
+
+      final Map<String, dynamic> alimentoCatalogo = _dbAlimentosMaster.firstWhere(
+            (a) => (a['id_alimento'] ?? a['id']).toString() == idAlimento.toString(),
+        orElse: () => const <String, dynamic>{},
+      );
+
+      return _Ingredient(
+        idAlimento: idAlimento,
+        name: ing['nombre']?.toString() ?? 'Ingrediente',
+        category: alimentoCatalogo['categoria']?.toString() ?? 'Añadido',
+        quantity: _formatNumero(cantidad),
+        unit: _unitForMedida(idMedida),
+        priceBase: precio,
+        idMedida: idMedida,
+        idUsuario: widget.user.id,
+      );
+    }).toList();
+
+    final List<dynamic> pasosGuardados = (recetaData['instrucciones'] as List<dynamic>?) ?? [];
+    final List<_RecipeStep> pasosCargados = pasosGuardados
+        .map((descripcion) => _RecipeStep(description: descripcion.toString()))
+        .toList();
+
+    final List<dynamic> idsTagsGuardados = (recetaData['tags_ids'] as List<dynamic>?) ?? [];
+    final List<Map<String, dynamic>> tagsCargadas = _tagsDisponibles
+        .where((tag) => idsTagsGuardados.any((id) => id.toString() == tag['id'].toString()))
+        .toList();
+
+    final int idDificultadGuardado = recetaData['id_dificultad'] is int
+        ? recetaData['id_dificultad'] as int
+        : int.tryParse(recetaData['id_dificultad']?.toString() ?? '') ?? 1;
+    final int indiceDificultad = _dificultadData.indexWhere((d) => d['id'] == idDificultadGuardado);
+
+    final double caloriasGuardadas = recetaData['calorias_totales'] is num
+        ? (recetaData['calorias_totales'] as num).toDouble()
+        : double.tryParse(recetaData['calorias_totales']?.toString() ?? '') ?? 0.0;
+    final double pesoPorcionGuardado = recetaData['porciones_peso'] is num
+        ? (recetaData['porciones_peso'] as num).toDouble()
+        : double.tryParse(recetaData['porciones_peso']?.toString() ?? '') ?? 0.0;
+
+    setState(() {
+      _nombreCtrl.text = recetaData['nombre']?.toString() ?? '';
+      _descripcionCtrl.text = recetaData['breve_descripcion']?.toString() ?? '';
+      _listaFotos = fotosCargadas;
+
+      _ingredients
+        ..clear()
+        ..addAll(ingredientesCargados);
+
+      _pasos
+        ..clear()
+        ..addAll(pasosCargados);
+
+      _tagsSeleccionadas = tagsCargadas;
+
+      _porcionesCtrl.text = recetaData['porciones']?.toString() ?? '';
+      _pesoPorcionCtrl.text = _formatNumero(pesoPorcionGuardado);
+      _tiempoCtrl.text = recetaData['tiempo_coccion']?.toString() ?? '';
+      _caloriasCtrl.text = _formatNumero(caloriasGuardadas);
+
+      _dificultad = indiceDificultad >= 0 ? indiceDificultad : 1;
+      _esPublico = _parseBool(recetaData['visibilidad'], defaultValue: true);
+    });
+  }
+
+  bool _parseBool(dynamic valor, {required bool defaultValue}) {
+    if (valor == null) return defaultValue;
+    if (valor is bool) return valor;
+    if (valor is num) return valor != 0;
+    return valor.toString().toLowerCase() == 'true' || valor.toString() == '1';
+  }
+
+  String _formatNumero(double valor) {
+    if (valor == 0) return '';
+    if (valor == valor.roundToDouble()) return valor.toInt().toString();
+    return valor.toString();
   }
 
   @override
@@ -362,10 +474,14 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       }
 
       List<String> urlsFotos = [];
-      for (var bytes in _listaFotos) {
+      for (var foto in _listaFotos) {
+        if (foto.url != null) {
+          urlsFotos.add(foto.url!);
+          continue;
+        }
         String? url = await ImageUploadService.uploadRecetaImage(
-            'user_${widget.user.id}_${DateTime.now().millisecondsSinceEpoch}_${_listaFotos.indexOf(bytes)}',
-            bytes
+            'user_${widget.user.id}_${DateTime.now().millisecondsSinceEpoch}_${_listaFotos.indexOf(foto)}',
+            foto.bytes!
         );
         if (url != null) urlsFotos.add(url);
       }
@@ -385,6 +501,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         'id_dificultad': _dificultadData[_dificultad]['id'],
         'instrucciones': _pasos.map((s) => s.description).toList(),
         'precio': _calcularCostoTotal(),
+        'tiempo_coccion': _tiempoCtrl.text,
+        'breve_descripcion': _descripcionCtrl.text,
 
         'ingredientes': _ingredients.map((ing) => {
           'id_alimento': ing.idAlimento,
@@ -519,8 +637,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'EDITOR DE RECETAS',
+          Text(
+            _esEdicion ? 'EDITANDO RECETA' : 'NUEVA RECETA',
             style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2),
           ),
           Text(
@@ -625,7 +743,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.memory(_listaFotos[index], fit: BoxFit.cover),
+                        child: _listaFotos[index].bytes != null
+                            ? Image.memory(_listaFotos[index].bytes!, fit: BoxFit.cover)
+                            : Image.network(_listaFotos[index].url!, fit: BoxFit.cover),
                       ),
                       Positioned(
                         top: 4, right: 4,
@@ -1624,7 +1744,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               )
                   : Text(
-                esUltimoPaso ? 'GUARDAR RECETA' : 'CONTINUAR',
+                esUltimoPaso ? (_esEdicion ? 'ACTUALIZAR RECETA' : 'GUARDAR RECETA') : 'CONTINUAR',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),

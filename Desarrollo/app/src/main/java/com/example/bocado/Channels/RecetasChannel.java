@@ -40,9 +40,19 @@ public class RecetasChannel {
             case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
             case "contarRecetas"   -> handleContarRecetas(call, result);
             case "getEtiquetas" -> handleGetEtiquetas(call, result);
+            case "getRecetaID" -> handleGetRecetaID(call, result);
 
             default                -> result.notImplemented();
         }
+    }
+
+    private void handleGetRecetaID(MethodCall call, MethodChannel.Result result) {
+        Integer idReceta = call.argument("id_receta");
+        if (idReceta == null) {
+            result.error("INVALID_ARGS", "Se requiere el ID de la receta", null);
+            return;
+        }
+        RecetaManager.getInstance().getById(idReceta, result);
     }
 
     private void handleGetEtiquetas(MethodCall call,MethodChannel.Result result) {

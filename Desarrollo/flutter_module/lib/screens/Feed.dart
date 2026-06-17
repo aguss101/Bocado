@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/screens/Profil.dart';
 import '../theme/Notifier.dart';
@@ -9,6 +13,8 @@ import '../services/Instructions.dart';
 import 'DetailRecipe.dart';
 import 'BarraNavegacion.dart';
 import 'package:share_plus/share_plus.dart';
+
+import 'EditRecipe.dart';
 
 
 
@@ -29,6 +35,7 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   List<RecetaFeed> recipesFeed = [];
   bool _estaCargando = true;
+  static const bool _isDebugMode = true;
 
   @override
   void initState() {
@@ -89,6 +96,40 @@ class _FeedScreenState extends State<FeedScreen> {
           ],
         ),
         actions: [
+          if (_isDebugMode)
+            IconButton(
+              icon: const Icon(Icons.bug_report, color: Colors.blue),
+              onPressed: () async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Botón presionado, intentando...')),
+                );
+                try {
+                  const channel = MethodChannel('com.example.bocado/recetas');
+                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 1});
+                  final Map<String, dynamic> recetaData = jsonDecode(jsonString);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Datos recibidos, navegando...')),
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RecipeEditorScreen(
+                          themeNotifier: widget.themeNotifier,
+                          user: widget.user,
+                          recetaExistente: recetaData,
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}')),
+                  );
+                }
+              },
+            ),
           ValueListenableBuilder<ThemeMode>(
             valueListenable: widget.themeNotifier,
             builder: (_, mode, __) => IconButton(

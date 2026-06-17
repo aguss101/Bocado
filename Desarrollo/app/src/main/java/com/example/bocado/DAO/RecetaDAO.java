@@ -25,6 +25,8 @@ public class RecetaDAO {
             recetaJson.put("precio", args.get("precio"));
             recetaJson.put("visibilidad", args.get("visibilidad"));
             recetaJson.put("es_borrador", args.get("es_borrador"));
+            recetaJson.put("tiempo_coccion", args.get("tiempo_coccion"));
+            recetaJson.put("breve_descripcion", args.get("breve_descripcion"));
 
             if (args.containsKey("fotos")) {
                 List<String> listaFotos = (List<String>) args.get("fotos");
@@ -72,6 +74,36 @@ public class RecetaDAO {
                 }
             });
 
+        } catch (Exception e) {
+            callback.onError(ErrorCode.ERROR_INTERNO, e.getMessage(), null);
+        }
+    }
+    public void getById(int idReceta, CallbackCB callback) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("id_receta", idReceta);
+
+            RpcCallHelper.callAsync("obtener_receta_por_id", body, new CallbackCB() {
+                @Override
+                public void onSuccess(String response) {
+                    try {
+                        JSONObject obj = new JSONObject(response);
+                        if (obj.getBoolean("ok")) {
+                            // Devolvemos el objeto JSON de la receta tal cual
+                            callback.onSuccess(obj.getJSONObject("data").toString());
+                        } else {
+                            callback.onError(ErrorCode.ERROR_RECETA, "Receta no encontrada", null);
+                        }
+                    } catch (Exception e) {
+                        callback.onError(ErrorCode.PARSE_ERROR, e.getMessage(), null);
+                    }
+                }
+
+                @Override
+                public void onError(String code, String msg, Object data) {
+                    callback.onError(code, msg, data);
+                }
+            });
         } catch (Exception e) {
             callback.onError(ErrorCode.ERROR_INTERNO, e.getMessage(), null);
         }

@@ -46,4 +46,29 @@ public class RecetaManager implements IReceta {
             result.error("ERROR_MANAGER", "Error al procesar la receta: " + e.getMessage(), null);
         }
     }
+
+    @Override
+    public void getById(int idReceta, MethodChannel.Result result) {
+        try {
+            if (idReceta <= 0) {
+                result.error("ID_INVALIDO", "El ID de la receta debe ser mayor a 0", null);
+                return;
+            }
+
+            recetaDAO.getById(idReceta, new CallbackCB() {
+                @Override
+                public void onSuccess(String data) {
+                    result.success(data);
+                }
+
+                @Override
+                public void onError(String code, String message, Object details) {
+                    result.error(code, message, details);
+                }
+            });
+
+        } catch (Exception e) {
+            result.error("ERROR_MANAGER", "Error al recuperar la receta: " + e.getMessage(), null);
+        }
+    }
 }
