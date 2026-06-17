@@ -7,9 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/UploadImg.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
-import 'package:image_picker/image_picker.dart';
 
-// ─── Palette (AppTheme) ─────────────────────────────────────────────────────
 const _primary = AppTheme.primary;
 const _bg = AppTheme.surfaceContainerLight;
 const _surface = AppTheme.surfaceLight;
@@ -18,7 +16,20 @@ const _outline = AppTheme.outlineLight;
 const _onSurface = AppTheme.onSurfaceLight;
 const _onSurfaceVariant = AppTheme.secondaryLight;
 const _error = Color(0xFFB91C1C);
-const bool _isDebug = true;
+
+const List<DropdownMenuItem<int>> _medidaDropdownItems = [
+  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
+  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
+  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
+];
+
+String _unitForMedida(int medida) {
+  switch (medida) {
+    case 1: return 'gr';
+    case 2: return 'ml';
+    default: return 'unid';
+  }
+}
 
 class _Ingredient {
   int idAlimento;
@@ -50,35 +61,31 @@ class _Ingredient {
   }
 }
 
-// ─── Step model ──────────────────────────────────────────────────────────────
 class _RecipeStep {
   String description;
   _RecipeStep({required this.description});
 }
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
 class RecipeEditorScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
+  final Map<String, dynamic>? recetaExistente;
   final usuario_Logged user;
   const RecipeEditorScreen({
     super.key,
     required this.themeNotifier,
-    required this.user
+    required this.user,
+    this.recetaExistente
   });
 
   @override
   State<RecipeEditorScreen> createState() => _RecipeEditorScreenState();
 }
 
-class _RecipeEditorScreenState extends State<RecipeEditorScreen>
-    with TickerProviderStateMixin {
+class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
   static const MethodChannel _channel = MethodChannel('com.example.bocado/recetas');
   int _step = 1;
 
-  // Step 1
-  Uint8List? _portadaBytes;
-  bool _uploadingPortada = false;
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
   List<Uint8List> _listaFotos = [];
@@ -88,19 +95,16 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
   Future<void> _agregarFotos() async {
     if (_listaFotos.length >= _maxFotos) {
-      // Aquí puedes mostrar un snackbar o diálogo diciendo que ya llegó al límite
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ya has alcanzado el límite de 4 fotos')),
       );
       return;
     }
 
-    // Mostramos el menú desplegable (Bottom Sheet)
     await _mostrarOpcionesPicker();
   }
 
   Future<void> _mostrarOpcionesPicker() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? Colors.grey[900] : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
@@ -114,7 +118,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Espaciador superior (la "rayita")
             Container(
               margin: const EdgeInsets.only(top: 8),
               width: 40,
@@ -124,94 +127,78 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Opción Cámara
             ListTile(
               leading: Icon(Icons.camera_alt, color: textColor),
               title: Text('Tomar Foto', style: TextStyle(color: textColor)),
               onTap: () {
-                Navigator.pop(ctx); // Cierra el menú
+                Navigator.pop(ctx);
                 _tomarFotoConCamara();
               },
             ),
-            // Opción Galería
             ListTile(
               leading: Icon(Icons.photo_library, color: textColor),
               title: Text('Subir de Galería', style: TextStyle(color: textColor)),
               onTap: () {
-                Navigator.pop(ctx); // Cierra el menú
+                Navigator.pop(ctx);
                 _subirDesdeGaleriaMultiple();
               },
             ),
-            const SizedBox(height: 12), // Margen inferior
+            const SizedBox(height: 12),
           ],
         );
       },
     );
   }
 
-  // Función para tomar una sola foto con la cámara
   Future<void> _tomarFotoConCamara() async {
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 85, // Opcional: compresión equilibrada
+      imageQuality: 85,
     );
 
     if (photo != null) {
-      // Convertimos a bytes
       final bytes = await photo.readAsBytes();
-      // Agregamos a la lista
       setState(() {
         _listaFotos.add(bytes);
       });
     }
   }
 
-// Función para seleccionar múltiples fotos de la galería (con límite)
   Future<void> _subirDesdeGaleriaMultiple() async {
-    // Calculamos cuántos espacios libres quedan
     final int espaciosDisponibles = _maxFotos - _listaFotos.length;
 
     if (espaciosDisponibles <= 0) return;
 
-    // Abrimos el selector múltiple
     final List<XFile> images = await _picker.pickMultiImage(
-      imageQuality: 85, // Opcional: compresión equilibrada
+      imageQuality: 85,
     );
 
     if (images.isNotEmpty) {
-      // Tomamos solo las imágenes que caben
       final List<XFile> imagenesAProcesar = images.take(espaciosDisponibles).toList();
 
       List<Uint8List> nuevasFotos = [];
 
-      // Convertimos XFile a bytes
       for (var xFile in imagenesAProcesar) {
         final bytes = await xFile.readAsBytes();
         nuevasFotos.add(bytes);
       }
 
-      // Actualizamos el estado agregando las nuevas fotos
       setState(() {
         _listaFotos.addAll(nuevasFotos);
       });
     }
   }
 
-  // Step 2
   final _ingSearchCtrl = TextEditingController();
   final List<_Ingredient> _ingredients = [];
   List<Map<String, dynamic>> _dbAlimentosMaster = [];
   List<Map<String, dynamic>> _suggestions = [];
-  bool _cargandoAlimentos = true;
   final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  bool _isSearching = false;
 
-  // Step 3
   final _prepCtrl = TextEditingController();
   final List<_RecipeStep> _pasos = [];
 
-  // Step 4
   final _porcionesCtrl = TextEditingController();
   final _pesoPorcionCtrl = TextEditingController();
   final _tiempoCtrl = TextEditingController();
@@ -228,7 +215,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   ];
   List<Map<String, dynamic>> _tagsSeleccionadas = [];
   List<Map<String, dynamic>> _tagsDisponibles = [];
-  bool _esPublico = true; // Estado del switch
+  bool _esPublico = true;
   final TextEditingController _tagsSearchCtrl = TextEditingController();
 
   String? _validarReceta() {
@@ -246,33 +233,23 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     return null;
   }
 
-
   @override
   void initState() {
     super.initState();
     _cargarAlimentosDesdeDB();
-    _ingSearchCtrl.addListener(_onSearchChanged);
     _cargarEtiquetasDesdeBD();
-    _tagsSearchCtrl.addListener(() {
-      if (_tagsSearchCtrl.text.isEmpty) {
-      }
-    });
+    _ingSearchCtrl.addListener(_onSearchChanged);
     _searchFocusNode.addListener(() {
-      if (_searchFocusNode.hasFocus) {
-        // Pequeño delay para asegurar que el teclado abrió
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              150, // Ajusta este valor según la altura de tu header
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-            _searchFocusNode.addListener(() {
-              setState(() => _isSearching = _searchFocusNode.hasFocus);
-            });
-          }
-        });
-      }
+      if (!_searchFocusNode.hasFocus) return;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            150,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     });
   }
 
@@ -287,6 +264,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     _pesoPorcionCtrl.dispose();
     _tiempoCtrl.dispose();
     _caloriasCtrl.dispose();
+    _tagsSearchCtrl.dispose();
+    _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -296,11 +276,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       if (res != null) {
         setState(() {
           _dbAlimentosMaster = res.map((e) => Map<String, dynamic>.from(e)).toList();
-          _cargandoAlimentos = false;
         });
       }
     } catch (e) {
-      setState(() => _cargandoAlimentos = false);
       _snack('Error al sincronizar catálogo de alimentos: $e');
     }
   }
@@ -336,58 +314,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     });
   }
 
-  Future<void> _crearNuevoAlimentoAlVuelo(String nombreAlimento) async {
-    if (nombreAlimento.trim().isEmpty) return;
-    try {
-      final dynamic result = await _channel.invokeMethod('addAlimento', {
-        'nombre': nombreAlimento.trim(),
-        'id_usuario': widget.user.id,
-      });
-      if (result != null && result['id'] != null) {
-        final int nuevoId = result['id'];
-        final nuevoElemento = {
-          'id': nuevoId,
-          'nombre': nombreAlimento.trim(),
-          'categoria': 'Personalizado',
-          'precio': 0.0
-        };
-        setState(() {
-          _dbAlimentosMaster.add(nuevoElemento);
-          _agregarIngredienteLista(nuevoElemento);
-          _ingSearchCtrl.clear();
-        });
-        _snack('¡"$nombreAlimento" guardado y añadido!');
-      }
-    } catch (e) {
-      _snack('Error al dar de alta el alimento: $e');
-    }
-  }
-
-  void _agregarIngredienteLista(Map<String, dynamic> item) {
-    if (_ingredients.any((element) => element.idAlimento == item['id'])) {
-      _snack('${item['nombre']} ya se encuentra añadido');
-      return;
-    }
-
-    setState(() {
-      _ingredients.add(_Ingredient(
-        idAlimento: item['id'] ?? 0,
-        name: item['nombre'] ?? 'Desconocido',
-        category: item['categoria'] ?? 'General',
-        quantity: '100',
-        unit: 'gr',
-        priceBase: (item['precio'] != null) ? double.tryParse(item['precio'].toString()) ?? 0.0 : 0.0,
-        idMedida: 1,
-      ));
-    });
-  }
-
   double _calcularCostoTotal() {
     return _ingredients.fold<double>(0.0, (sum, item) => sum + item.subtotal);
   }
 
   Future<void> _persistirRecetaFinal({bool esBorrador = false}) async {
-    // 1. Validación solo si NO es borrador
     if (!esBorrador) {
       final error = _validarReceta();
       if (error != null) {
@@ -411,7 +342,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     setState(() => _isSaving = true);
 
     try {
-      // 2. Procesar ingredientes (se mantiene tu lógica)
       for (var ing in _ingredients) {
         if (ing.idAlimento <= 0) {
           final Map<String, dynamic> response = await const MethodChannel('com.example.bocado/recetas')
@@ -420,7 +350,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         }
       }
 
-      // 3. Subir TODAS las imágenes (ahora usamos _listaFotos)
       List<String> urlsFotos = [];
       for (var bytes in _listaFotos) {
         String? url = await ImageUploadService.uploadRecetaImage(
@@ -429,7 +358,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         );
         if (url != null) urlsFotos.add(url);
       }
-
 
       List<int> idsTags = _tagsSeleccionadas.map((t) => t['id'] as int).toList();
 
@@ -471,50 +399,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _seleccionarPortada(ImageSource source) async {
-    setState(() => _uploadingPortada = true);
-    try {
-      final bytes = await ImageUploadService.pickAndCompressReceta(source);
-      if (bytes != null && mounted) setState(() => _portadaBytes = bytes);
-    } catch (e) {
-      if (mounted) _snack('Error al cargar imagen: $e');
-    } finally {
-      if (mounted) setState(() => _uploadingPortada = false);
-    }
-  }
-
-  Future<void> _mostrarPickerPortada() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined, color: _primary),
-              title: const Text('Cámara'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: _primary),
-              title: const Text('Galería'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (source != null) await _seleccionarPortada(source);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final fondoPantalla = isDark ? AppTheme.bgDark : _bg;
     final fondoTarjetas = isDark ? AppTheme.surfaceDark : _surface;
     return Scaffold(
@@ -545,7 +431,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _buildTopBar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -615,9 +500,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-// ══════════════════════════════════════════════════════════════════════════
-// HEADER
-// ══════════════════════════════════════════════════════════════════════════
   Widget _buildStepIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
@@ -664,11 +546,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 1 – Información Básica y Portada
-  // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep1() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         _card(
@@ -706,7 +584,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               ),
               const SizedBox(height: 14),
 
-              // Contenedor dinámico de fotos
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -717,10 +594,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   mainAxisSpacing: 8,
                 ),
                 itemBuilder: (context, index) {
-                  // Si es el último espacio y aún podemos agregar más fotos
                   if (index == _listaFotos.length) {
                     return GestureDetector(
-                      onTap: _agregarFotos, // Tu función para abrir picker
+                      onTap: _agregarFotos,
                       child: Container(
                         decoration: BoxDecoration(
                           color: isDark ? AppTheme.bgDark : Colors.grey.withOpacity(0.05),
@@ -732,7 +608,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     );
                   }
 
-                  // Renderizado de las fotos ya cargadas
                   return Stack(
                     fit: StackFit.expand,
                     children: [
@@ -767,11 +642,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-// ══════════════════════════════════════════════════════════════════════════
-// STEP 2 – Ingredientes (Versión Limpia y Estática)
-// ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep2() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -806,7 +677,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         ),
         const SizedBox(height: 16),
 
-        // Lista de ingredientes
         Container(
           decoration: BoxDecoration(
             color: isDark ? AppTheme.surfaceDark : _surface,
@@ -832,7 +702,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               ),
               ..._ingredients.asMap().entries.map((e) => _ingredientRow(e.value, e.key)),
 
-              // Footer Costo Estimado
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -855,7 +724,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _suggestionRow(Map<String, dynamic> s) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final idDinamico = (s['id_alimento'] ?? s['id'] ?? -1);
     return GestureDetector(
       onTap: () {
@@ -931,7 +799,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   Text(
                     s['name']?.toString() ?? s['nombre']?.toString() ?? '',
                     style: TextStyle(
-                        fontSize: 11, // Era 13, ahora 12
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : _onSurface
                     ),
@@ -939,7 +807,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   Text(
                     s['sub']?.toString() ?? s['categoria']?.toString() ?? '',
                     style: TextStyle(
-                      fontSize: 7, // Era 9, ahora 8
+                      fontSize: 7,
                       fontWeight: FontWeight.w700,
                       color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.6),
                     ),
@@ -955,7 +823,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _ingredientRow(_Ingredient ing, int index) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : _onSurface;
     final subtextColor = isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5);
 
@@ -966,7 +833,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       ),
       child: Column(
         children: [
-          // Fila 1 y 2 combinadas: Nombre, Subtotal y Eliminar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -996,11 +862,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
 
           const SizedBox(height: 8),
 
-          // Fila 3: Cantidad, Unidad, Precio Base y Configuración
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Input de cantidad
               Row(
                 children: [
                   SizedBox(
@@ -1028,7 +892,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 ],
               ),
 
-              // Precio base y botón de configuración
               Row(
                 children: [
                   Text(
@@ -1051,16 +914,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-// 4. Fila para crear nuevo personalizado (Simplificada)
-
   void _showIngredientDialog({_Ingredient? ing, String? newName}) {
     final isEditing = ing != null;
-    final TextEditingController _cantCtrl = TextEditingController(text: isEditing ? ing.quantity : '100');
-    final TextEditingController _precioCtrl = TextEditingController(text: isEditing ? ((double.tryParse(ing.quantity) ?? 1) * (ing.priceBase / (ing.idMedida < 3 ? 100 : 1))).toStringAsFixed(2) : '');
-    int _medida = isEditing ? ing.idMedida : 1;
+    final TextEditingController cantCtrl = TextEditingController(text: isEditing ? ing.quantity : '100');
+    final TextEditingController precioCtrl = TextEditingController(text: isEditing ? ((double.tryParse(ing.quantity) ?? 1) * (ing.priceBase / (ing.idMedida < 3 ? 100 : 1))).toStringAsFixed(2) : '');
+    int medida = isEditing ? ing.idMedida : 1;
 
-    // Mapa para obtener el texto del sufijo según la medida seleccionada
-    String _getSufijo(int medida) {
+    String getSufijo(int medida) {
       switch (medida) {
         case 1: return 'gramos';
         case 2: return 'mililitros';
@@ -1078,27 +938,21 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButton<int>(
-                value: _medida,
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
-                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
-                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
-                ],
-                onChanged: (v) => setDialogState(() => _medida = v!),
+                value: medida,
+                items: _medidaDropdownItems,
+                onChanged: (v) => setDialogState(() => medida = v!),
               ),
               TextField(
-                controller: _cantCtrl,
+                controller: cantCtrl,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Cantidad Comprada',
-                  // Aquí se añade el sufijo dinámico
-                  suffixText: _getSufijo(_medida),
-                  // Opcional: estilizar el sufijo para que resalte un poco
+                  suffixText: getSufijo(medida),
                   suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
                 ),
               ),
               TextField(
-                controller: _precioCtrl,
+                controller: precioCtrl,
                 decoration: const InputDecoration(labelText: 'Precio Total Pagado \$'),
                 keyboardType: TextInputType.number,
               ),
@@ -1108,13 +962,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
             ElevatedButton(
               onPressed: () {
-                double cantComprada = double.tryParse(_cantCtrl.text) ?? 0;
-                double precioTotal = double.tryParse(_precioCtrl.text) ?? 0;
+                double cantComprada = double.tryParse(cantCtrl.text) ?? 0;
+                double precioTotal = double.tryParse(precioCtrl.text) ?? 0;
 
                 if (cantComprada <= 0) return;
 
                 double nuevoPriceBase = (precioTotal / cantComprada);
-                if (_medida == 1 || _medida == 2) nuevoPriceBase *= 100;
+                if (medida == 1 || medida == 2) nuevoPriceBase *= 100;
 
                 setState(() {
                   if (isEditing) {
@@ -1122,10 +976,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                         idAlimento: ing.idAlimento,
                         name: ing.name,
                         category: ing.category,
-                        quantity: _cantCtrl.text, // Usamos el valor del controlador
-                        unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
+                        quantity: cantCtrl.text,
+                        unit: _unitForMedida(medida),
                         priceBase: nuevoPriceBase,
-                        idMedida: _medida,
+                        idMedida: medida,
                         idUsuario: ing.idUsuario
                     );
                   } else {
@@ -1133,10 +987,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                         idAlimento: DateTime.now().millisecondsSinceEpoch,
                         name: newName!,
                         category: 'Personalizado',
-                        quantity: _cantCtrl.text, // Usamos el valor del controlador
-                        unit: _medida == 1 ? 'gr' : (_medida == 2 ? 'ml' : 'unid'),
+                        quantity: cantCtrl.text,
+                        unit: _unitForMedida(medida),
                         priceBase: nuevoPriceBase,
-                        idMedida: _medida,
+                        idMedida: medida,
                         idUsuario: widget.user.id
                     ));
                     _ingSearchCtrl.clear();
@@ -1200,9 +1054,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   void _showAdvancedIngredientDialog(String name) {
-    final _cantCompraCtrl = TextEditingController();
-    final _precioTotalCtrl = TextEditingController();
-    int _medidaSeleccionada = 1;
+    final cantCompraCtrl = TextEditingController();
+    final precioTotalCtrl = TextEditingController();
+    int medidaSeleccionada = 1;
 
     showDialog(
       context: context,
@@ -1213,28 +1067,24 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButton<int>(
-                value: _medidaSeleccionada,
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
-                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
-                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
-                ],
-                onChanged: (v) => setDialogState(() => _medidaSeleccionada = v!),
+                value: medidaSeleccionada,
+                items: _medidaDropdownItems,
+                onChanged: (v) => setDialogState(() => medidaSeleccionada = v!),
               ),
-              TextField(controller: _cantCompraCtrl, decoration: const InputDecoration(labelText: 'Cantidad comprada'), keyboardType: TextInputType.number),
-              TextField(controller: _precioTotalCtrl, decoration: const InputDecoration(labelText: 'Precio pagado \$'), keyboardType: TextInputType.number),
+              TextField(controller: cantCompraCtrl, decoration: const InputDecoration(labelText: 'Cantidad comprada'), keyboardType: TextInputType.number),
+              TextField(controller: precioTotalCtrl, decoration: const InputDecoration(labelText: 'Precio pagado \$'), keyboardType: TextInputType.number),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
             ElevatedButton(
               onPressed: () {
-                double cant = double.tryParse(_cantCompraCtrl.text) ?? 0;
-                double total = double.tryParse(_precioTotalCtrl.text) ?? 0;
+                double cant = double.tryParse(cantCompraCtrl.text) ?? 0;
+                double total = double.tryParse(precioTotalCtrl.text) ?? 0;
                 if (cant <= 0) return;
 
                 double precioBaseCalculado = (total / cant);
-                if (_medidaSeleccionada == 1 || _medidaSeleccionada == 2) {
+                if (medidaSeleccionada == 1 || medidaSeleccionada == 2) {
                   precioBaseCalculado *= 100;
                 }
 
@@ -1244,82 +1094,15 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     name: name,
                     category: 'Personalizado',
                     quantity: '100',
-                    unit: _medidaSeleccionada == 1 ? 'gr' : (_medidaSeleccionada == 2 ? 'ml' : 'unid'),
+                    unit: _unitForMedida(medidaSeleccionada),
                     priceBase: precioBaseCalculado,
-                    idMedida: _medidaSeleccionada,
+                    idMedida: medidaSeleccionada,
                     idUsuario: widget.user.id,
                   ));
                   _ingSearchCtrl.clear();
                   FocusScope.of(context).unfocus();
                 });
                 Navigator.pop(context);
-              },
-              child: const Text('GUARDAR'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEditIngredientDialog(_Ingredient ing, int index) {
-    // Inicializamos controladores con los valores actuales del ingrediente
-    final _cantCtrl = TextEditingController(text: ing.quantity);
-    final _precioBaseCtrl = TextEditingController(text: ing.priceBase.toStringAsFixed(2));
-    int _medidaTemp = ing.idMedida;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Editar: ${ing.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButton<int>(
-                value: _medidaTemp,
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
-                  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
-                  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
-                ],
-                onChanged: (v) => setDialogState(() => _medidaTemp = v!),
-              ),
-              TextField(
-                  controller: _cantCtrl,
-                  decoration: const InputDecoration(labelText: 'Cantidad'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true)
-              ),
-              TextField(
-                  controller: _precioBaseCtrl,
-                  decoration: const InputDecoration(labelText: 'Precio Base'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true)
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
-            ElevatedButton(
-              onPressed: () {
-                final nuevaCant = _cantCtrl.text.trim();
-                final nuevoPrecio = double.tryParse(_precioBaseCtrl.text) ?? 0.0;
-
-                setState(() {
-                  // Actualizamos el objeto en la lista
-                  _ingredients[index] = _Ingredient(
-                    idAlimento: ing.idAlimento,
-                    name: ing.name,
-                    category: ing.category,
-                    quantity: nuevaCant,
-                    unit: _medidaTemp == 1 ? 'gr' : (_medidaTemp == 2 ? 'ml' : 'unid'),
-                    priceBase: nuevoPrecio,
-                    idMedida: _medidaTemp,
-                    idUsuario: ing.idUsuario, // Mantenemos el ID del usuario
-                  );
-                });
-
-                Navigator.pop(context);
-                _snack('Ingrediente actualizado');
               },
               child: const Text('GUARDAR'),
             ),
@@ -1391,84 +1174,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  Widget _miniInputBox({required String label, required String value, required ValueChanged<String> onChanged}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: 54,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06)),
-      ),
-      child: Column(
-        children: [
-          Text(
-              label,
-              style: TextStyle(
-                  fontSize: 7,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.6)
-              )
-          ),
-          const SizedBox(height: 2),
-          SizedBox(
-            height: 18,
-            child: TextFormField(
-              initialValue: value,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppTheme.bgDark
-              ),
-              textAlign: TextAlign.center,
-              onChanged: onChanged,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniStaticBox({required String label, required String value}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceContainerDark.withOpacity(0.5) : Colors.grey.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.03)),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: isDark ? Colors.white54 : _onSurfaceVariant.withOpacity(0.5))),
-          const SizedBox(height: 2),
-          SizedBox(
-            height: 18,
-            child: Center(
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : _onSurface.withOpacity(0.6)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 3 – Instrucciones de Preparación
-  // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep3() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1477,7 +1183,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Fila: Título y Botón + en la misma línea
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1511,7 +1216,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 ],
               ),
               const SizedBox(height: 10),
-              // TextField ocupando todo el ancho disponible
               _textField(
                 controller: _prepCtrl,
                 hint: 'Ej: Dorar la cebolla y el ajo...',
@@ -1533,18 +1237,16 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _stepItem(_RecipeStep step, int index) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white, // Color consistente
+        color: isDark ? AppTheme.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
       ),
       child: Row(
         children: [
-          // Flechas de orden
           Column(
             children: [
               GestureDetector(
@@ -1579,9 +1281,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 4 – Parámetros de Cierre y Finalización Completo Original
-  // ══════════════════════════════════════════════════════════════════════════
   Widget _buildStep4() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1594,7 +1293,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
               const SizedBox(height: 8),
               Autocomplete<Map<String, dynamic>>(
 
-                // 2. Aquí conectamos el controlador externo
                 fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                   _tagsSearchCtrl.addListener(() {
                     if (_tagsSearchCtrl.text.isEmpty && controller.text.isNotEmpty) {
@@ -1602,7 +1300,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     }
                   });
                   return TextFormField(
-                    controller: controller, // Usamos tu instancia
+                    controller: controller,
                     focusNode: focusNode,
                     decoration: InputDecoration(
                       hintText: 'Escribe para buscar...',
@@ -1616,9 +1314,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                   final query = textEditingValue.text.toLowerCase();
 
                   if (query.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
-
-                  // 1. Filtramos las etiquetas que coinciden con el texto
-                  // 2. Y restamos las que ya están en _tagsSeleccionadas
                   return _tagsDisponibles.where((tag) {
                     final matchesQuery = tag['nombre'].toString().toLowerCase().contains(query);
                     final isAlreadySelected = _tagsSeleccionadas.any((t) => t['id'] == tag['id']);
@@ -1630,7 +1325,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 displayStringForOption: (option) => option['nombre'],
 
                 onSelected: (selection) {
-                  // 3. Ahora esto SÍ limpiará el campo porque usamos la misma instancia
                   setState(() {
                     _tagsSearchCtrl.clear();
                     FocusScope.of(context).unfocus();
@@ -1646,11 +1340,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                     alignment: Alignment.topLeft,
                     child: Material(
                       elevation: 4,
-                      color: Theme.of(context).cardColor, // Respeta el tema claro/oscuro
+                      color: Theme.of(context).cardColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: SizedBox(
-                        width: MediaQuery.of(context).size.width - 40, // Ancho adaptado
-                        height: 200, // Altura máxima para que no sea infinita
+                        width: MediaQuery.of(context).size.width - 40,
+                        height: 200,
                         child: ListView.separated(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: options.length,
@@ -1713,12 +1407,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             ],
           ),
         ),
-        const SizedBox(height: 12),// NUEVO: Switch Público/Privado
+        const SizedBox(height: 12),
         _card(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Usamos RichText o simplemente una concatenación de Text
               RichText(
                 text: TextSpan(
                   style: TextStyle(
@@ -1762,8 +1455,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _dificultadSelector() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Obtenemos la dificultad actual basada en el ID (restando 1 para el índice)
     final currentData = _dificultadData[_dificultad];
 
     return Column(
@@ -1771,13 +1462,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Botón -
             IconButton(
               icon: const Icon(Icons.remove_circle_outline),
               color: _dificultad > 0 ? _primary : Colors.grey,
               onPressed: _dificultad > 0 ? () => setState(() => _dificultad--) : null,
             ),
-            // Indicador visual (Puntos)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -1791,7 +1480,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
                 )),
               ),
             ),
-            // Botón +
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
               color: _dificultad < 4 ? _primary : Colors.grey,
@@ -1799,7 +1487,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
             ),
           ],
         ),
-        // Leyenda única
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1816,53 +1503,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     );
   }
 
-  Widget _dificultadTile(int value, String label, IconData icon) {
-    final selected = _dificultad == value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: () => setState(() => _dificultad = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: selected
-              ? _primary
-              : (isDark ? AppTheme.surfaceDark : Colors.grey.withOpacity(0.05)),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? _primary
-                : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: selected ? Colors.white : (isDark ? Colors.white60 : _onSurfaceVariant),
-              size: 20,
-            ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                  color: selected ? Colors.white : (isDark ? Colors.white70 : _onSurface),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _fieldLabel(String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
       style: TextStyle(
@@ -1875,7 +1516,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _card({required Widget child}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1901,7 +1541,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -1925,7 +1564,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _buildFooter() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final esUltimoPaso = _step == 4;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1988,7 +1626,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
   }
 
   Widget _searchField({required TextEditingController controller, required String hint, FocusNode? focusNode}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -2091,10 +1728,4 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen>
       ],
     ),
   );
-}
-
-extension _ElevatedOnButton on ButtonStyle {
-  Widget asButton({required VoidCallback onPressed, required Widget child}) {
-    return ElevatedButton(style: this, onPressed: onPressed, child: child);
-  }
 }
