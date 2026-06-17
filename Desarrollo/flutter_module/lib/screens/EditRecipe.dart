@@ -236,6 +236,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   @override
   void initState() {
     super.initState();
+    /*
+    if(widget.recetaExistente != null){
+      _tituloController.text = widget.recetaExistente.titulo;
+      _porcionesController.text = widget.recetaExistente.porciones.toString();
+      _ingredients = widget.recetaExistente.ingredients;
+    }
+     */
     _cargarAlimentosDesdeDB();
     _cargarEtiquetasDesdeBD();
     _ingSearchCtrl.addListener(_onSearchChanged);
@@ -384,6 +391,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           'nombre': ing.name,
           'cantidad': double.tryParse(ing.quantity) ?? 0.0,
           'precio': ing.priceBase,
+          'id_medida': ing.idMedida is int ? ing.idMedida : (ing.idMedida as dynamic).id,
         } as Map<String, dynamic>).toList(),
       };
 
