@@ -1,6 +1,6 @@
 # Base de datos Bocado — Supabase (fuente de verdad)
 
-Snapshot: 2026-06-09 · DDL actualizado: 2026-06-16 · PostgreSQL 17.6 · Ref: `sosbomunpwbgcezgfgzs`
+Snapshot: 2026-06-09 · DDL actualizado: 2026-06-16 · Triggers implementados: 2026-06-16 · PostgreSQL 17.6 · Ref: `sosbomunpwbgcezgfgzs`
 **Fuente primaria: `Base de datos/ESTRUCTURA-COMPLETA-SUPABASE.md`. El DDL en `query-creation-database.txt` ahora está actualizado y es consistente.**
 
 ## Arquitectura de acceso
@@ -14,7 +14,7 @@ Snapshot: 2026-06-09 · DDL actualizado: 2026-06-16 · PostgreSQL 17.6 · Ref: `
 ### usuarios
 `id` serial PK · `id_cuenta` int NN default=1 (FK cuentas) · `id_nacion` int NN (FK naciones) · `id_genero` int NN (FK generos) · `nombre` text NN · `apellido` text NN · `correo` text NN · `usuario` text NN · `contrasena` text NN ⚠️ texto plano · `fecha_nacimiento` timestamp NN · `fecha_creacion` timestamp NN default=now() UTC · `fecha_acceso` timestamp NN default=now() UTC · `activo` bool NN default=true · `visibilidad` bool NN default=true · `foto` text NULL (URL avatars) · `banner` text NULL (URL avatars)
 > ⚠️ `correo` y `usuario` no tienen UNIQUE — el sistema asume unicidad pero no la garantiza.
-> ⚠️ NO tiene columnas de contadores (cant_seguidores, cant_siguiendo, cant_recetas) — pendientes via trigger.
+> Los contadores de cant_seguidores, cant_siguiendo, cant_recetas están en `estadisticas_usuario` (ver abajo).
 
 ### cuentas
 `id` serial PK · `nombre` text NN
@@ -51,7 +51,7 @@ PK `(id_medida1, id_medida2)` · `factor` numeric NN
 
 ### recetas
 `id` serial PK · `id_usuario` int NN (FK usuarios) · `nombre` text NN · `foto` text NULL (URL recetas) · `calorias_totales` numeric NULL · `porciones` int NULL · `porciones_peso` numeric NULL · `instrucciones` text NN (pasos separados por `|`) · `fecha_creacion` timestamp NULL · `visibilidad` bool NN · `activo` bool NN (soft delete) · `precio` numeric NN · `id_dificultad` int NULL (FK dificultades)
-> ⚠️ NO tiene cant_likes ni cant_saves — pendientes via trigger.
+> Los contadores cant_likes, cant_saves y promedio_calificacion están en `estadisticas_receta` (ver abajo).
 
 ### recetas_alimentos *(ingredientes)*
 PK `(id_receta, id_alimento)` · `cantidad` numeric NN · `precio` numeric NN
@@ -80,17 +80,18 @@ PK `(id_recetas, id_etiquetas)`
 PK `(id_seguidor, id_seguido)` · `id_seguidor` int NN (FK usuarios) · `id_seguido` int NN (FK usuarios) · `fecha_seguido` timestamp default=now()
 > ✅ El bug anterior de `GENERATED ALWAYS AS IDENTITY` en `id_seguidor` fue corregido — ahora es un `integer` normal.
 
-### estadisticas_usuario *(tabla nueva)*
+### estadisticas_usuario *(tabla nueva — triggers activos)*
 `id_usuario` int PK (FK usuarios) · `cant_recetas` int NN default=0 · `cant_seguidores` int NN default=0 · `cant_siguiendo` int NN default=0
-> Tabla de contadores por usuario. Diseñada para ser actualizada via triggers (aún no implementados).
+> ✅ Mantenida por triggers `fn_stats_seguidos` (INSERT/DELETE en seguidos_usuario) y `fn_stats_recetas_usuario` (INSERT/DELETE en recetas). Leída por `handleContarSeguidores`, `handleContarSiguiendo`, `handleContarRecetas` en Java. Contadores usan `GREATEST(0, x-1)` para evitar negativos.
 
-### estadisticas_receta *(tabla nueva)*
+### estadisticas_receta *(tabla nueva — triggers activos)*
 `id_receta` int PK (FK recetas) · `cant_likes` int NN default=0 · `cant_saves` int NN default=0 · `promedio_calificacion` numeric NULL
-> Tabla de contadores por receta. Diseñada para ser actualizada via triggers (aún no implementados).
+> ✅ Mantenida por trigger `fn_stats_interacciones` (INSERT/DELETE en interacciones_usuario) y `fn_stats_calificaciones` (INSERT/UPDATE/DELETE en calificaciones). Leída directamente por la vista `vistas_recetas_macros`.
 
 ## Vista: vistas_recetas_macros
 Feed denormalizado. Columnas: `id_receta, nombre_receta, calorias_totales, porciones, foto, precio_porcion, lista_etiquetas (jsonb), lista_interacciones (jsonb), id_usuario, apellido_nombre, usuario, foto_perfil, cant_favoritos, cant_comentarios, promedio_calificacion, proteinas_totales, carbohidratos_totales, grasas_totales`.
-- `cant_favoritos` = interacciones con `tipo_interaccion = 'like'`
+- ✅ **Reescrita 2026-06-16**: `cant_favoritos` y `promedio_calificacion` leen de `estadisticas_receta` (JOIN O(1)) en lugar de `COUNT`/`AVG` inline.
+- `cant_comentarios` sigue siendo `COUNT` de comentarios (no tiene tabla de stats aún).
 - Macros: clasifica nutrientes por nombre con `ILIKE 'Proteina%'/'Carbohidrato%'/'Grasa%'`
 - `precio_porcion = round(precio / NULLIF(porciones,0), 2)`
 

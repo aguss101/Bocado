@@ -11,6 +11,7 @@ import '../services/Instructions.dart';
 import '../models/RecetaFeed.dart';
 import '../screens/EditRecipe.dart';
 import '../screens/DetailRecipe.dart';
+import '../route_observer.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -29,7 +30,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   late TabController _tabController;
   late usuario_Logged _user;
   late bool _isMiPerfil;
@@ -63,6 +64,13 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (mounted) {
         setState(() {
           _user = usuarioTercero;
+          // Red de seguridad: si el "tercero" es en realidad el usuario logueado,
+          // tratarlo como perfil propio (oculta Seguir, restaura los 4 tabs).
+          if (usuarioTercero.id == widget.user.id && !_isMiPerfil) {
+            _isMiPerfil = true;
+            _tabController.dispose();
+            _tabController = TabController(length: 4, vsync: this);
+          }
           _estaCargandoPerfil = false;
         });
       }
@@ -138,7 +146,23 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) routeObserver.subscribe(this, route);
+  }
+
+  /// Se dispara al volver a esta pantalla desde otra (pop). Refresca contadores
+  /// para reflejar follows/unfollows hechos en otras pantallas.
+  @override
+  void didPopNext() {
+    _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
+    if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _tabController.dispose();
     super.dispose();
   }
@@ -397,8 +421,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                         icon: Icon(Icons.share_outlined, color: muted),
                         onPressed: () {
                           final username = _user.usuario;
+                          final idPerfil = widget.idUsuarioTarget ?? widget.user.id;
                           SharePlus.instance.share(ShareParams(
                             text: '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
+                                  'https://links.bocado.tech/perfil/$idPerfil'
                           ));
                         },
                         constraints: const BoxConstraints(

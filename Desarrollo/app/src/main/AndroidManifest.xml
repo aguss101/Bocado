@@ -33,6 +33,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="bocado" android:host="perfil" />
             </intent-filter>
+            <!-- App Links: https://links.bocado.tech/perfil/{id} (autoVerify con assetlinks.json) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/perfil" />
+            </intent-filter>
         </activity>
     </application>
 

@@ -10,6 +10,7 @@ import 'screens/EditRecipe.dart';
 import 'services/Session.dart';
 import 'services/Usuario.dart';
 import 'services/Navigation.dart';
+import 'route_observer.dart';
 import 'config/DebugConfig.dart';
 
 void main() async {
@@ -94,6 +95,7 @@ class _BocadoAppState extends State<BocadoApp> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
+          navigatorObservers: [routeObserver],
           home: _resolveHome(),
         );
       },

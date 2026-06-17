@@ -29,11 +29,15 @@ public class MainActivity extends FlutterActivity {
         super.configureFlutterEngine(flutterEngine);
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
 
-        // Extraer deep link si la app fue abierta desde bocado://perfil/{id}
+        // Extraer deep link: bocado://perfil/{id} o https://links.bocado.tech/perfil/{id}
         String deepLink = null;
         Uri data = getIntent().getData();
-        if (data != null && "bocado".equals(data.getScheme())) {
-            deepLink = data.toString();
+        if (data != null) {
+            boolean esCustom = "bocado".equals(data.getScheme());
+            boolean esHttps = "https".equals(data.getScheme()) && "links.bocado.tech".equals(data.getHost());
+            if (esCustom || esHttps) {
+                deepLink = data.toString();
+            }
         }
 
         new AccessChannel(this, messenger);
