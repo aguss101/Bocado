@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/UsuarioLogged.dart';
+import '../models/UserProfile.dart';
 
 class UsuarioService {
   static const _channel = MethodChannel('com.example.bocado/access');
@@ -105,6 +106,16 @@ class UsuarioService {
   static Future<List<dynamic>> getGeneros() async {
     final String json = await _channel.invokeMethod('getGeneros');
     return jsonDecode(json);
+  }
+  static Future<List<UserProfile>> getSeguidores(int idUsuario) async{
+    try{
+      final String jsonString = await _channel.invokeMethod('getSeguidores', {'id_usuario': idUsuario});
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+
+      return jsonList.map((json) => UserProfile.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<void> actualizarPerfil({

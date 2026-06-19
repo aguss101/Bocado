@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_module/models/UserProfile.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Receta.dart';
 import 'package:share_plus/share_plus.dart';
@@ -322,19 +323,6 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ),
-          // Botón editar portada
-          if(_isMiPerfil)
-            Positioned(
-              bottom: 12,
-              right: 16,
-              child: _glassButton(
-                icon: Icons.photo_camera_outlined,
-                label: 'Editar Portada',
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Próximamente')),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -665,6 +653,110 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // ── TAB: SEGUIDOS ─────────────────────────────────────────────────────────
+  Widget _buildSeguidosTab(
+      Color surface, Color border, Color text, Color muted) {
+
+    return FutureBuilder<List<UserProfile>>(
+      future: UsuarioService.getSeguidores(_user.id),
+      builder: (context, snapshot) {
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Error al cargar la lista', style: TextStyle(color: text))
+          );
+        }
+
+        final seguidos = snapshot.data ?? [];
+        if (seguidos.isEmpty) {
+          return _buildPlaceholderTab('people', 'Aún no sigue a nadie', muted);
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: seguidos.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, i) {
+            final perfil = seguidos[i];
+
+            final nombre = perfil.nombreUsuario;
+            final inicial = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: border),
+              ),
+              child: Row(
+                children: [
+                  // ── FOTO DE PERFIL O INICIAL ──
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+                    backgroundImage: (perfil.fotoUrl != null && perfil.fotoUrl!.isNotEmpty)
+                        ? NetworkImage(perfil.fotoUrl!)
+                        : null,
+                    child: (perfil.fotoUrl == null || perfil.fotoUrl!.isEmpty)
+                        ? Text(
+                      inicial,
+                      style: const TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18),
+                    )
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+
+                  // ── NOMBRE Y RECETAS ──
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(nombre,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: text),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        Text('${perfil.totalRecetas} recetas',
+                            style: TextStyle(fontSize: 12, color: muted)),
+                      ],
+                    ),
+                  ),
+
+                  // ── BOTÓN SIGUIENDO ──
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: border),
+                      foregroundColor: muted,
+                      minimumSize: const Size(0, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      textStyle: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                    },
+                    child: const Text('Siguiendo'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // ── TAB: RECETAS ──────────────────────────────────────────────────────────
   Widget _buildRecetasTab(
       Color surface, Color border, Color text, Color muted) {
@@ -896,78 +988,7 @@ Widget _recipeCard({
   );
 }
 
-  // ── TAB: SEGUIDOS ─────────────────────────────────────────────────────────
-  Widget _buildSeguidosTab(
-      Color surface, Color border, Color text, Color muted) {
-    final seguidos = [
-      {'nombre': 'Chef Ramírez', 'recetas': '42'},
-      {'nombre': 'La Pastelera', 'recetas': '18'},
-      {'nombre': 'Don Asado', 'recetas': '31'},
-      {'nombre': 'Fit Kitchen', 'recetas': '25'},
-    ];
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: seguidos.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final s = seguidos[i];
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                child: Text(
-                  s['nombre']![0],
-                  style: const TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s['nombre']!,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: text)),
-                    Text('${s['recetas']} recetas',
-                        style:
-                            TextStyle(fontSize: 12, color: muted)),
-                  ],
-                ),
-              ),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: border),
-                  foregroundColor: muted,
-                  minimumSize: const Size(0, 32),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  textStyle: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () {},
-                child: const Text('Siguiendo'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // ── PLACEHOLDER GENÉRICO ──────────────────────────────────────────────────
   Widget _buildPlaceholderTab(String iconName, String msg, Color muted) {

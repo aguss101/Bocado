@@ -139,6 +139,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isFavorite = false;
   bool _isLoading = true;
   RecipeDetailData? _data;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
@@ -172,6 +173,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
     final surface = isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight;
     final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final listaImagenes = _data?.imageUrl.split('|').where((url) => url.trim().isNotEmpty).toList() ?? [];
 
     if (_isLoading) {
       return Scaffold(
@@ -203,7 +205,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         ),
       );
     }
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -230,34 +231,152 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _data!.imageUrl.startsWith('http')
-                      ? Image.network(
-                    _data!.imageUrl,
+        flexibleSpace: FlexibleSpaceBar(
+          background: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. EL CARRUSEL (En el fondo de todo)
+              listaImagenes.isNotEmpty && listaImagenes.first.startsWith('http')
+                  ? PageView(
+                controller: _pageController,
+                children: listaImagenes.map((url) {
+                  return Image.network(
+                    url.trim(),
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: AppTheme.surfaceContainerDark,
-                      child: const Icon(Icons.restaurant_menu,
-                          size: 64, color: AppTheme.primary),
+                      child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                     ),
-                  )
-                      : Container(
-                    color: AppTheme.surfaceContainerDark,
-                    child: const Icon(Icons.restaurant_menu,
-                        size: 64, color: AppTheme.primary),
+                  );
+                }).toList(),
+              )
+                  : Container(
+                color: AppTheme.surfaceContainerDark,
+                child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+              ),
+
+              // 2. EL DEGRADADO OSCURO (Con IgnorePointer para que no bloquee los clicks)
+              const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black87],
+                    ),
                   ),
-                  const DecoratedBox(
+                ),
+              ),
+
+              // 3. TEXTOS Y BADGE DE CATEGORÍA
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 64,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _data!.categoria.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _data!.titulo,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 4. BOTÓN DE FAVORITOS (Corazón)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => setState(() => _isFavorite = !_isFavorite),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black87],
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Icon(
+                      _isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: _isFavorite ? Colors.red : Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+
+              // 5. BOTÓN FLECHA ATRÁS (Al frente de todo)
+              if (listaImagenes.length > 1)
+                Positioned(
+                  left: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
+                        onPressed: () {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
                       ),
                     ),
                   ),
+                ),
+
+              // 6. BOTÓN FLECHA SIGUIENTE (Al frente de todo)
+              if (listaImagenes.length > 1)
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
+                        onPressed: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
                   Positioned(
                     bottom: 16,
                     left: 16,

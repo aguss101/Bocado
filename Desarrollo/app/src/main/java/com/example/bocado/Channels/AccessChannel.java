@@ -35,6 +35,7 @@ public class AccessChannel {
             case "registrarGoogle"   -> handleRegisterGoogle(call, result);
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
+            case "getSeguidores" -> handleGetSeguidores(call, result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             case "getPerfilEditable" -> handleGetPerfilEditable(call, result);
@@ -207,6 +208,19 @@ public class AccessChannel {
 
     private void handleGetGeneros(MethodChannel.Result result) {
         HttpClientManager.getInstance().get("/rest/v1/generos?select=*", new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                activity.runOnUiThread(() -> result.success(body));
+            }
+        });
+    }
+
+    private void handleGetSeguidores(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        HttpClientManager.getInstance().get("/rest/v1/vista_mis_seguidos?select=*&id_seguidor=eq." + idUsuario, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }
