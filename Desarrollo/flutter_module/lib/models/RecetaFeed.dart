@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class RecetaFeed {
   ///Receta:
   final int idReceta;
@@ -7,6 +9,9 @@ class RecetaFeed {
   final String? foto;
   final double precioPorcion;
   final List<String> etiquetas;
+  final double precio;
+  final bool activo;
+  final bool visibilidad;
 
   ///Usuario:
   final int usuarioTarget;
@@ -32,6 +37,9 @@ class RecetaFeed {
     required this.porciones,
     required this.foto,
     required this.precioPorcion,
+    required this.activo,
+    required this.visibilidad,
+    required this.precio,
     required this.etiquetas,
     required this.usuarioTarget,
     required this.apellidoNombre,
@@ -47,33 +55,45 @@ class RecetaFeed {
   });
 
   factory RecetaFeed.fromJson(Map<String, dynamic> json) {
+    // Función auxiliar para decodificar si es String o usar si es List
+    List<dynamic> decodeList(dynamic val) {
+      if (val == null) return [];
+      if (val is String) {
+        try { return jsonDecode(val); } catch (e) { return []; }
+      }
+      return val as List<dynamic>;
+    }
+
     return RecetaFeed(
-      idReceta: json['id_receta'] ?? 0,
-
-      ///Receta:
+      idReceta: (json['id_receta'] as num?)?.toInt() ?? 0,
       nombre: json['nombre_receta'] ?? '',
-      caloriasTotales: (json['calorias_totales'] ?? 0).toDouble(),
-      porciones: json['porciones'] ?? 0,
+      caloriasTotales: (json['calorias_totales'] as num?)?.toDouble() ?? 0.0,
+      porciones: (json['porciones'] as num?)?.toInt() ?? 0,
       foto: json['foto'],
-      precioPorcion: (json['precio_porcion'] ?? 0).toDouble(),
-      etiquetas: List<String>.from(json['lista_etiquetas'] ?? []),
+      precioPorcion: (json['precio_porcion'] as num?)?.toDouble() ?? 0.0,
+      // Aquí forzamos la conversión a List<String>
+      etiquetas: List<String>.from(decodeList(json['lista_etiquetas'])),
+      precio: (json['precio'] as num?)?.toDouble() ?? 0.0,
+      activo: json['activo'] ?? true,
+      visibilidad: json['visibilidad'] ?? true,
 
-      ///Usuarios:
-      usuarioTarget: json ['id_usuario'] ?? 0,
+      usuarioTarget: (json['id_usuario'] as num?)?.toInt() ?? 0,
       apellidoNombre: json['apellido_nombre'] ?? '',
       nombreUsuario: json['usuario'] ?? 'desconocido',
       fotoUsuario: json['foto_perfil'],
 
-      ///Comentarios, Calificaciones y Favs:
-      cantidadComentarios: json['cant_comentarios'] ?? 0,
-      promedioCalificacion: (json['promedio_calificacion'] ?? 0).toDouble(),
-      cantidadFavoritos: json['cant_favoritos'] ?? 0,
-      interacciones: (json['lista_interacciones'] as List?)?.map((item)=> Map<String, dynamic>.from(item)).toList() ?? [],
+      cantidadComentarios: (json['cant_comentarios'] as num?)?.toInt() ?? 0,
+      promedioCalificacion: (json['promedio_calificacion'] as num?)?.toDouble() ?? 0.0,
+      cantidadFavoritos: (json['cant_favoritos'] as num?)?.toInt() ?? 0,
 
-      ///Nutrientes:
-      proteinasTotales: (json['proteinas_totales'] ?? 0).toDouble(),
-      carbohidratosTotales: (json['carbohidratos_totales'] ?? 0).toDouble(),
-      grasasTotales: (json['grasas_totales'] ?? 0).toDouble(),
+      // Aquí decodificamos la lista de mapas
+      interacciones: decodeList(json['lista_interacciones'])
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(),
+
+      proteinasTotales: (json['proteinas_totales'] as num?)?.toDouble() ?? 0.0,
+      carbohidratosTotales: (json['carbohidratos_totales'] as num?)?.toDouble() ?? 0.0,
+      grasasTotales: (json['grasas_totales'] as num?)?.toDouble() ?? 0.0,
     );
   }
   bool isLikedBy(int idUsuario){
