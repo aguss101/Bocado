@@ -55,4 +55,9 @@ class RecetaService {
     final result = await _channel.invokeMethod('saveReceta', datos);
     return jsonDecode(result as String) as Map<String, dynamic>;
   }
+
+  static Future<Map<String, dynamic>> updateReceta(Map<String, dynamic> datos) async {
+    final result = await _channel.invokeMethod('updateReceta', datos);
+    return jsonDecode(result as String) as Map<String, dynamic>;
+  }
 }

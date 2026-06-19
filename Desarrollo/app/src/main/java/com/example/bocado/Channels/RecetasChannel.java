@@ -41,11 +41,30 @@ public class RecetasChannel {
             case "contarRecetas"   -> handleContarRecetas(call, result);
             case "getEtiquetas" -> handleGetEtiquetas(call, result);
             case "getRecetaID" -> handleGetRecetaID(call, result);
+            case "updateReceta" -> handleUpdateReceta(call, result);
 
             default                -> result.notImplemented();
         }
     }
 
+    private void handleUpdateReceta(MethodCall call, MethodChannel.Result result) {
+        Map<String, Object> args = call.arguments();
+
+        RecetaManager.getInstance().update(args, new MethodChannel.Result() {
+            @Override
+            public void success(Object data) {
+                activity.runOnUiThread(() -> result.success(data));
+            }
+            @Override
+            public void error(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+            @Override
+            public void notImplemented() {
+                activity.runOnUiThread(result::notImplemented);
+            }
+        });
+    }
     private void handleGetRecetaID(MethodCall call, MethodChannel.Result result) {
         Integer idReceta = call.argument("id_receta");
         if (idReceta == null) {

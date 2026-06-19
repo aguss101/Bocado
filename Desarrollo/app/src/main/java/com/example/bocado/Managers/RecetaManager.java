@@ -71,4 +71,30 @@ public class RecetaManager implements IReceta {
             result.error("ERROR_MANAGER", "Error al recuperar la receta: " + e.getMessage(), null);
         }
     }
+
+    @Override
+    public void update(Map<String, Object> args, MethodChannel.Result result) {
+        try {
+            if (args == null || !args.containsKey("nombre") || !args.containsKey("id_usuario")) {
+                result.error("ARGS_INVALIDOS", "Faltan parámetros obligatorios", null);
+                return;
+            }
+
+            recetaDAO.update(args, new CallbackCB() {
+                @Override
+                public void onSuccess(String data) {
+                    result.success(data);
+                }
+
+                @Override
+                public void onError(String code, String message, Object details) {
+                    result.error(code, message, details);
+                }
+            });
+
+        } catch (Exception e) {
+            result.error("ERROR_MANAGER", "Error al procesar la receta: " + e.getMessage(), null);
+        }
+    }
+
 }

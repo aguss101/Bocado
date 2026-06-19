@@ -102,7 +102,7 @@ class _FeedScreenState extends State<FeedScreen> {
               onPressed: () async {
                 try {
                   const channel = MethodChannel('com.example.bocado/recetas');
-                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 21});
+                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 32});
                   final Map<String, dynamic> recetaData = jsonDecode(jsonString);
 
                   if (mounted) {
