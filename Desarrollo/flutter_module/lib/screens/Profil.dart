@@ -43,18 +43,28 @@ class _ProfileScreenState extends State<ProfileScreen>
   int _cantSiguiendo = 0;
   bool _estaCargandoStats = true;
 
+  Future<List<RecetaFeed>>? _futureRecetas;
+  Future<List<RecetaFeed>>? _futureGuardados;
+  Future<List<UserProfile>>? _futureSeguidos;
+
   @override
   void initState() {
     super.initState();
     _isMiPerfil = widget.idUsuarioTarget == null || widget.idUsuarioTarget == widget.user.id;
     _tabController = TabController(length: _isMiPerfil ? 4 : 2, vsync: this);
-    if(_isMiPerfil){
+    final idTarget = widget.idUsuarioTarget ?? widget.user.id;
+    if (_isMiPerfil) {
       _user = widget.user;
     } else {
       _user = widget.user;
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
-    _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
+    _futureRecetas  = RecetaService.getRecetasUsuario(idTarget);
+    _futureSeguidos = UsuarioService.getSeguidores(idTarget);
+    if (_isMiPerfil) {
+      _futureGuardados = RecetaService.getGuardadosUsuario(widget.user.id);
+    }
+    _cargarStats(idTarget);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
   }
 
@@ -71,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             _isMiPerfil = true;
             _tabController.dispose();
             _tabController = TabController(length: 4, vsync: this);
+            _futureGuardados = RecetaService.getGuardadosUsuario(widget.user.id);
           }
           _estaCargandoPerfil = false;
         });
@@ -278,10 +289,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     _buildPlaceholderTab('draft', 'Sin borradores', muted),
     _buildSeguidosTab(surface, border, text, muted),
     ]
-      :[
+      : [
         _buildRecetasTab(surface, border, text, muted),
-      _buildRecetasTab(surface, border, text, muted),
-    ],
+        _buildSeguidosTab(surface, border, text, muted),
+      ],
     ),
     ),
     );
@@ -608,7 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ── TAB: GUARDADOS  ──────────────────────────────────────────────────────────
   Widget _buildGuardadosTab(Color surface, Color border, Color text, Color muted){
     return FutureBuilder<List<RecetaFeed>>(
-        future: RecetaService.getGuardadosUsuario(_user.id),
+        future: _futureGuardados,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -658,7 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       Color surface, Color border, Color text, Color muted) {
 
     return FutureBuilder<List<UserProfile>>(
-      future: UsuarioService.getSeguidores(_user.id),
+      future: _futureSeguidos,
       builder: (context, snapshot) {
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -680,78 +691,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           padding: const EdgeInsets.all(16),
           itemCount: seguidos.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, i) {
-            final perfil = seguidos[i];
-
-            final nombre = perfil.nombreUsuario;
-            final inicial = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
-
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: border),
-              ),
-              child: Row(
-                children: [
-                  // ── FOTO DE PERFIL O INICIAL ──
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                    backgroundImage: (perfil.fotoUrl != null && perfil.fotoUrl!.isNotEmpty)
-                        ? NetworkImage(perfil.fotoUrl!)
-                        : null,
-                    child: (perfil.fotoUrl == null || perfil.fotoUrl!.isEmpty)
-                        ? Text(
-                      inicial,
-                      style: const TextStyle(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18),
-                    )
-                        : null,
-                  ),
-                  const SizedBox(width: 14),
-
-                  // ── NOMBRE Y RECETAS ──
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(nombre,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: text),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        Text('${perfil.totalRecetas} recetas',
-                            style: TextStyle(fontSize: 12, color: muted)),
-                      ],
-                    ),
-                  ),
-
-                  // ── BOTÓN SIGUIENDO ──
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: border),
-                      foregroundColor: muted,
-                      minimumSize: const Size(0, 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      textStyle: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: () {
-                    },
-                    child: const Text('Siguiendo'),
-                  ),
-                ],
-              ),
-            );
-          },
+          itemBuilder: (context, i) => _SeguidoCard(
+            perfil: seguidos[i],
+            usuarioLogueadoId: widget.user.id,
+            isMiPerfil: _isMiPerfil,
+            surface: surface,
+            border: border,
+            text: text,
+            muted: muted,
+          ),
         );
       },
     );
@@ -761,7 +709,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildRecetasTab(
       Color surface, Color border, Color text, Color muted) {
     return FutureBuilder<List<RecetaFeed>>(
-      future: RecetaService.getRecetasUsuario(_user.id),
+      future: _futureRecetas,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -1043,6 +991,147 @@ Widget _recipeCard({
       ),
     );
   }
+
+// ── CARD DE SEGUIDO CON BOTÓN SEGUIR/SIGUIENDO ───────────────────────────────
+class _SeguidoCard extends StatefulWidget {
+  final UserProfile perfil;
+  final int usuarioLogueadoId;
+  final bool isMiPerfil;
+  final Color surface;
+  final Color border;
+  final Color text;
+  final Color muted;
+
+  const _SeguidoCard({
+    required this.perfil,
+    required this.usuarioLogueadoId,
+    required this.isMiPerfil,
+    required this.surface,
+    required this.border,
+    required this.text,
+    required this.muted,
+  });
+
+  @override
+  State<_SeguidoCard> createState() => _SeguidoCardState();
+}
+
+class _SeguidoCardState extends State<_SeguidoCard> {
+  bool _siguiendo = false;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isMiPerfil) {
+      // Están en mi lista de seguidos → ya los sigo por definición
+      _siguiendo = true;
+    } else {
+      _loading = true;
+      _checkSiguiendo();
+    }
+  }
+
+  Future<void> _checkSiguiendo() async {
+    try {
+      final result = await UsuarioService.estasSiguiendo(
+          widget.usuarioLogueadoId, widget.perfil.idSeguido);
+      if (mounted) setState(() { _siguiendo = result; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggle() async {
+    if (_loading) return;
+    final siguiendoActual = _siguiendo;
+    setState(() => _loading = true);
+    try {
+      await InteraccionesService.actualizarSeguido({
+        'id_seguidor': widget.usuarioLogueadoId,
+        'id_seguido': widget.perfil.idSeguido,
+        'siguiendo': siguiendoActual,
+      });
+      if (mounted) setState(() { _siguiendo = !siguiendoActual; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final perfil = widget.perfil;
+    final nombre = perfil.nombreUsuario;
+    final inicial = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: widget.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: widget.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+            backgroundImage: (perfil.fotoUrl != null && perfil.fotoUrl!.isNotEmpty)
+                ? NetworkImage(perfil.fotoUrl!)
+                : null,
+            child: (perfil.fotoUrl == null || perfil.fotoUrl!.isEmpty)
+                ? Text(inicial,
+                    style: const TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18))
+                : null,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(nombre,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: widget.text),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text('${perfil.totalRecetas} recetas',
+                    style: TextStyle(fontSize: 12, color: widget.muted)),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _siguiendo
+                  ? Color.lerp(AppTheme.primary, Colors.black, 0.30)
+                  : AppTheme.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+              textStyle: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            onPressed: _loading ? null : _toggle,
+            child: _loading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : Text(_siguiendo ? 'Siguiendo' : 'Seguir'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ── DELEGATE PARA TAB BAR STICKY ─────────────────────────────────────────────
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
