@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+import 'Common.dart';
 
 /// Scaffold base para todas las pantallas de autenticación.
 /// Incluye header con logo "Bocado", botón de toggle de tema,
@@ -89,19 +90,7 @@ class _AuthHeader extends StatelessWidget {
               children: [
                 if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
                 // Theme toggle
-                ValueListenableBuilder<ThemeMode>(
-                  valueListenable: themeNotifier,
-                  builder: (_, mode, __) => IconButton(
-                    onPressed: themeNotifier.toggle,
-                    icon: Icon(
-                      mode == ThemeMode.dark
-                          ? Icons.light_mode_outlined
-                          : Icons.dark_mode_outlined,
-                      color: AppTheme.primary,
-                    ),
-                    tooltip: mode == ThemeMode.dark ? 'Tema claro' : 'Tema oscuro',
-                  ),
-                ),
+                ThemeToggleButton(themeNotifier: themeNotifier, tooltip: true),
               ],
             ),
           ],
@@ -144,28 +133,6 @@ class _AuthFooter extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FooterLink extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _FooterLink(this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {},
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: color,
-          letterSpacing: 1,
-        ),
       ),
     );
   }
@@ -279,12 +246,14 @@ class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool enabled;
+  final bool loading;
 
   const AuthPrimaryButton({
     super.key,
     required this.label,
     required this.onTap,
     this.enabled = true,
+    this.loading = false,
   });
 
   @override
@@ -293,16 +262,130 @@ class AuthPrimaryButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: enabled ? onTap : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(label),
-            const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward, size: 18),
-          ],
+        onPressed: (enabled && !loading) ? onTap : null,
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2.5),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(label),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward, size: 18),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Banner de error rojo para formularios de auth.
+class AuthErrorBox extends StatelessWidget {
+  final String message;
+  const AuthErrorBox(this.message, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Encabezado de marca "PLATAFORMA GOURMET" (ícono + label) de LogIn/Register.
+class AuthBrandHeader extends StatelessWidget {
+  const AuthBrandHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        Center(
+          child: Icon(Icons.restaurant_menu, color: AppTheme.primary, size: 40),
+        ),
+        SizedBox(height: 4),
+        Center(
+          child: Text(
+            'PLATAFORMA GOURMET',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primary,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+/// Dropdown de catálogo (nación/género) con el estilo de las pantallas de auth.
+class AuthDropdown extends StatelessWidget {
+  final int? value;
+  final String hint;
+  final IconData icon;
+  final List<dynamic> items;
+  final ValueChanged<int?> onChanged;
+
+  const AuthDropdown({
+    super.key,
+    required this.value,
+    required this.hint,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
+    return DropdownButtonFormField<int>(
+      isExpanded: true,
+      initialValue: value,
+      dropdownColor: c.surface,
+      style: TextStyle(fontSize: 14, color: c.text),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: c.muted, fontSize: 14),
+        prefixIcon: Icon(icon, color: c.muted, size: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
         ),
       ),
+      items: items.map<DropdownMenuItem<int>>((it) {
+        return DropdownMenuItem<int>(value: it['id'], child: Text(it['nombre']));
+      }).toList(),
+      onChanged: onChanged,
     );
   }
 }

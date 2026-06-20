@@ -158,9 +158,10 @@ super.dispose();
 
 @override
 Widget build(BuildContext context) {
-final isDark = Theme.of(context).brightness == Brightness.dark;
-final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+final c = BocadoColors.of(context);
+final isDark = c.isDark;
+final secondary = c.muted;
+final outline = c.border;
 
 return AuthScaffold(
 themeNotifier: widget.themeNotifier,
@@ -169,26 +170,7 @@ child: AuthCard(
 child: Column(
 crossAxisAlignment: CrossAxisAlignment.stretch,
 children: [
-const Center(
-child: Icon(
-Icons.restaurant_menu,
-color: AppTheme.primary,
-size: 40,
-),
-),
-const SizedBox(height: 4),
-const Center(
-child: Text(
-'PLATAFORMA GOURMET',
-style: TextStyle(
-fontSize: 10,
-fontWeight: FontWeight.w700,
-color: AppTheme.primary,
-letterSpacing: 2,
-),
-),
-),
-const SizedBox(height: 24),
+const AuthBrandHeader(),
 
 Text(
 'Bienvenido de nuevo',
@@ -283,59 +265,14 @@ style: TextStyle(fontSize: 13, color: secondary),
 const SizedBox(height: 20),
 
 if (_errorMessage != null) ...[
-Container(
-padding: const EdgeInsets.symmetric(
-horizontal: 14, vertical: 12),
-decoration: BoxDecoration(
-color: Colors.red.withValues(alpha: 0.1),
-borderRadius: BorderRadius.circular(10),
-border: Border.all(
-color: Colors.red.withValues(alpha: 0.3)),
-),
-child: Row(
-children: [
-const Icon(Icons.error_outline,
-color: Colors.red, size: 16),
-const SizedBox(width: 8),
-Expanded(
-child: Text(
-_errorMessage!,
-style: const TextStyle(
-color: Colors.red, fontSize: 13),
-),
-),
-],
-),
-),
+AuthErrorBox(_errorMessage!),
 const SizedBox(height: 16),
 ],
 
-SizedBox(
-width: double.infinity,
-height: 56,
-child: ElevatedButton(
-onPressed: _isLoading ? null : _login,
-child: _isLoading
-? const SizedBox(
-width: 22,
-height: 22,
-child: CircularProgressIndicator(
-color: Colors.white,
-strokeWidth: 2.5,
-),
-)
-    : const Row(
-mainAxisAlignment: MainAxisAlignment.center,
-children: [
-Text('INICIAR SESIÓN',
-style: TextStyle(
-fontWeight: FontWeight.w700,
-letterSpacing: 1)),
-SizedBox(width: 8),
-Icon(Icons.arrow_forward, size: 18),
-],
-),
-),
+AuthPrimaryButton(
+label: 'INICIAR SESIÓN',
+onTap: _login,
+loading: _isLoading,
 ),
 const SizedBox(height: 20),
 

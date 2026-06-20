@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
 import '../services/Receta.dart';
 import 'BarraNavegacion.dart';
@@ -49,10 +50,11 @@ class MyRecipesScreen extends StatefulWidget {
 }
 
 class _MyRecipesScreenState extends State<MyRecipesScreen> {
-  static const Color surfaceColor = Color(0xFF130E09);
-  static const Color textColor    = Color(0xFFF8FAFC);
-  static const Color mutedColor   = Color(0xFF94A3B8);
-  static const Color borderColor  = Color(0xFF1E293B);
+  BocadoColors get _c => BocadoColors.of(context);
+  Color get surfaceColor => _c.surface;
+  Color get textColor    => _c.text;
+  Color get mutedColor   => _c.muted;
+  Color get borderColor  => _c.border;
 
   List<RecetaFeed> _recetas = [];
   bool _cargando = true;
@@ -166,33 +168,33 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     final recetasVisibles = _recetasVisibles;
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: _c.bg,
       endDrawer: SharedDrawer(
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'recetas',
       ),
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark.withValues(alpha: 0.9),
+        backgroundColor: _c.bg.withValues(alpha: 0.9),
         elevation: 0,
-        iconTheme: const IconThemeData(color: mutedColor),
+        iconTheme: IconThemeData(color: mutedColor),
         title: Container(
           decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(12)),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(color: textColor, fontSize: 14),
-            decoration: const InputDecoration(
+            style: TextStyle(color: textColor, fontSize: 14),
+            decoration: InputDecoration(
               hintText: 'Buscar por nombre o etiqueta...',
               hintStyle: TextStyle(color: mutedColor),
               prefixIcon: Icon(Icons.search, color: mutedColor, size: 20),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: mutedColor),
+            icon: Icon(Icons.filter_list, color: mutedColor),
             onPressed: _abrirSelectorOrden,
           ),
           Builder(
@@ -214,14 +216,14 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Mis Recetas',
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${recetasVisibles.length} recetas',
-                    style: const TextStyle(fontSize: 14, color: mutedColor),
+                    style: TextStyle(fontSize: 14, color: mutedColor),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -314,7 +316,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 const SizedBox(width: 6),
                 Text(
                   _orden.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: textColor,
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -352,8 +354,8 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(20),
+                Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -409,22 +411,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       _RecetaTab.favoritos => 'No tenés recetas favoritas',
     };
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.ramen_dining_outlined, color: mutedColor, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              mensaje,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: mutedColor, fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: BocadoEmptyState(icon: Icons.ramen_dining_outlined, message: mensaje),
     );
   }
 
@@ -440,6 +429,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             protFeed: receta.proteinasTotales,
             carbFeed: receta.carbohidratosTotales,
             grasFeed: receta.grasasTotales,
+            idAutor: receta.usuarioTarget,
           ),
         ),
       ),
@@ -571,13 +561,13 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 6, fontWeight: FontWeight.w900, color: mutedColor, letterSpacing: 0.5),
+          style: TextStyle(fontSize: 6, fontWeight: FontWeight.w900, color: mutedColor, letterSpacing: 0.5),
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 1),
         Text(
           value,
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: textColor),
+          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: textColor),
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -589,7 +579,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'RATING',
           style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: mutedColor, letterSpacing: 0.5),
           overflow: TextOverflow.ellipsis,

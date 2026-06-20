@@ -5,6 +5,7 @@ import 'package:flutter_module/services/Receta.dart';
 import 'package:share_plus/share_plus.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import '../widgets/Common.dart';
 import 'BarraNavegacion.dart';
 import 'EditProfil.dart';
 import '../services/Usuario.dart';
@@ -181,12 +182,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg      = isDark ? AppTheme.bgDark            : AppTheme.surfaceContainerLight;
-    final surface = isDark ? AppTheme.surfaceDark        : AppTheme.surfaceLight;
-    final border  = isDark ? AppTheme.outlineDark        : AppTheme.outlineLight;
-    final text    = isDark ? AppTheme.onSurfaceDark      : AppTheme.onSurfaceLight;
-    final muted   = isDark ? AppTheme.secondaryDark      : AppTheme.secondaryLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final bg = c.bg;
+    final surface = c.surface;
+    final border = c.border;
+    final text = c.text;
+    final muted = c.muted;
 
     return Scaffold(
       backgroundColor: bg,
@@ -205,18 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         centerTitle: true,
         actions: [
           // ── Toggle de tema ──
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: widget.themeNotifier,
-            builder: (_, mode, __) => IconButton(
-              icon: Icon(
-                mode == ThemeMode.dark
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
-                color: AppTheme.primary,
-              ),
-              onPressed: widget.themeNotifier.toggle,
-            ),
-          ),
+          ThemeToggleButton(themeNotifier: widget.themeNotifier),
           // ── Abrir drawer ──
           Builder(
             builder: (ctx) => IconButton(
@@ -485,29 +476,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildAvatar() {
-    return Container(
-      width: 88,
-      height: 88,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: AppTheme.primary.withValues(alpha: 0.15),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: _user.fotoUrl != null
-          ? Image.network(_user.fotoUrl!, fit: BoxFit.cover)
-          : _user.fotoReady != null
-              ? Image.memory(_user.fotoReady!, fit: BoxFit.cover)
-              : Center(
-                  child: Text(
-                    _user.usuario.isNotEmpty
-                        ? _user.usuario[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.primary),
-                  ),
-                ),
+    return BocadoAvatar(
+      fotoUrl: _user.fotoUrl,
+      fotoBytes: _user.fotoReady,
+      initial: _user.usuario.isNotEmpty ? _user.usuario[0].toUpperCase() : '?',
+      size: 88,
+      radius: 20,
+      initialFontSize: 36,
     );
   }
 
@@ -825,6 +800,7 @@ Widget _recipeCard({
               protFeed: receta.proteinasTotales,
               carbFeed: receta.carbohidratosTotales,
               grasFeed: receta.grasasTotales,
+              idAutor: receta.usuarioTarget,
             )
         )
       );
@@ -944,20 +920,9 @@ Widget _recipeCard({
       'favorite_border': Icons.favorite_border,
       'draft': Icons.drafts_outlined,
     };
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icons[iconName] ?? Icons.inbox_outlined,
-              size: 48, color: muted.withValues(alpha: 0.5)),
-          const SizedBox(height: 12),
-          Text(msg,
-              style: TextStyle(
-                  color: muted,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14)),
-        ],
-      ),
+    return BocadoEmptyState(
+      icon: icons[iconName] ?? Icons.inbox_outlined,
+      message: msg,
     );
   }
 

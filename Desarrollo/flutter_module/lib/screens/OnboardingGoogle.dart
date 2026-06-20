@@ -155,9 +155,9 @@ class _CompleteGoogleProfileScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final secondary = c.muted;
 
     return AuthScaffold(
       themeNotifier: widget.themeNotifier,
@@ -226,14 +226,11 @@ class _CompleteGoogleProfileScreenState
                     // ── Nación ───────────────────────────────────────
                     const AuthFieldLabel('Nación'),
                     const SizedBox(height: 8),
-                    _OnboardingDropdown(
+                    AuthDropdown(
                       value: _idNacion,
                       hint: 'Seleccionar nación',
                       icon: Icons.public,
                       items: _naciones,
-                      isDark: isDark,
-                      secondary: secondary,
-                      outline: outline,
                       onChanged: (v) => setState(() => _idNacion = v),
                     ),
                     const SizedBox(height: 20),
@@ -241,135 +238,29 @@ class _CompleteGoogleProfileScreenState
                     // ── Género ───────────────────────────────────────
                     const AuthFieldLabel('Género'),
                     const SizedBox(height: 8),
-                    _OnboardingDropdown(
+                    AuthDropdown(
                       value: _idGenero,
                       hint: 'Seleccionar género',
                       icon: Icons.people_outline,
                       items: _generos,
-                      isDark: isDark,
-                      secondary: secondary,
-                      outline: outline,
                       onChanged: (v) => setState(() => _idGenero = v),
                     ),
                     const SizedBox(height: 24),
 
                     if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: Colors.red, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                    color: Colors.red, fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      AuthErrorBox(_errorMessage!),
                       const SizedBox(height: 16),
                     ],
 
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _finalizar,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('Crear cuenta',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 1)),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, size: 18),
-                                ],
-                              ),
-                      ),
+                    AuthPrimaryButton(
+                      label: 'Crear cuenta',
+                      onTap: _finalizar,
+                      loading: _isLoading,
                     ),
                   ],
                 ),
         ),
       ),
-    );
-  }
-}
-
-/// Dropdown de catálogo (nación/género) con el estilo de las pantallas de auth.
-class _OnboardingDropdown extends StatelessWidget {
-  final int? value;
-  final String hint;
-  final IconData icon;
-  final List<dynamic> items;
-  final bool isDark;
-  final Color secondary;
-  final Color outline;
-  final ValueChanged<int?> onChanged;
-
-  const _OnboardingDropdown({
-    required this.value,
-    required this.hint,
-    required this.icon,
-    required this.items,
-    required this.isDark,
-    required this.secondary,
-    required this.outline,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<int>(
-      isExpanded: true,
-      initialValue: value,
-      dropdownColor: isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight,
-      style: TextStyle(
-        fontSize: 14,
-        color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: secondary, fontSize: 14),
-        prefixIcon: Icon(icon, color: secondary, size: 20),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: outline),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
-        ),
-      ),
-      items: items.map<DropdownMenuItem<int>>((it) {
-        return DropdownMenuItem<int>(
-          value: it['id'],
-          child: Text(it['nombre']),
-        );
-      }).toList(),
-      onChanged: onChanged,
     );
   }
 }

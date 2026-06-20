@@ -127,9 +127,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final secondary = c.muted;
+    final outline = c.border;
     // Habilitado solo si no estamos enviando y no hay cooldown activo.
     final canRequest = !_sending && _secondsLeft == 0;
 

@@ -87,9 +87,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final secondary = c.muted;
+    final outline = c.border;
 
     return AuthScaffold(
       themeNotifier: widget.themeNotifier,

@@ -2,11 +2,11 @@ import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
-import 'package:flutter_module/screens/Feed.dart';
-import 'package:flutter_module/screens/BarraNavegacion.dart';
 import '../services/Receta.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+import '../widgets/Common.dart';
+import 'EditRecipe.dart';
 
 class RecipeDetailData {
   final String titulo;
@@ -120,6 +120,7 @@ class RecipeDetailScreen extends StatefulWidget {
   final double protFeed;
   final double carbFeed;
   final double grasFeed;
+  final int? idAutor;
 
   const RecipeDetailScreen({
     super.key,
@@ -129,6 +130,7 @@ class RecipeDetailScreen extends StatefulWidget {
     required this.protFeed,
     required this.carbFeed,
     required this.grasFeed,
+    this.idAutor,
   });
 
   @override
@@ -138,13 +140,50 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isFavorite = false;
   bool _isLoading = true;
+  bool _abriendoEditor = false;
   RecipeDetailData? _data;
   final PageController _pageController = PageController();
+
+  bool get _esPropia =>
+      widget.idAutor != null && widget.idAutor == widget.user.id;
 
   @override
   void initState() {
     super.initState();
     _traerDetalleDeLaReceta();
+  }
+
+  /// Abre el editor con la receta actual (formato getRecetaID) y, al volver,
+  /// recarga el detalle para reflejar los cambios.
+  Future<void> _abrirEditor() async {
+    if (_abriendoEditor) return;
+    setState(() => _abriendoEditor = true);
+    try {
+      final data = await RecetaService.getRecetaParaEditar(widget.idReceta);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeEditorScreen(
+            themeNotifier: widget.themeNotifier,
+            user: widget.user,
+            recetaExistente: data,
+          ),
+        ),
+      );
+      if (mounted) {
+        setState(() => _isLoading = true);
+        await _traerDetalleDeLaReceta();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo abrir el editor: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _abriendoEditor = false);
+    }
   }
 
   Future<void> _traerDetalleDeLaReceta() async {
@@ -169,10 +208,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final surface = isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final surface = c.surfaceContainer;
+    final outline = c.border;
     final listaImagenes = _data?.imageUrl.split('|').where((url) => url.trim().isNotEmpty).toList() ?? [];
 
     if (_isLoading) {
@@ -218,18 +257,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              ValueListenableBuilder<ThemeMode>(
-                valueListenable: widget.themeNotifier,
-                builder: (_, mode, __) => IconButton(
-                  onPressed: widget.themeNotifier.toggle,
-                  icon: Icon(
-                    mode == ThemeMode.dark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined,
-                    color: AppTheme.primary,
-                  ),
+              if (_esPropia)
+                IconButton(
+                  tooltip: 'Editar receta',
+                  onPressed: _abriendoEditor ? null : _abrirEditor,
+                  icon: _abriendoEditor
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.edit_outlined, color: Colors.white),
                 ),
-              ),
+              ThemeToggleButton(themeNotifier: widget.themeNotifier),
             ],
         flexibleSpace: FlexibleSpaceBar(
           background: Stack(
@@ -377,64 +418,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
                 ),
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 64,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _data!.categoria.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _data!.titulo,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _isFavorite = !_isFavorite),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2)),
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

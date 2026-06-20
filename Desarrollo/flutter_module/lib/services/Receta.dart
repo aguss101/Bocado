@@ -36,6 +36,15 @@ class RecetaService {
     return lista.first as Map<String, dynamic>;
   }
 
+  /// Trae la receta en el formato que espera el editor (RecipeEditorScreen).
+  static Future<Map<String, dynamic>> getRecetaParaEditar(int idReceta) async {
+    final String json = await _channel.invokeMethod(
+      'getRecetaID',
+      {'id_receta': idReceta},
+    );
+    return jsonDecode(json) as Map<String, dynamic>;
+  }
+
   static Future<List<Map<String, dynamic>>> getAlimentos() async {
     final result = await _channel.invokeMethod('getAlimentos');
     return List<Map<String, dynamic>>.from(

@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/screens/Profil.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
 import '../services/Receta.dart';
 import '../services/Instructions.dart';
@@ -101,9 +98,7 @@ class _FeedScreenState extends State<FeedScreen> {
               icon: const Icon(Icons.bug_report, color: Colors.blue),
               onPressed: () async {
                 try {
-                  const channel = MethodChannel('com.example.bocado/recetas');
-                  final String jsonString = await channel.invokeMethod('getRecetaID', {'id_receta': 32});
-                  final Map<String, dynamic> recetaData = jsonDecode(jsonString);
+                  final recetaData = await RecetaService.getRecetaParaEditar(32);
 
                   if (mounted) {
                     Navigator.push(
@@ -124,16 +119,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 }
               },
             ),
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: widget.themeNotifier,
-            builder: (_, mode, __) => IconButton(
-              onPressed: widget.themeNotifier.toggle,
-              icon: Icon(
-                mode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                color: AppTheme.primary,
-              ),
-            ),
-          ),
+          ThemeToggleButton(themeNotifier: widget.themeNotifier),
           Builder(
             builder: (context) => GestureDetector(
               onTap: () => Scaffold.of(context).openEndDrawer(),
@@ -174,6 +160,7 @@ class _FeedScreenState extends State<FeedScreen> {
                           protFeed: recetaActual.proteinasTotales,
                           carbFeed: recetaActual.carbohidratosTotales,
                           grasFeed: recetaActual.grasasTotales,
+                          idAutor: recetaActual.usuarioTarget,
                         ),
                       ),
                     );

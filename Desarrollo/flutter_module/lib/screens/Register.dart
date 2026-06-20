@@ -237,9 +237,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final secondary = c.muted;
+    final outline = c.border;
 
     return AuthScaffold(
       themeNotifier: widget.themeNotifier,
@@ -271,26 +272,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            const Center(
-                            child: Icon(
-                              Icons.restaurant_menu,
-                              color: AppTheme.primary,
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Center(
-                            child: Text(
-                              'PLATAFORMA GOURMET',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primary,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+              const AuthBrandHeader(),
               // ── Title ─────────────────────────────────────────
               Text(
                 'Crea tu cuenta',
@@ -374,39 +356,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         const AuthFieldLabel('Nación'),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<int>(
-                          isExpanded: true,
-                          initialValue: _idNacionSeleccionada,
-                          dropdownColor: isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Elegir',
-                            hintStyle: TextStyle(color: secondary, fontSize: 14),
-                            prefixIcon: Icon(Icons.public, color: secondary, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: outline),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppTheme.primary, width: 2),
-                            ),
-                          ),
-                          items: _naciones.map<DropdownMenuItem<int>>((nacion) {
-                            return DropdownMenuItem<int>(
-                              value: nacion['id'],
-                              child: Text(nacion['nombre']),
-                            );
-                          }).toList(),
-                          onChanged: (int? nuevoInt) {
-                            setState(() {
-                              _idNacionSeleccionada = nuevoInt;
-                            });
-                          },
+                        AuthDropdown(
+                          value: _idNacionSeleccionada,
+                          hint: 'Elegir',
+                          icon: Icons.public,
+                          items: _naciones,
+                          onChanged: (v) => setState(() => _idNacionSeleccionada = v),
                         ),
                       ],
                     ),
@@ -418,39 +373,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         const AuthFieldLabel('Género'),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<int>(
-                          isExpanded: true,
-                          initialValue: _idGeneroSeleccionado,
-                          dropdownColor: isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Elegir',
-                            hintStyle: TextStyle(color: secondary, fontSize: 14),
-                            prefixIcon: Icon(Icons.people_outline, color: secondary, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: outline),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppTheme.primary, width: 2),
-                            ),
-                          ),
-                          items: _generos.map<DropdownMenuItem<int>>((genero) {
-                            return DropdownMenuItem<int>(
-                              value: genero['id'],
-                              child: Text(genero['nombre']),
-                            );
-                          }).toList(),
-                          onChanged: (int? nuevoInt) {
-                            setState(() {
-                              _idGeneroSeleccionado = nuevoInt;
-                            });
-                          },
+                        AuthDropdown(
+                          value: _idGeneroSeleccionado,
+                          hint: 'Elegir',
+                          icon: Icons.people_outline,
+                          items: _generos,
+                          onChanged: (v) => setState(() => _idGeneroSeleccionado = v),
                         ),
                       ],
                     ),
@@ -540,55 +468,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 28),
 
               if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                AuthErrorBox(_errorMessage!),
                 const SizedBox(height: 16),
               ],
               // ── Submit ────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _register,
-                  child: _isLoading
-                  ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                  ),
-                ): const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Registrarse',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1)),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
-                  ],
-                ),
+              AuthPrimaryButton(
+                label: 'Registrarse',
+                onTap: _register,
+                loading: _isLoading,
               ),
-            ),
               const AuthDivider(label: 'O REGISTRATE CON'),
               const SizedBox(height: 20),
 

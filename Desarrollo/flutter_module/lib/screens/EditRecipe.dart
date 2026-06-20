@@ -6,13 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import '../services/UploadImg.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import '../widgets/Common.dart';
 
 const _primary = AppTheme.primary;
-const _bg = AppTheme.surfaceContainerLight;
-const _surface = AppTheme.surfaceLight;
-const _outline = AppTheme.outlineLight;
-const _onSurface = AppTheme.onSurfaceLight;
-const _onSurfaceVariant = AppTheme.secondaryLight;
 const _error = Color(0xFFB91C1C);
 
 const List<DropdownMenuItem<int>> _medidaDropdownItems = [
@@ -88,7 +84,13 @@ class RecipeEditorScreen extends StatefulWidget {
 }
 
 class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  BocadoColors get _c => BocadoColors.of(context);
+  Color get _bg => _c.bg;
+  Color get _surface => _c.surface;
+  Color get _outline => _c.border;
+  Color get _onSurface => _c.text;
+  Color get _onSurfaceVariant => _c.muted;
+  Color get _inputBg => _c.surfaceContainer;
   bool get _esEdicion => widget.recetaExistente != null;
   static const MethodChannel _channel = MethodChannel('com.example.bocado/recetas');
   int _step = 1;
@@ -113,8 +115,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   Future<void> _mostrarOpcionesPicker() async {
-    final bgColor = isDark ? Colors.grey[900] : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final bgColor = _surface;
+    final textColor = _onSurface;
 
     await showModalBottomSheet(
       context: context,
@@ -538,8 +540,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fondoPantalla = isDark ? AppTheme.bgDark : _bg;
-    final fondoTarjetas = isDark ? AppTheme.surfaceDark : _surface;
+    final fondoPantalla = _bg;
+    final fondoTarjetas = _surface;
     return Scaffold(
       backgroundColor: fondoPantalla,
       body: SafeArea(
@@ -571,14 +573,14 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark.withValues(alpha: 0.92) : _surface.withValues(alpha: 0.92),
-        border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha:0.05))),
+        color: _surface.withValues(alpha: 0.92),
+        border: Border(bottom: BorderSide(color: _outline)),
       ),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: _onSurfaceVariant),
+            child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: _onSurfaceVariant),
           ),
           const SizedBox(width: 12),
           Container(
@@ -592,21 +594,12 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : _onSurface,
+                color: _onSurface,
                 letterSpacing: -0.5
             ),
           ),
           const Spacer(),
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: widget.themeNotifier,
-            builder: (_, mode, _) => IconButton(
-              onPressed: widget.themeNotifier.toggle,
-              icon: Icon(
-                mode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                color: AppTheme.primary,
-              ),
-            ),
-          ),
+          ThemeToggleButton(themeNotifier: widget.themeNotifier),
           _pillButton(icon: Icons.visibility_outlined, label: '', onTap: () {}),
         ],
       ),
@@ -629,7 +622,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: _onSurfaceVariant),
+              style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: _onSurfaceVariant),
             ),
           ],
         ),
@@ -650,7 +643,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ),
           Text(
             'Paso $_step de 4',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _onSurface, height: 1.0),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _onSurface, height: 1.0),
           ),
           const SizedBox(height: 4),
           Row(
@@ -713,7 +706,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : _onSurface
+                          color: _onSurface
                       )
                   ),
                   Text('${_listaFotos.length}/$_maxFotos FOTOS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 1.5)),
@@ -736,9 +729,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                       onTap: _agregarFotos,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDark ? AppTheme.bgDark : Colors.grey.withValues(alpha: 0.05),
+                          color: _inputBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: isDark ? Colors.white10 : _outline.withValues(alpha: 0.4)),
+                          border: Border.all(color: _outline.withValues(alpha: 0.4)),
                         ),
                         child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFFCBD5E1), size: 28),
                       ),
@@ -770,7 +763,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Center(
                   child: Text(
                       'JPG, PNG • Máx 10 MB por foto',
-                      style: TextStyle(fontSize: 10, color: isDark ? Colors.white38 : _onSurfaceVariant.withValues(alpha: 0.6)),
+                      style: TextStyle(fontSize: 10, color: _onSurfaceVariant.withValues(alpha: 0.6)),
                       textAlign: TextAlign.center
                   )
               ),
@@ -796,7 +789,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
               if (_ingSearchCtrl.text.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
-                Text('SUGERENCIAS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white54 : _onSurfaceVariant.withValues(alpha: 0.5), letterSpacing: 2)),
+                Text('SUGERENCIAS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: _onSurfaceVariant.withValues(alpha: 0.5), letterSpacing: 2)),
                 const SizedBox(height: 6),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 280),
@@ -818,9 +811,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
         Container(
           decoration: BoxDecoration(
-            color: isDark ? AppTheme.surfaceDark : _surface,
+            color: _surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+            border: Border.all(color: _outline),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -835,7 +828,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('LISTA DE INGREDIENTES', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2)),
-                    Text('${_ingredients.length} ITEMS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white60 : _onSurfaceVariant.withValues(alpha: 0.6), letterSpacing: 1.5)),
+                    Text('${_ingredients.length} ITEMS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _onSurfaceVariant.withValues(alpha: 0.6), letterSpacing: 1.5)),
                   ],
                 ),
               ),
@@ -844,14 +837,14 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
+                  color: _inputBg,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('TOTAL RECETA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : _onSurfaceVariant.withValues(alpha: 0.7))),
-                    Text('\$${_calcularCostoTotal().toStringAsFixed(2)}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : _onSurface, letterSpacing: -0.5)),
+                    Text('TOTAL RECETA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _onSurfaceVariant.withValues(alpha: 0.7))),
+                    Text('\$${_calcularCostoTotal().toStringAsFixed(2)}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _onSurface, letterSpacing: -0.5)),
                   ],
                 ),
               ),
@@ -939,7 +932,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : _onSurface
+                        color: _onSurface
                     ),
                   ),
                   Text(
@@ -947,7 +940,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                     style: TextStyle(
                       fontSize: 7,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white54 : _onSurfaceVariant.withValues(alpha: 0.6),
+                      color: _onSurfaceVariant.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -961,8 +954,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   Widget _ingredientRow(_Ingredient ing, int index) {
-    final textColor = isDark ? Colors.white : _onSurface;
-    final subtextColor = isDark ? Colors.white54 : _onSurfaceVariant.withValues(alpha: 0.5);
+    final textColor = _onSurface;
+    final subtextColor = _onSurfaceVariant.withValues(alpha: 0.5);
     final double currentSubtotal = ing.subtotal;
     final bool isInvalid = currentSubtotal <=0;
 
@@ -994,7 +987,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => setState(() => _ingredients.removeAt(index)),
-                    child: Icon(Icons.delete_outline, color: isDark ? Colors.white38 : _error.withValues(alpha: 0.6), size: 18),
+                    child: Icon(Icons.delete_outline, color: _error.withValues(alpha: 0.6), size: 18),
                   ),
                 ],
               ),
@@ -1316,9 +1309,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        color: _surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+        border: Border.all(color: _outline),
       ),
       child: Row(
         children: [
@@ -1344,7 +1337,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           Expanded(
             child: Text(
                 step.description,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : _onSurface)
+                style: TextStyle(fontSize: 13, color: _onSurface)
             ),
           ),
           IconButton(
@@ -1492,7 +1485,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : _onSurface,
+                    color: _onSurface,
                   ),
                   children: [
                     const TextSpan(text: 'VISIBILIDAD: '),
@@ -1550,7 +1543,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   width: 10, height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _dificultad == index ? _primary : (isDark ? Colors.white24 : Colors.grey[300]),
+                    color: _dificultad == index ? _primary : _outline,
                   ),
                 )),
               ),
@@ -1570,7 +1563,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             const SizedBox(width: 8),
             Text(
               currentData['label'].toUpperCase(),
-              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : _onSurface),
+              style: TextStyle(fontWeight: FontWeight.bold, color: _onSurface),
             ),
           ],
         ),
@@ -1584,7 +1577,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w900,
-        color: isDark ? Colors.white70 : _onSurfaceVariant.withValues(alpha: 0.7),
+        color: _onSurfaceVariant.withValues(alpha: 0.7),
         letterSpacing: 1.5,
       ),
     );
@@ -1595,9 +1588,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : _surface,
+        color: _surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+        border: Border.all(color: _outline),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1619,20 +1612,20 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.bgDark : Colors.grey.withValues(alpha: 0.05),
+        color: _inputBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? Colors.white10 : _outline.withValues(alpha: 0.3)),
+        border: Border.all(color: _outline.withValues(alpha: 0.3)),
       ),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
-        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : _onSurface),
+        style: TextStyle(fontSize: 13, color: _onSurface),
         decoration: InputDecoration(
           hintText: hint,
           border: InputBorder.none,
           isDense: true,
-          hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 13),
+          hintStyle: TextStyle(color: _onSurfaceVariant, fontSize: 13),
         ),
       ),
     );
@@ -1643,8 +1636,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : _surface,
-        border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05))),
+        color: _surface,
+        border: Border(top: BorderSide(color: _outline)),
       ),
       child: Row(
         children: [
@@ -1652,14 +1645,14 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             Expanded(
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: isDark ? Colors.white24 : _outline),
+                  side: BorderSide(color: _outline),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => setState(() => _step--),
                 child: Text(
                   'ATRÁS',
-                  style: TextStyle(color: isDark ? Colors.white70 : _onSurfaceVariant, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: _onSurfaceVariant, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -1704,10 +1697,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.bgDark : Colors.grey.withValues(alpha: 0.05),
+        color: _inputBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+          color: _outline,
         ),
       ),
       child: Row(
@@ -1715,7 +1708,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           Icon(
             Icons.search,
             size: 18,
-            color: isDark ? Colors.white : _onSurfaceVariant.withValues(alpha: 0.5),
+            color: _onSurfaceVariant.withValues(alpha: 0.5),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1724,13 +1717,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               focusNode: focusNode,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? Colors.white : AppTheme.bgDark,
+                color: _onSurface,
               ),
               decoration: InputDecoration(
                 hintText: hint,
                 border: InputBorder.none,
                 isDense: true,
-                hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                hintStyle: TextStyle(color: _onSurfaceVariant),
               ),
             ),
           ),
@@ -1740,7 +1733,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               child: Icon(
                 Icons.close,
                 size: 16,
-                color: isDark ? Colors.white : _onSurfaceVariant.withValues(alpha: 0.5),
+                color: _onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ),
         ],

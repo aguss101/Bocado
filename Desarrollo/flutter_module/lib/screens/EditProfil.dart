@@ -3,6 +3,7 @@ import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import '../widgets/Common.dart';
 import '../services/UploadImg.dart';
 import '../services/Usuario.dart';
 import '../services/Session.dart';
@@ -263,13 +264,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark   = Theme.of(context).brightness == Brightness.dark;
-    final bg       = isDark ? AppTheme.bgDark            : AppTheme.surfaceContainerLight;
-    final surface  = isDark ? AppTheme.surfaceDark        : AppTheme.surfaceLight;
-    final border   = isDark ? AppTheme.outlineDark        : AppTheme.outlineLight;
-    final text     = isDark ? AppTheme.onSurfaceDark      : AppTheme.onSurfaceLight;
-    final muted    = isDark ? AppTheme.secondaryDark      : AppTheme.secondaryLight;
-    final inputBg  = isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight;
+    final c = BocadoColors.of(context);
+    final bg = c.bg;
+    final surface = c.surface;
+    final border = c.border;
+    final text = c.text;
+    final muted = c.muted;
+    final inputBg = c.surfaceContainer;
 
     return Scaffold(
       backgroundColor: bg,
@@ -293,18 +294,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         centerTitle: true,
         actions: [
           // Toggle de tema
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: widget.themeNotifier,
-            builder: (_, mode, __) => IconButton(
-              icon: Icon(
-                mode == ThemeMode.dark
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
-                color: AppTheme.primary,
-              ),
-              onPressed: widget.themeNotifier.toggle,
-            ),
-          ),
+          ThemeToggleButton(themeNotifier: widget.themeNotifier),
           // Abrir drawer
           Builder(
             builder: (ctx) => IconButton(
@@ -380,28 +370,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: urlImgMomentanea != null
-                  ? Image.network(urlImgMomentanea, fit: BoxFit.cover)
-                  : widget.user.fotoReady != null
-                      ? Image.memory(widget.user.fotoReady!, fit: BoxFit.cover)
-                      : Center(
-                          child: Text(
-                            widget.user.usuario.isNotEmpty
-                                ? widget.user.usuario[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                                fontSize: 52,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.primary),
-                          ),
-                        ),
+            BocadoAvatar(
+              fotoUrl: urlImgMomentanea,
+              fotoBytes: widget.user.fotoReady,
+              initial: widget.user.usuario.isNotEmpty
+                  ? widget.user.usuario[0].toUpperCase()
+                  : '?',
+              size: 140,
+              radius: 20,
+              initialFontSize: 52,
+              background: Colors.transparent,
             ),
             // Botón cámara
             Positioned(
