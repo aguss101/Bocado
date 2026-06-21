@@ -13,6 +13,8 @@ class RecetaService {
 
   static Future<List<RecetaFeed>> getRecetas() => _fetchRecetas('getRecetas');
 
+
+
   static Future<List<RecetaFeed>> getRecetasUsuario(int usuarioId) =>
       _fetchRecetas('getRecetasUsuario', {'usuarioId': usuarioId});
 

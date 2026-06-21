@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
+import 'package:flutter_module/services/Instructions.dart';
 import '../services/Receta.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
 import 'EditRecipe.dart';
+import '../models/RecipeComment.dart';
 
 class RecipeDetailData {
   final String titulo;
@@ -35,16 +38,25 @@ class RecipeDetailData {
     required this.pasos,
   });
 
-  factory RecipeDetailData.fromJson(Map<String, dynamic> json, double _prot, double _carb, double _gras) {
+  factory RecipeDetailData.fromJson(
+    Map<String, dynamic> json,
+    double _prot,
+    double _carb,
+    double _gras,
+  ) {
     return RecipeDetailData(
       titulo: json['nombre'] ?? '',
-      categoria: 'General', ///Usar etiquetas???
+      categoria: 'General',
+
+      ///Usar etiquetas???
       imageUrl: json['foto'] ?? '',
       calorias: (json['calorias_totales'] ?? 0).toDouble(),
       proteina: _prot.toStringAsFixed(1),
       carbos: _carb.toStringAsFixed(1),
       grasas: _gras.toStringAsFixed(1),
-      duracion: 'N/A', /// Que hacemos con esto? lo sacamos directamente de las instrucciones y hacemos que lo puedan elegir desde las pantallas de crearReceta?
+      duracion: 'N/A',
+
+      /// Que hacemos con esto? lo sacamos directamente de las instrucciones y hacemos que lo puedan elegir desde las pantallas de crearReceta?
       porciones: '${json['porciones'] ?? 0} porciones',
       ingredientes: (json['recetas_alimentos'] as List? ?? [])
           .map((item) => IngredientItem.fromJson(item))
@@ -101,11 +113,11 @@ class PreparationStep {
 
       if (pasoTrim.isNotEmpty) {
         pasos.add(
-            PreparationStep(
-              numeroPaso: i + 1,
-              titulo: 'Paso ${i + 1}',
-              descripcion: pasoTrim,
-            )
+          PreparationStep(
+            numeroPaso: i + 1,
+            titulo: 'Paso ${i + 1}',
+            descripcion: pasoTrim,
+          ),
         );
       }
     }
@@ -143,6 +155,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _abriendoEditor = false;
   RecipeDetailData? _data;
   final PageController _pageController = PageController();
+  List<RecipeComment> _comentarios = [];
 
   bool get _esPropia =>
       widget.idAutor != null && widget.idAutor == widget.user.id;
@@ -151,6 +164,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void initState() {
     super.initState();
     _traerDetalleDeLaReceta();
+    cargarComentarios(widget.idReceta);
   }
 
   /// Abre el editor con la receta actual (formato getRecetaID) y, al volver,
@@ -205,14 +219,205 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  Future<void> cargarComentarios(int idReceta) async {
+    try {
+      String jsonString = await InteraccionesService.fetchComentarios(idReceta);
+      List<dynamic> jsonList = jsonDecode(jsonString);
 
+      List<RecipeComment> comentariosPlanos = jsonList
+          .map((j) => RecipeComment.fromJson(j))
+          .toList();
+
+      Map<int, RecipeComment> mapaComentarios = {};
+      List<RecipeComment> comentariosRaiz = [];
+
+      for (var c in comentariosPlanos) {
+        mapaComentarios[c.idComentario] = c;
+      }
+
+      for (var c in comentariosPlanos) {
+        if (c.idComentarioPadre == null) {
+          comentariosRaiz.add(c);
+        } else {
+          mapaComentarios[c.idComentarioPadre]?.respuestas.add(c);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _comentarios = comentariosRaiz;
+        });
+      }
+    } catch (e) {
+      print("Error cargando comentarios: $e");
+    }
+  }
+
+  Future<void> _mostrarDialogoComentario(
+    BuildContext context, {
+    int? idPadre,
+  }) async {
+    final TextEditingController _controlador = TextEditingController();
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            idPadre == null ? 'Dejar un comentario' : 'Responder comentario',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          content: TextField(
+            controller: _controlador,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: idPadre == null
+                  ? '¿Qué te pareció la receta?'
+                  : 'Escribe tu respuesta...',
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final texto = _controlador.text.trim();
+                if (texto.isNotEmpty) {
+                  Navigator.pop(context);
+                  await _enviarComentarioADB(texto, idPadre: idPadre);
+                }
+              },
+              child: const Text('Enviar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _enviarComentarioADB(String texto, {int? idPadre}) async {
+    try {
+      final Map<String, dynamic> datos = {
+        'id_receta': widget.idReceta,
+        'id_usuario': widget.user.id,
+        'comentario': texto,
+        'id_comentario_padre': idPadre,
+      };
+
+      await InteraccionesService.enviarComentario(datos);
+
+      await cargarComentarios(widget.idReceta);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('¡Comentario publicado!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error publicando: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Error al publicar el comentario.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _abrirComentarios(
+      BuildContext context,
+      Color surface,
+      Color outline,
+      ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          builder: (_, controller) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: outline,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Comentarios',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: controller,
+                      itemCount: _comentarios.length,
+                      itemBuilder: (context, index) {
+                        return _CommentCard(
+                          comment: _comentarios[index],
+                          surface: surface,
+                          outline: outline,
+                          onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final c = BocadoColors.of(context);
     final isDark = c.isDark;
     final surface = c.surfaceContainer;
     final outline = c.border;
-    final listaImagenes = _data?.imageUrl.split('|').where((url) => url.trim().isNotEmpty).toList() ?? [];
+    final listaImagenes =
+        _data?.imageUrl
+            .split('|')
+            .where((url) => url.trim().isNotEmpty)
+            .toList() ??
+        [];
 
     if (_isLoading) {
       return Scaffold(
@@ -231,14 +436,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+              const Icon(
+                Icons.error_outline,
+                size: 60,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 16),
-              const Text("¡Ups! Error al cargar la receta", style: TextStyle(fontSize: 18)),
+              const Text(
+                "¡Ups! Error al cargar la receta",
+                style: TextStyle(fontSize: 18),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Volver al Feed")
-              )
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Volver al Feed"),
+              ),
             ],
           ),
         ),
@@ -266,158 +478,182 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.edit_outlined, color: Colors.white),
                 ),
               ThemeToggleButton(themeNotifier: widget.themeNotifier),
             ],
-        flexibleSpace: FlexibleSpaceBar(
-          background: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. EL CARRUSEL (En el fondo de todo)
-              listaImagenes.isNotEmpty && listaImagenes.first.startsWith('http')
-                  ? PageView(
-                controller: _pageController,
-                children: listaImagenes.map((url) {
-                  return Image.network(
-                    url.trim(),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppTheme.surfaceContainerDark,
-                      child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
-                    ),
-                  );
-                }).toList(),
-              )
-                  : Container(
-                color: AppTheme.surfaceContainerDark,
-                child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
-              ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 1. EL CARRUSEL (En el fondo de todo)
+                  listaImagenes.isNotEmpty &&
+                          listaImagenes.first.startsWith('http')
+                      ? PageView(
+                          controller: _pageController,
+                          children: listaImagenes.map((url) {
+                            return Image.network(
+                              url.trim(),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: AppTheme.surfaceContainerDark,
+                                child: const Icon(
+                                  Icons.restaurant_menu,
+                                  size: 64,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      : Container(
+                          color: AppTheme.surfaceContainerDark,
+                          child: const Icon(
+                            Icons.restaurant_menu,
+                            size: 64,
+                            color: AppTheme.primary,
+                          ),
+                        ),
 
-              // 2. EL DEGRADADO OSCURO (Con IgnorePointer para que no bloquee los clicks)
-              const IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black87],
-                    ),
-                  ),
-                ),
-              ),
-
-              // 3. TEXTOS Y BADGE DE CATEGORÍA
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 64,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  // 2. EL DEGRADADO OSCURO (Con IgnorePointer para que no bloquee los clicks)
+                  const IgnorePointer(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _data!.categoria.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black87],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _data!.titulo,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
 
-              // 4. BOTÓN DE FAVORITOS (Corazón)
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: GestureDetector(
-                  onTap: () => setState(() => _isFavorite = !_isFavorite),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: Icon(
-                      _isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: _isFavorite ? Colors.red : Colors.white,
-                      size: 24,
+                  // 3. TEXTOS Y BADGE DE CATEGORÍA
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 64,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _data!.categoria.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _data!.titulo,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ),
 
-              // 5. BOTÓN FLECHA ATRÁS (Al frente de todo)
-              if (listaImagenes.length > 1)
-                Positioned(
-                  left: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
-                        onPressed: () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-
-              // 6. BOTÓN FLECHA SIGUIENTE (Al frente de todo)
-              if (listaImagenes.length > 1)
-                Positioned(
-                  right: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
+                  // 4. BOTÓN DE FAVORITOS (Corazón)
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isFavorite = !_isFavorite),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Icon(
+                          _isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: _isFavorite ? Colors.red : Colors.white,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ),
-                ),
+
+                  // 5. BOTÓN FLECHA ATRÁS (Al frente de todo)
+                  if (listaImagenes.length > 1)
+                    Positioned(
+                      left: 8,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.chevron_left,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              _pageController.previousPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // 6. BOTÓN FLECHA SIGUIENTE (Al frente de todo)
+                  if (listaImagenes.length > 1)
+                    Positioned(
+                      right: 8,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.chevron_right,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -453,29 +689,33 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     childAspectRatio: 1.8,
                     children: [
                       _NutriCard(
-                          label: 'Calorías',
-                          value: '${_data!.calorias.toInt()}',
-                          sub: 'por porción',
-                          surface: surface,
-                          outline: outline),
+                        label: 'Calorías',
+                        value: '${_data!.calorias.toInt()}',
+                        sub: 'por porción',
+                        surface: surface,
+                        outline: outline,
+                      ),
                       _NutriCard(
-                          label: 'Proteína',
-                          value: _data!.proteina,
-                          sub: 'alta calidad',
-                          surface: surface,
-                          outline: outline),
+                        label: 'Proteína',
+                        value: _data!.proteina,
+                        sub: 'alta calidad',
+                        surface: surface,
+                        outline: outline,
+                      ),
                       _NutriCard(
-                          label: 'Carbohidratos',
-                          value: _data!.carbos,
-                          sub: 'complejos',
-                          surface: surface,
-                          outline: outline),
+                        label: 'Carbohidratos',
+                        value: _data!.carbos,
+                        sub: 'complejos',
+                        surface: surface,
+                        outline: outline,
+                      ),
                       _NutriCard(
-                          label: 'Grasas',
-                          value: _data!.grasas,
-                          sub: 'totales',
-                          surface: surface,
-                          outline: outline),
+                        label: 'Grasas',
+                        value: _data!.grasas,
+                        sub: 'totales',
+                        surface: surface,
+                        outline: outline,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 28),
@@ -485,8 +725,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       const _SectionTitle('Ingredientes'),
                       TextButton.icon(
                         onPressed: () {},
-                        icon: const Icon(Icons.shopping_cart_outlined,
-                            size: 14, color: AppTheme.primary),
+                        icon: const Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 14,
+                          color: AppTheme.primary,
+                        ),
                         label: const Text(
                           'AÑADIR TODO',
                           style: TextStyle(
@@ -505,8 +748,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ..._data!.ingredientes
-                      .map((i) => _IngredientRow(item: i, outline: outline)),
+                  ..._data!.ingredientes.map(
+                    (i) => _IngredientRow(item: i, outline: outline),
+                  ),
                   const SizedBox(height: 28),
                   const _SectionTitle('Preparación'),
                   const SizedBox(height: 16),
@@ -520,6 +764,63 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     );
                   }),
                   const SizedBox(height: 40),
+                  // ---Seccion de comentarios---
+                  const SizedBox(height: 16),
+                  const Divider(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const _SectionTitle('Comentarios'),
+                      TextButton(
+                        onPressed: () => _abrirComentarios(
+                          context,
+                          surface,
+                          outline,
+                        ),
+                        child: const Text(
+                          'VER TODOS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_comentarios.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('Sé el primero en dejar un comentario.'),
+                    )
+                  else
+                    ..._comentarios
+                        .take(2)
+                        .map(
+                          (c) => _CommentCard(
+                            comment: c,
+                            surface: surface,
+                            outline: outline,
+                            onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                          ),
+                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _mostrarDialogoComentario(context),
+                      icon: const Icon(Icons.add_comment_outlined, size: 18),
+                      label: const Text('Dejar un comentario'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(color: outline.withValues(alpha: 0.5)),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -532,6 +833,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
 class _SectionTitle extends StatelessWidget {
   final String text;
+
   const _SectionTitle(this.text);
 
   @override
@@ -546,6 +848,7 @@ class _SectionTitle extends StatelessWidget {
 class _QuickInfo extends StatelessWidget {
   final IconData icon;
   final String label;
+
   const _QuickInfo({required this.icon, required this.label});
 
   @override
@@ -554,8 +857,10 @@ class _QuickInfo extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: AppTheme.primary),
         const SizedBox(width: 6),
-        Text(label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
@@ -594,10 +899,9 @@ class _NutriCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w800,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
               letterSpacing: 1,
             ),
           ),
@@ -614,10 +918,9 @@ class _NutriCard extends StatelessWidget {
             sub,
             style: TextStyle(
               fontSize: 9,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.4),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],
@@ -629,6 +932,7 @@ class _NutriCard extends StatelessWidget {
 class _IngredientRow extends StatelessWidget {
   final IngredientItem item;
   final Color outline;
+
   const _IngredientRow({required this.item, required this.outline});
 
   @override
@@ -651,16 +955,19 @@ class _IngredientRow extends StatelessWidget {
       child: Row(
         children: [
           highlighted
-              ? const Icon(Icons.check_circle,
-              color: AppTheme.primary, size: 16)
+              ? const Icon(
+                  Icons.check_circle,
+                  color: AppTheme.primary,
+                  size: 16,
+                )
               : Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppTheme.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -680,10 +987,9 @@ class _IngredientRow extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: highlighted
                   ? AppTheme.primary
-                  : Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.5),
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -734,10 +1040,9 @@ class _StepCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         color: step.numeroPaso == 1
                             ? AppTheme.primary
-                            : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -780,31 +1085,35 @@ class _StepCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.6,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     if (step.duracion != null) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: 0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(12),
-                          border:
-                          Border.all(color: outline.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: outline.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.timer_outlined,
-                                size: 16, color: AppTheme.primary),
+                            const Icon(
+                              Icons.timer_outlined,
+                              size: 16,
+                              color: AppTheme.primary,
+                            ),
                             const SizedBox(width: 6),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -856,8 +1165,10 @@ class _StepCard extends StatelessWidget {
                                   color: surface,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.image_outlined,
-                                    color: AppTheme.primary),
+                                child: const Icon(
+                                  Icons.image_outlined,
+                                  color: AppTheme.primary,
+                                ),
                               ),
                             ),
                           ),
@@ -871,6 +1182,140 @@ class _StepCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CommentCard extends StatelessWidget {
+  final RecipeComment comment;
+  final Color surface;
+  final Color outline;
+  final Function(int) onReply;
+  final bool isReply;
+
+  const _CommentCard({
+    required this.comment,
+    required this.surface,
+    required this.outline,
+    required this.onReply,
+    this.isReply = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final int estrellas = (comment.calificacion ?? 0).floor();
+
+    return Column(
+      children: [
+        Container(
+          margin: EdgeInsets.only(
+            bottom: isReply ? 8 : 12,
+            left: isReply ? 32 : 0,
+          ),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isReply
+                ? Colors.transparent
+                : surface.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: isReply
+                ? null
+                : Border.all(color: outline.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: isReply ? 14 : 18,
+                backgroundImage: comment.avatarUrl.isNotEmpty
+                    ? NetworkImage(comment.avatarUrl)
+                    : null,
+                backgroundColor: outline,
+                child: comment.avatarUrl.isEmpty
+                    ? Icon(Icons.person, size: isReply ? 16 : 20)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          comment.nombreUsuario,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: isReply ? 13 : 14,
+                          ),
+                        ),
+                        Text(
+                          "${comment.fechaComentario.day}/${comment.fechaComentario.month}/${comment.fechaComentario.year}",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    if (comment.calificacion != null && !isReply)
+                      Row(
+                        children: List.generate(
+                          5,
+                          (index) => Icon(
+                            index < estrellas ? Icons.star : Icons.star_border,
+                            size: 14,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      comment.comentario,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (!isReply)
+                      InkWell(
+                        onTap: () => onReply(comment.idComentario),
+                        child: Text(
+                          "Responder",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (comment.respuestas.isNotEmpty)
+          ...comment.respuestas.map(
+            (respuesta) => _CommentCard(
+              comment: respuesta,
+              surface: surface,
+              outline: outline,
+              onReply: onReply,
+              isReply: true,
+            ),
+          ),
+      ],
     );
   }
 }
