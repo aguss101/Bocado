@@ -41,6 +41,23 @@ class BocadoColors {
   }
 }
 
+class BocadoRadius {
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+}
+
+class BocadoSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+}
+
 class AppTheme {
   static const Color primary = Color(0xFFD96E11);
   static const Color primaryDark = Color(0xFFD96E11);

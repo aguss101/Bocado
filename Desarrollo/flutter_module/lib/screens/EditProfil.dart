@@ -219,7 +219,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required Future<String?> Function(ImageSource) upload,
     required void Function(String) onDone,
   }) async {
-    final source = await _showSourceSheet();
+    final source = await showImageSourceSheet(context);
     if (source == null) return;
     setState(() => _uploading = true);
     try {
@@ -235,32 +235,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) setState(() => _uploading = false);
     }
   }
-
-  Future<ImageSource?> _showSourceSheet() => showModalBottomSheet<ImageSource>(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.photo_camera_outlined, color: AppTheme.primary),
-                title: const Text('Cámara'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primary),
-                title: const Text('Galería'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {

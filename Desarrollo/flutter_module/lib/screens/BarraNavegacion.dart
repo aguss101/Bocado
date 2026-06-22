@@ -24,20 +24,16 @@ class SharedDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? const Color(0xFF1A1108) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF2D1D0E) : Colors.grey.shade300;
-    final textColor = isDark ? const Color(0xFFFDF7F2) : Colors.black87;
-    final mutedColor = isDark ? const Color(0xFFA38B75) : Colors.grey.shade600;
+    final c = BocadoColors.of(context);
 
     return Drawer(
-      backgroundColor: surfaceColor,
+      backgroundColor: c.surface,
       child: SafeArea(
         child: Column(
           children: [
             // ── CABECERA DEL MENÚ ──
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(BocadoSpacing.xl),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -52,20 +48,20 @@ class SharedDrawer extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user.usuario, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                        Text('ID: ${user.id}', style: TextStyle(fontSize: 12, color: mutedColor)),
+                        Text(user.usuario, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: c.text)),
+                        Text('ID: ${user.id}', style: TextStyle(fontSize: 12, color: c.muted)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            Divider(color: borderColor),
+            Divider(color: c.border),
 
             // ── LISTA DE OPCIONES ──
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: BocadoSpacing.md),
                 children: [
                   _buildMenuItem(
                       context: context,
@@ -96,8 +92,8 @@ class SharedDrawer extends StatelessWidget {
 
                   // Botón Crear Receta
                   Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
+                    margin: const EdgeInsets.symmetric(vertical: BocadoSpacing.sm, horizontal: BocadoSpacing.sm),
+                    decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(BocadoRadius.sm)),
                     child: ListTile(
                       leading: const Icon(Icons.add_circle, color: Colors.white),
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -108,7 +104,7 @@ class SharedDrawer extends StatelessWidget {
                     ),
                   ),
 
-                  Divider(color: borderColor),
+                  Divider(color: c.border),
 
                   _buildMenuItem(
                       context: context,
@@ -129,9 +125,9 @@ class SharedDrawer extends StatelessWidget {
 
             // ── CERRAR SESIÓN ──
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(BocadoSpacing.lg),
               child: ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BocadoRadius.sm)),
                 tileColor: Colors.red.withValues(alpha: 0.08),
                 leading: const Icon(Icons.logout, color: Colors.redAccent),
                 title: const Text(
@@ -160,16 +156,17 @@ class SharedDrawer extends StatelessWidget {
     required BuildContext context, required IconData icon, required String title,
     required bool isActive, required VoidCallback onTap
   }) {
-    final color = isActive ? AppTheme.primary : Colors.grey.shade500;
+    final c = BocadoColors.of(context);
+    final color = isActive ? AppTheme.primary : c.muted;
 
     return Container(
       decoration: isActive
-          ? BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8))
+          ? BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(BocadoRadius.sm))
           : null,
       child: ListTile(
         leading: Icon(icon, color: color),
         title: Text(title, style: TextStyle(color: color, fontWeight: isActive ? FontWeight.bold : FontWeight.w600, fontSize: 14)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BocadoRadius.sm)),
         onTap: onTap,
       ),
     );

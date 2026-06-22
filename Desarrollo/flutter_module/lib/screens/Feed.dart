@@ -58,20 +58,17 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final surfaceColor = isDark ? const Color(0xFF1A1108) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF2D1D0E) : Colors.grey.shade300;
+    final c = BocadoColors.of(context);
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.bgDark : Colors.grey.shade50,
+      backgroundColor: c.bg,
       endDrawer: SharedDrawer(
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
       ),
       appBar: AppBar(
-        backgroundColor: isDark ? AppTheme.bgDark.withValues(alpha: 0.9) : Colors.white,
+        backgroundColor: c.bg,
         elevation: 0,
         title: Row(
           children: [
@@ -79,7 +76,7 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(BocadoRadius.sm),
               ),
               child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
             ),
@@ -88,7 +85,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? const Color(0xFFFDF7F2) : Colors.black,
+                  color: c.text,
                 )),
           ],
         ),
@@ -166,13 +163,10 @@ class _FeedScreenState extends State<FeedScreen> {
                     );
                   },
                   child: _FeedArticleCard(
-                    surfaceColor: surfaceColor,
-                    borderColor: borderColor,
-                    secondary: secondary,
-                    receta: recetaActual,
-                    user: widget.user,
-                    themeNotifier: widget.themeNotifier
-                  ),
+                  receta: recetaActual,
+                  user: widget.user,
+                  themeNotifier: widget.themeNotifier,
+                ),
                 );
               },
             ),
@@ -185,20 +179,14 @@ class _FeedScreenState extends State<FeedScreen> {
 
 // ── 4. COMPONENTE PRIVADO: Tarjeta de la Receta ──
 class _FeedArticleCard extends StatefulWidget {
-  final Color surfaceColor;
-  final Color borderColor;
-  final Color secondary;
   final RecetaFeed receta;
   final usuario_Logged user;
   final ThemeNotifier themeNotifier;
 
   const _FeedArticleCard({
-    required this.surfaceColor,
-    required this.borderColor,
-    required this.secondary,
     required this.receta,
     required this.user,
-    required this.themeNotifier
+    required this.themeNotifier,
   });
 
   @override
@@ -218,10 +206,10 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     _likesLocales = widget.receta.cantidadFavoritos;
   }
 
-  Future<void> _handleLike() async{
-    setState(()=> {
-      _isLiked = !_isLiked,
-      _isLiked ? _likesLocales++ : _likesLocales--
+  Future<void> _handleLike() async {
+    setState(() {
+      _isLiked = !_isLiked;
+      _isLiked ? _likesLocales++ : _likesLocales--;
     });
 
     try{
@@ -233,9 +221,9 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
       });
     } catch(e){
       if(mounted){
-        setState(()=> {
-          _isLiked = !_isLiked,
-          _isLiked ? _likesLocales++ : _likesLocales--
+        setState(() {
+          _isLiked = !_isLiked;
+          _isLiked ? _likesLocales++ : _likesLocales--;
         });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar el Like. Revisa tu conexión.')));
       }
@@ -268,7 +256,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final String fotoRaw =widget.receta.foto ?? '';
+    final c = BocadoColors.of(context);
+    final String fotoRaw = widget.receta.foto ?? '';
     final String fotoUrl = fotoRaw.isNotEmpty ? fotoRaw.split('|')[0] : '';
     final Widget imageHeader = AspectRatio(
       aspectRatio: 16 / 9,
@@ -283,9 +272,9 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: widget.surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: widget.borderColor),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(BocadoRadius.lg),
+        border: Border.all(color: c.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -305,7 +294,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
@@ -325,7 +314,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Text(
                             widget.receta.etiquetas.first,
@@ -360,7 +349,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                           ),
                           Text(
                             'Rinde ${widget.receta.porciones} porciones',
-                            style: TextStyle(fontSize: 12, color: widget.secondary),
+                            style: TextStyle(fontSize: 12, color: c.muted),
                           ),
                         ],
                       ),
@@ -373,43 +362,41 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.more_horiz, color: widget.secondary),
+                      icon: Icon(Icons.more_horiz, color: c.muted),
                       onPressed: () {
                         showModalBottomSheet(
-                            context: context,
-                            backgroundColor: const Color(0xFF1E1E1E),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                            ),
-                          builder: (BuildContext context){
-                              return Wrap(
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.person, color: Colors.white70),
-                                    title: const Text('Ver Perfil', style: TextStyle(color: Colors.white)),
-                                    onTap: (){
-                                      Navigator.pop(context);
-                                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget,)));
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.report_problem, color: Colors.white70),
-                                    title: const Text('Reportar receta', style: TextStyle(color: Colors.white)),
-                                    onTap: () {
+                          context: context,
+                          backgroundColor: c.surface,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(BocadoRadius.xl)),
+                          ),
+                          builder: (BuildContext context) {
+                            return Wrap(
+                              children: [
+                                ListTile(
+                                  leading: Icon(Icons.person, color: c.muted),
+                                  title: Text('Ver Perfil', style: TextStyle(color: c.text)),
+                                  onTap: () {
                                     Navigator.pop(context);
-
-                                    }
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.delete, color: Colors.redAccent),
-                                    title: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
-                                    onTap: () {
-                                      Navigator.pop(context);
-
-                                    },
-                                  ),
-                                ],
-                              );
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget)));
+                                  },
+                                ),
+                                ListTile(
+                                  leading: Icon(Icons.report_problem, color: c.muted),
+                                  title: Text('Reportar receta', style: TextStyle(color: c.text)),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.delete, color: Colors.redAccent),
+                                  title: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ],
+                            );
                           },
                         );
                       },
@@ -423,19 +410,19 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: widget.borderColor),
+                    borderRadius: BorderRadius.circular(BocadoRadius.md),
+                    border: Border.all(color: c.border),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', widget.secondary),
-                      _buildDivider(widget.borderColor),
-                      _buildNutriCol('PROTEÍNAS', '${widget.receta.proteinasTotales}g', widget.secondary, valueColor: AppTheme.primary),
-                      _buildDivider(widget.borderColor),
-                      _buildNutriCol('CARBOS', '${widget.receta.carbohidratosTotales}g', widget.secondary),
-                      _buildDivider(widget.borderColor),
-                      _buildNutriCol('GRASAS', '${widget.receta.grasasTotales}g', widget.secondary),
+                      _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', c.muted),
+                      _buildDivider(c.border),
+                      _buildNutriCol('PROTEÍNAS', '${widget.receta.proteinasTotales}g', c.muted, valueColor: AppTheme.primary),
+                      _buildDivider(c.border),
+                      _buildNutriCol('CARBOS', '${widget.receta.carbohidratosTotales}g', c.muted),
+                      _buildDivider(c.border),
+                      _buildNutriCol('GRASAS', '${widget.receta.grasasTotales}g', c.muted),
                     ],
                   ),
                 ),
@@ -450,21 +437,21 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                         _buildActionButton(
                           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
                           label: '$_likesLocales', // Dinámico
-                          color: _isLiked ? AppTheme.primary : widget.secondary,
+                          color: _isLiked ? AppTheme.primary : c.muted,
                           onTap: _handleLike,
                         ),
                         const SizedBox(width: 20),
                         _buildActionButton(
                           icon: Icons.chat_bubble_outline,
                           label: '${widget.receta.cantidadComentarios}', // Dinámico
-                          color: widget.secondary,
+                          color: c.muted,
                           onTap: () {},
                         ),
                         const SizedBox(width: 20),
                         _buildActionButton(
                           icon: Icons.share_outlined,
                           label: 'Compartir',
-                          color: widget.secondary,
+                          color: c.muted,
                           onTap: _handleShare,
                         ),
                       ],
@@ -475,7 +462,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: _isSaved ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Row(
                           children: [

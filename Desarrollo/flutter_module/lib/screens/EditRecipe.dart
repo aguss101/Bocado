@@ -115,49 +115,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   Future<void> _mostrarOpcionesPicker() async {
-    final bgColor = _surface;
-    final textColor = _onSurface;
-
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: bgColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext ctx) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.camera_alt, color: textColor),
-              title: Text('Tomar Foto', style: TextStyle(color: textColor)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _tomarFotoConCamara();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library, color: textColor),
-              title: Text('Subir de Galería', style: TextStyle(color: textColor)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _subirDesdeGaleriaMultiple();
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-        );
-      },
-    );
+    final source = await showImageSourceSheet(context);
+    if (source == null) return;
+    if (source == ImageSource.camera) {
+      await _tomarFotoConCamara();
+    } else {
+      await _subirDesdeGaleriaMultiple();
+    }
   }
 
   Future<void> _tomarFotoConCamara() async {

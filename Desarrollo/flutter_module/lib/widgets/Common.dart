@@ -1,7 +1,50 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+
+/// Bottom sheet unificado para elegir el origen de una imagen (cámara o galería).
+/// Devuelve el [ImageSource] elegido, o null si el usuario lo descarta.
+/// Quien lo llama decide qué hacer con la fuente (single o multi-imagen).
+Future<ImageSource?> showImageSourceSheet(BuildContext context) {
+  final c = BocadoColors.of(context);
+  return showModalBottomSheet<ImageSource>(
+    context: context,
+    backgroundColor: c.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(BocadoRadius.xl)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: BocadoSpacing.sm),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: c.muted.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: BocadoSpacing.sm),
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined, color: AppTheme.primary),
+            title: Text('Cámara', style: TextStyle(color: c.text)),
+            onTap: () => Navigator.pop(ctx, ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primary),
+            title: Text('Galería', style: TextStyle(color: c.text)),
+            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+          ),
+          const SizedBox(height: BocadoSpacing.md),
+        ],
+      ),
+    ),
+  );
+}
 
 /// Botón de toggle de tema (sol/luna). Reemplaza el ValueListenableBuilder
 /// repetido en cada AppBar/topbar.
