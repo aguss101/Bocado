@@ -30,27 +30,79 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  List<RecetaFeed> recipesFeed = [];
-  bool _estaCargando = true;
+  final List<RecetaFeed> recipesFeed = [];
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 10;
+
+  /// Seed por sesión de feed: fija el orden pseudoaleatorio para que la
+  /// paginación sea consistente. Se regenera en cada entrada a la pantalla.
+  late final String _seed;
+  int _offset = 0;
+  bool _estaCargando = true; // primera página
+  bool _cargandoMas = false; // páginas siguientes
+  bool _hayMas = true;
   static const bool _isDebugMode = true;
 
   @override
   void initState() {
     super.initState();
+    _seed = DateTime.now().millisecondsSinceEpoch.toString();
+    _scrollController.addListener(_onScroll);
     _traerRecetas();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 400) {
+      _traerMas();
+    }
   }
 
   Future<void> _traerRecetas() async {
     try {
-      final lista = await RecetaService.getRecetas();
-      if (mounted) {
-        setState(() {
-          recipesFeed = lista..shuffle();
-          _estaCargando = false;
-        });
-      }
+      final lista = await RecetaService.getRecetas(
+        seed: _seed,
+        limit: _pageSize,
+        offset: 0,
+      );
+      if (!mounted) return;
+      setState(() {
+        recipesFeed
+          ..clear()
+          ..addAll(lista);
+        _offset = lista.length;
+        _hayMas = lista.length == _pageSize;
+        _estaCargando = false;
+      });
     } catch (e) {
       if (mounted) setState(() => _estaCargando = false);
+    }
+  }
+
+  Future<void> _traerMas() async {
+    if (_cargandoMas || !_hayMas) return;
+    setState(() => _cargandoMas = true);
+    try {
+      final lista = await RecetaService.getRecetas(
+        seed: _seed,
+        limit: _pageSize,
+        offset: _offset,
+      );
+      if (!mounted) return;
+      setState(() {
+        recipesFeed.addAll(lista);
+        _offset += lista.length;
+        _hayMas = lista.length == _pageSize;
+        _cargandoMas = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _cargandoMas = false);
     }
   }
 
@@ -125,7 +177,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 child: CircleAvatar(
                   radius: 16,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                  backgroundImage: NetworkImage(
+                  backgroundImage: bocadoImageProvider(
                       widget.user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                   ),
                 ),
@@ -140,9 +192,16 @@ class _FeedScreenState extends State<FeedScreen> {
             child: _estaCargando
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.only(top: 8, bottom: 20),
-              itemCount: recipesFeed.length,
+              itemCount: recipesFeed.length + (_hayMas ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index >= recipesFeed.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
                 final recetaActual = recipesFeed[index];
 
                 return GestureDetector(
@@ -261,11 +320,10 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     final String fotoUrl = fotoRaw.isNotEmpty ? fotoRaw.split('|')[0] : '';
     final Widget imageHeader = AspectRatio(
       aspectRatio: 16 / 9,
-      child: fotoUrl.startsWith('http')
-          ? Image.network(fotoUrl, fit: BoxFit.cover)
-          : Image.network(
-        'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
-        fit: BoxFit.cover,
+      child: BocadoNetworkImage(
+        url: fotoUrl.startsWith('http')
+            ? fotoUrl
+            : 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
       ),
     );
 
@@ -357,7 +415,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
                     // FOTO DE PERFIL DEL USUARIO CREADOR
                     CircleAvatar(
                       radius: 18,
-                      backgroundImage: NetworkImage(
+                      backgroundImage: bocadoImageProvider(
                           widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                       ),
                     ),

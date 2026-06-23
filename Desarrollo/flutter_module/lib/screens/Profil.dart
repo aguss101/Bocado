@@ -312,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         children: [
           // Imagen de banner o color sólido
           _user.bannerUrl != null
-              ? Image.network(_user.bannerUrl!, fit: BoxFit.cover)
+              ? BocadoNetworkImage(url: _user.bannerUrl!)
               : _user.bannerReady != null
               ? Image.memory(_user.bannerReady!, fit: BoxFit.cover)
               : Container(
@@ -968,9 +968,9 @@ Widget _recipeCard({
               children: [
                 // ── AQUÍ EL CAMBIO ──
                 (receta.foto != null && receta.foto!.isNotEmpty)
-                    ? Image.network(
-                        receta.foto!.split('|')[0],
-                        fit: BoxFit.cover,
+                    ? BocadoNetworkImage(
+                        url: receta.foto!.split('|')[0],
+                        memCacheWidth: 600,
                       )
                     : Container(
                         color: AppTheme.primary.withValues(alpha: 0.08),
@@ -1220,7 +1220,7 @@ class _SeguidoCardState extends State<_SeguidoCard> {
               backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
               backgroundImage:
                   (perfil.fotoUrl != null && perfil.fotoUrl!.isNotEmpty)
-                  ? NetworkImage(perfil.fotoUrl!)
+                  ? bocadoImageProvider(perfil.fotoUrl!)
                   : null,
               child: (perfil.fotoUrl == null || perfil.fotoUrl!.isEmpty)
                   ? Text(

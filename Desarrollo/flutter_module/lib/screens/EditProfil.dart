@@ -58,10 +58,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   /// (usuario, correo, id_genero) y precarga el formulario.
   Future<void> _cargarDatos() async {
     try {
-      final generos = await UsuarioService.getGeneros();
-      final perfil  = await UsuarioService.getPerfilEditable(widget.user.id);
-      final cantRecetas = await RecetaService.contarRecetas(widget.user.id);
-      final cantSeguidores = await UsuarioService.contarSeguidores(widget.user.id);
+      // Las 4 lecturas son independientes → en paralelo (antes eran 4 round-trips en serie).
+      final (generos, perfil, cantRecetas, cantSeguidores) = await (
+        UsuarioService.getGeneros(),
+        UsuarioService.getPerfilEditable(widget.user.id),
+        RecetaService.contarRecetas(widget.user.id),
+        UsuarioService.contarSeguidores(widget.user.id),
+      ).wait;
       if (!mounted) return;
       setState(() {
         _generos = generos;
@@ -422,7 +425,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               border: Border.all(color: AppTheme.primary.withValues(alpha: 0.4)),
               color: _bannerUrl != null ? null : AppTheme.primary.withValues(alpha: 0.06),
               image: _bannerUrl != null
-                  ? DecorationImage(image: NetworkImage(_bannerUrl!), fit: BoxFit.cover)
+                  ? DecorationImage(image: bocadoImageProvider(_bannerUrl!), fit: BoxFit.cover)
                   : null,
             ),
             child: _bannerUrl == null

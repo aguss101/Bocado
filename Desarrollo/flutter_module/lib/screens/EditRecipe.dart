@@ -709,7 +709,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         borderRadius: BorderRadius.circular(10),
                         child: _listaFotos[index].bytes != null
                             ? Image.memory(_listaFotos[index].bytes!, fit: BoxFit.cover)
-                            : Image.network(_listaFotos[index].url!, fit: BoxFit.cover),
+                            : BocadoNetworkImage(url: _listaFotos[index].url!, memCacheWidth: 300),
                       ),
                       Positioned(
                         top: 4, right: 4,

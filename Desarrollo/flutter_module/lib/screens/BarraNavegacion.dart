@@ -3,6 +3,7 @@ import 'package:flutter_module/models/UsuarioLogged.dart';
 import '../services/Session.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+import '../widgets/Common.dart';
 import 'Feed.dart';
 import 'LogIn.dart';
 import 'MyRecipes.dart';
@@ -39,7 +40,7 @@ class SharedDrawer extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                    backgroundImage: NetworkImage(
+                    backgroundImage: bocadoImageProvider(
                         user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                     ),
                   ),

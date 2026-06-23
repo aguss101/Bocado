@@ -452,12 +452,12 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                       final url = _primeraFoto(receta);
                       const fallback =
                           'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=300&auto=format&fit=crop';
-                      return Image.network(
-                        url ?? fallback,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Image.network(
-                          fallback,
-                          fit: BoxFit.cover,
+                      return BocadoNetworkImage(
+                        url: url ?? fallback,
+                        memCacheWidth: 300,
+                        errorWidget: const BocadoNetworkImage(
+                          url: fallback,
+                          memCacheWidth: 300,
                         ),
                       );
                     },

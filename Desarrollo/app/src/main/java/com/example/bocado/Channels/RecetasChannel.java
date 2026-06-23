@@ -7,6 +7,9 @@ import com.example.bocado.DAO.EtiquetaDAO;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.RecetaManager;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +37,7 @@ public class RecetasChannel {
             case "getAlimentos"    -> handleGetAlimento(result);
             case "addAlimento"     -> handleAddAlimento(call, result);
             case "saveReceta"      -> handleSaveReceta(call, result);
-            case "getRecetas"      -> handleGetRecetas(result);
+            case "getRecetas"      -> handleGetRecetas(call, result);
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
             case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
@@ -200,10 +203,25 @@ public class RecetasChannel {
         );
     }
 
-    // ── getRecetas ────────────────────────────────────────────────────────────
-    private void handleGetRecetas(MethodChannel.Result result) {
-        HttpClientManager.getInstance().get(
-                "/rest/v1/vistas_recetas_macros?select=*",
+    // ── getRecetas (feed paginado, orden pseudoaleatorio estable por seed) ───────
+    private void handleGetRecetas(MethodCall call, MethodChannel.Result result) {
+        String seed = call.argument("seed");
+        Integer limit = call.argument("limit");
+        Integer offset = call.argument("offset");
+
+        JSONObject body = new JSONObject();
+        try {
+            body.put("p_seed", seed != null ? seed : "0");
+            body.put("p_limit", limit != null ? limit : 10);
+            body.put("p_offset", offset != null ? offset : 0);
+        } catch (JSONException e) {
+            result.error("INVALID_ARGS", e.getMessage(), null);
+            return;
+        }
+
+        HttpClientManager.getInstance().post(
+                "/rest/v1/rpc/feed_aleatorio",
+                body.toString(),
                 new okhttp3.Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
@@ -211,8 +229,8 @@ public class RecetasChannel {
                     }
                     @Override
                     public void onResponse(Call call, Response response) throws IOException {
-                        String body = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(body));
+                        String resBody = response.body() != null ? response.body().string() : "[]";
+                        activity.runOnUiThread(() -> result.success(resBody));
                     }
                 }
         );

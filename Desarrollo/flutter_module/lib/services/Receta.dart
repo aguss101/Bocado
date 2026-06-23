@@ -11,7 +11,18 @@ class RecetaService {
     return lista.map((e) => RecetaFeed.fromJson(e)).toList();
   }
 
-  static Future<List<RecetaFeed>> getRecetas() => _fetchRecetas('getRecetas');
+  /// Feed paginado con orden pseudoaleatorio estable: el mismo [seed] mantiene
+  /// el orden consistente entre páginas (evita duplicados/huecos al scrollear).
+  static Future<List<RecetaFeed>> getRecetas({
+    required String seed,
+    required int limit,
+    required int offset,
+  }) =>
+      _fetchRecetas('getRecetas', {
+        'seed': seed,
+        'limit': limit,
+        'offset': offset,
+      });
 
 
 

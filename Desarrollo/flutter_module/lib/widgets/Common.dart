@@ -1,8 +1,58 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+
+/// Imagen de red con caché en disco + memoria (cached_network_image).
+/// Reemplaza a `Image.network`: evita redescargas en cada scroll/navegación.
+/// `memCacheWidth` limita la resolución decodificada en RAM (pasar el ancho
+/// aprox. en px del display para miniaturas; omitir para imágenes grandes).
+class BocadoNetworkImage extends StatelessWidget {
+  final String url;
+  final BoxFit fit;
+  final double? width;
+  final double? height;
+  final int? memCacheWidth;
+  final Widget? errorWidget;
+
+  const BocadoNetworkImage({
+    super.key,
+    required this.url,
+    this.fit = BoxFit.cover,
+    this.width,
+    this.height,
+    this.memCacheWidth,
+    this.errorWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: fit,
+      width: width,
+      height: height,
+      memCacheWidth: memCacheWidth,
+      fadeInDuration: const Duration(milliseconds: 200),
+      placeholder: (_, __) =>
+          Container(color: AppTheme.primary.withValues(alpha: 0.06)),
+      errorWidget: (_, __, ___) =>
+          errorWidget ??
+          Container(
+            color: AppTheme.primary.withValues(alpha: 0.06),
+            child: const Icon(Icons.broken_image_outlined,
+                color: AppTheme.primary),
+          ),
+    );
+  }
+}
+
+/// `ImageProvider` con caché, para usos que requieren un provider en vez de un
+/// widget (`CircleAvatar.backgroundImage`, `DecorationImage.image`).
+ImageProvider bocadoImageProvider(String url) =>
+    CachedNetworkImageProvider(url);
 
 /// Bottom sheet unificado para elegir el origen de una imagen (cámara o galería).
 /// Devuelve el [ImageSource] elegido, o null si el usuario lo descarta.
@@ -141,7 +191,10 @@ class BocadoAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget contenido;
     if (fotoUrl != null) {
-      contenido = Image.network(fotoUrl!, fit: BoxFit.cover);
+      contenido = BocadoNetworkImage(
+        url: fotoUrl!,
+        memCacheWidth: (size * 3).round(),
+      );
     } else if (fotoBytes != null) {
       contenido = Image.memory(fotoBytes!, fit: BoxFit.cover);
     } else {

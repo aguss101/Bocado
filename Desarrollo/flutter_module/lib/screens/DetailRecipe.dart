@@ -496,10 +496,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ? PageView(
                           controller: _pageController,
                           children: listaImagenes.map((url) {
-                            return Image.network(
-                              url.trim(),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                            return BocadoNetworkImage(
+                              url: url.trim(),
+                              errorWidget: Container(
                                 color: AppTheme.surfaceContainerDark,
                                 child: const Icon(
                                   Icons.restaurant_menu,
@@ -1153,12 +1152,12 @@ class _StepCard extends StatelessWidget {
                           separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              step.imagenes[i],
+                            child: BocadoNetworkImage(
+                              url: step.imagenes[i],
                               width: 160,
                               height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              memCacheWidth: 320,
+                              errorWidget: Container(
                                 width: 160,
                                 height: 100,
                                 decoration: BoxDecoration(
@@ -1228,7 +1227,7 @@ class _CommentCard extends StatelessWidget {
               CircleAvatar(
                 radius: isReply ? 14 : 18,
                 backgroundImage: comment.avatarUrl.isNotEmpty
-                    ? NetworkImage(comment.avatarUrl)
+                    ? bocadoImageProvider(comment.avatarUrl)
                     : null,
                 backgroundColor: outline,
                 child: comment.avatarUrl.isEmpty
