@@ -94,6 +94,8 @@ Feed denormalizado. Columnas: `id_receta, nombre_receta, calorias_totales, porci
 - `cant_comentarios` sigue siendo `COUNT` de comentarios (no tiene tabla de stats aún).
 - Macros: clasifica nutrientes por nombre con `ILIKE 'Proteina%'/'Carbohidrato%'/'Grasa%'`
 - `precio_porcion = round(precio / NULLIF(porciones,0), 2)`
+- ⚠️ **`lista_interacciones` usa la clave `tipo`** (NO `tipo_interaccion`, que es el nombre de la columna en la tabla): formato `[{"tipo":"like","id_usuario":1},{"tipo":"save","id_usuario":24}]`. El front (`RecetaFeed.isLikedBy/isSavedBy`) filtra por `i['tipo']` — es correcto, NO cambiar a `tipo_interaccion`. (Verificado por GET directo 2026-06-24.)
+- Soporta paginación PostgREST: `&order=id_receta.desc&limit=N&offset=M` (usado por el feed y los tabs de perfil).
 
 ## Funciones RPC (18 total)
 

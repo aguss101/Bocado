@@ -1,7 +1,5 @@
 package com.example.bocado.DAO;
 
-import com.example.bocado.DAO.Interfaces.CallbackCB;
-import com.example.bocado.Estaticos.ErrorCode;
 import com.example.bocado.Estaticos.RpcCallHelper;
 
 import org.json.JSONArray;
@@ -41,31 +39,5 @@ public class AlimentoDAO {
 
         String response = RpcCallHelper.callSync("crear_alimento_simple", json);
         return Integer.parseInt(response);
-    }
-
-    public static void crear(JSONObject alimentoJson, CallbackCB cb) throws Exception {
-        JSONObject json = new JSONObject();
-        json.put("p_data", alimentoJson);
-
-        RpcCallHelper.callAsync("crear_alimento", json, new CallbackCB() {
-            @Override
-            public void onSuccess(String response) {
-                try {
-                    JSONObject obj = RpcCallHelper.firstOrNull(response);
-                    if (obj != null) {
-                        cb.onSuccess(obj.toString());
-                    } else {
-                        cb.onError(ErrorCode.ERROR_CREATE, "No se pudo crear", null);
-                    }
-                } catch (Exception e) {
-                    cb.onError(ErrorCode.PARSE_ERROR, e.getMessage(), null);
-                }
-            }
-
-            @Override
-            public void onError(String code, String msg, Object data) {
-                cb.onError(code, msg, data);
-            }
-        });
     }
 }

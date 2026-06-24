@@ -7,6 +7,7 @@ import '../models/RecetaFeed.dart';
 import '../services/Receta.dart';
 import 'BarraNavegacion.dart';
 import 'DetailRecipe.dart';
+import 'EditRecipe.dart';
 
 enum _RecetaTab { todas, publicadas, borradores, favoritos }
 
@@ -258,7 +259,18 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RecipeEditorScreen(
+                themeNotifier: widget.themeNotifier,
+                user: widget.user,
+              ),
+            ),
+          );
+          if (mounted) _cargarRecetas();
+        },
         backgroundColor: AppTheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),

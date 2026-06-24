@@ -435,9 +435,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     try {
       for (var ing in _ingredients) {
         if (ing.idAlimento <= 0) {
-          final Map<String, dynamic> response = await const MethodChannel('com.example.bocado/recetas')
-              .invokeMethod('addAlimento', {'nombre': ing.name, 'id_usuario': widget.user.id});
-          ing.idAlimento = response['id'];
+          final response = Map<String, dynamic>.from(
+            await const MethodChannel('com.example.bocado/recetas')
+                .invokeMethod('addAlimento', {'nombre': ing.name, 'id_usuario': widget.user.id}),
+          );
+          ing.idAlimento = response['id'] as int;
         }
       }
 
