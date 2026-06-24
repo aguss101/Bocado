@@ -29,7 +29,8 @@ public class MainActivity extends FlutterActivity {
         super.configureFlutterEngine(flutterEngine);
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
 
-        // Extraer deep link: bocado://perfil/{id} o https://links.bocado.tech/perfil/{id}
+        // Extraer deep link de perfil o receta:
+        //   bocado://{perfil|receta}/{slug} o https://links.bocado.tech/{perfil|receta}/{slug}
         String deepLink = null;
         Uri data = getIntent().getData();
         if (data != null) {

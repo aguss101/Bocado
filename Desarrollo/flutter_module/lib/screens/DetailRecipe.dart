@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Instructions.dart';
 import '../services/Receta.dart';
+import '../utils/IdCodec.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
@@ -186,6 +188,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     } catch (_) {
       // si falla, se mantiene el valor optimista
     }
+  }
+
+  void _compartirReceta() {
+    final slug = IdCodec.encodeReceta(widget.idReceta);
+    final nombre = _data?.titulo ?? '';
+    final intro = nombre.isNotEmpty
+        ? '¡Mirá la receta $nombre en Bocado! 🍴'
+        : '¡Mirá esta receta en Bocado! 🍴';
+    SharePlus.instance.share(
+      ShareParams(text: '$intro\nhttps://links.bocado.tech/receta/$slug'),
+    );
   }
 
   Future<void> _handleLike() async {
@@ -531,6 +544,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         )
                       : const Icon(Icons.edit_outlined, color: Colors.white),
                 ),
+              IconButton(
+                tooltip: 'Compartir receta',
+                onPressed: _compartirReceta,
+                icon: const Icon(Icons.share_outlined, color: Colors.white),
+              ),
               ThemeToggleButton(themeNotifier: widget.themeNotifier),
             ],
             flexibleSpace: FlexibleSpaceBar(

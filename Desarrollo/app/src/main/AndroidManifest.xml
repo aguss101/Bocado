@@ -26,19 +26,21 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Deep links: bocado://perfil/{id} -->
+            <!-- Deep links custom scheme: bocado://perfil/{slug} y bocado://receta/{slug} -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="bocado" android:host="perfil" />
+                <data android:scheme="bocado" android:host="receta" />
             </intent-filter>
-            <!-- App Links: https://links.bocado.tech/perfil/{id} (autoVerify con assetlinks.json) -->
+            <!-- App Links: https://links.bocado.tech/{perfil|receta}/{slug} (autoVerify con assetlinks.json) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/perfil" />
+                <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/receta" />
             </intent-filter>
         </activity>
     </application>

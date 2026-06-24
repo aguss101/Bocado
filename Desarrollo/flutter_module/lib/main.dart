@@ -7,6 +7,7 @@ import 'screens/LogIn.dart';
 import 'screens/Feed.dart';
 import 'screens/Profil.dart';
 import 'screens/EditRecipe.dart';
+import 'screens/DetailRecipe.dart';
 import 'services/Session.dart';
 import 'services/Usuario.dart';
 import 'services/Navigation.dart';
@@ -18,7 +19,7 @@ void main() async {
 
   String? initError;
   usuario_Logged? savedUser;
-  int? deepLinkPerfilId;
+  DeepLinkTarget? deepLinkTarget;
 
   try {
     savedUser = await SessionService.loadSession();
@@ -34,19 +35,19 @@ void main() async {
       }
     }
     final deepLink = await NavigationService.getInitialDeepLink();
-    if (deepLink != null) deepLinkPerfilId = NavigationService.parsePerfilId(deepLink);
+    if (deepLink != null) deepLinkTarget = NavigationService.parse(deepLink);
   } catch (e) {
     initError ??= 'SessionService.loadSession() falló: $e';
   }
 
-  runApp(BocadoApp(savedUser: savedUser, initError: initError, deepLinkPerfilId: deepLinkPerfilId));
+  runApp(BocadoApp(savedUser: savedUser, initError: initError, deepLinkTarget: deepLinkTarget));
 }
 
 class BocadoApp extends StatefulWidget {
   final usuario_Logged? savedUser;
   final String? initError;
-  final int? deepLinkPerfilId;
-  const BocadoApp({super.key, this.savedUser, this.initError, this.deepLinkPerfilId});
+  final DeepLinkTarget? deepLinkTarget;
+  const BocadoApp({super.key, this.savedUser, this.initError, this.deepLinkTarget});
 
   @override
   State<BocadoApp> createState() => _BocadoAppState();
@@ -72,11 +73,11 @@ class _BocadoAppState extends State<BocadoApp> {
       );
     }
     if (widget.savedUser != null) {
-      if (widget.deepLinkPerfilId != null) {
+      if (widget.deepLinkTarget != null) {
         return _DeepLinkLauncher(
           user: widget.savedUser!,
           themeNotifier: _themeNotifier,
-          perfilId: widget.deepLinkPerfilId!,
+          target: widget.deepLinkTarget!,
         );
       }
       return FeedScreen(themeNotifier: _themeNotifier, user: widget.savedUser!);
@@ -106,8 +107,8 @@ class _BocadoAppState extends State<BocadoApp> {
 class _DeepLinkLauncher extends StatefulWidget {
   final usuario_Logged user;
   final ThemeNotifier themeNotifier;
-  final int perfilId;
-  const _DeepLinkLauncher({required this.user, required this.themeNotifier, required this.perfilId});
+  final DeepLinkTarget target;
+  const _DeepLinkLauncher({required this.user, required this.themeNotifier, required this.target});
 
   @override
   State<_DeepLinkLauncher> createState() => _DeepLinkLauncherState();
@@ -117,15 +118,26 @@ class _DeepLinkLauncherState extends State<_DeepLinkLauncher> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ProfileScreen(
+    WidgetsBinding.instance.addPostFrameCallback((_) => _abrir());
+  }
+
+  void _abrir() {
+    final destino = switch (widget.target.tipo) {
+      DeepLinkTipo.perfil => ProfileScreen(
           themeNotifier: widget.themeNotifier,
           user: widget.user,
-          idUsuarioTarget: widget.perfilId,
+          idUsuarioTarget: widget.target.id,
         ),
-      ));
-    });
+      DeepLinkTipo.receta => RecipeDetailScreen(
+          themeNotifier: widget.themeNotifier,
+          user: widget.user,
+          idReceta: widget.target.id,
+          protFeed: 0,
+          carbFeed: 0,
+          grasFeed: 0,
+        ),
+    };
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destino));
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter_module/models/UserProfile.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Receta.dart';
 import 'package:share_plus/share_plus.dart';
+import '../utils/IdCodec.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';
@@ -488,11 +489,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                           final username = _user.usuario;
                           final idPerfil =
                               widget.idUsuarioTarget ?? widget.user.id;
+                          final slug = IdCodec.encodePerfil(idPerfil);
                           SharePlus.instance.share(
                             ShareParams(
                               text:
                                   '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
-                                  'https://links.bocado.tech/perfil/$idPerfil',
+                                  'https://links.bocado.tech/perfil/$slug',
                             ),
                           );
                         },
