@@ -3,14 +3,81 @@ package com.example.bocado.DAO;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.ErrorCode;
 import com.example.bocado.Estaticos.RpcCallHelper;
+import com.example.bocado.Managers.HttpClientManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+
 public class RecetaDAO {
+
+    private static final String VISTA = "/rest/v1/vistas_recetas_macros";
+
+    // ── Lectores (feed, perfil, guardados, detalle) ───────────────────────────────
+    public void feedAleatorio(String seed, int limit, int offset, CallbackCB cb) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_seed", seed != null ? seed : "0");
+            body.put("p_limit", limit);
+            body.put("p_offset", offset);
+            HttpClientManager.getInstance().post("/rest/v1/rpc/feed_aleatorio", body.toString(), restCallback(cb));
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error armando el feed: " + e.getMessage(), null);
+        }
+    }
+
+    public void listarPorUsuario(int idUsuario, Integer limit, Integer offset, CallbackCB cb) {
+        String url = VISTA + "?select=*&id_usuario=eq." + idUsuario + paginar(limit, offset);
+        HttpClientManager.getInstance().get(url, restCallback(cb));
+    }
+
+    public void listarGuardados(int idUsuario, Integer limit, Integer offset, CallbackCB cb) {
+        String url = VISTA + "?select=*,interacciones_usuario!inner(id_usuario,tipo_interaccion)"
+                + "&interacciones_usuario.id_usuario=eq." + idUsuario
+                + "&interacciones_usuario.tipo_interaccion=eq.save"
+                + paginar(limit, offset);
+        HttpClientManager.getInstance().get(url, restCallback(cb));
+    }
+
+    /** Sufijo de paginación estable. Si limit es null, no pagina (trae todo, como antes). */
+    private String paginar(Integer limit, Integer offset) {
+        if (limit == null) return "";
+        return "&order=id_receta.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
+    }
+
+    public void obtenerDetalle(int idReceta, CallbackCB cb) {
+        HttpClientManager.getInstance().get(
+                "/rest/v1/recetas?select=*,usuarios!UR(nombre,foto),recetas_alimentos(cantidad,alimentos(nombre))"
+                        + "&id=eq." + idReceta,
+                restCallback(cb));
+    }
+
+    /** Mapea la respuesta REST de OkHttp al CallbackCB del proyecto. No toca UI. */
+    private Callback restCallback(CallbackCB cb) {
+        return new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onError(ErrorCode.NETWORK_ERROR, e.getMessage(), null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                if (response.isSuccessful()) {
+                    cb.onSuccess(body);
+                } else {
+                    cb.onError(ErrorCode.ERROR_API, "Error " + response.code() + ": " + body, null);
+                }
+            }
+        };
+    }
 
     public void create(Map<String, Object> args, CallbackCB callback) {
         try {

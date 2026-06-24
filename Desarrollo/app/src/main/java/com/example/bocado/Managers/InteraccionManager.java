@@ -23,6 +23,14 @@ public class InteraccionManager {
         interaccionDAO.toggleInteraccion(idUsuario, idReceta, tipo, isAdding != null && isAdding, cb);
     }
 
+    public void fetchMisInteracciones(Integer idUsuario, Integer idReceta, CallbackCB cb) {
+        if (idUsuario == null || idReceta == null) {
+            cb.onError(ErrorCode.NEGOCIO, "Faltan el usuario o la receta.", null);
+            return;
+        }
+        interaccionDAO.fetchMisInteracciones(idUsuario, idReceta, cb);
+    }
+
     public void fetchComentarios(Integer idReceta, CallbackCB cb) {
         if (idReceta == null) {
             cb.onError(ErrorCode.NEGOCIO, "Falta el id de la receta.", null);

@@ -133,6 +133,7 @@ class RecipeDetailScreen extends StatefulWidget {
   final double carbFeed;
   final double grasFeed;
   final int? idAutor;
+  final bool isLikedInicial;
 
   const RecipeDetailScreen({
     super.key,
@@ -143,6 +144,7 @@ class RecipeDetailScreen extends StatefulWidget {
     required this.carbFeed,
     required this.grasFeed,
     this.idAutor,
+    this.isLikedInicial = false,
   });
 
   @override
@@ -151,6 +153,7 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isFavorite = false;
+  bool _likeEnCurso = false;
   bool _isLoading = true;
   bool _abriendoEditor = false;
   RecipeDetailData? _data;
@@ -163,8 +166,52 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _isFavorite = widget.isLikedInicial; // valor optimista: el corazón aparece al instante
     _traerDetalleDeLaReceta();
+    _sincronizarEstadoLike();             // corrige contra el estado real de la BD (en paralelo)
     cargarComentarios(widget.idReceta);
+  }
+
+  /// Consulta liviana del like real del usuario (corre concurrente con el detalle).
+  /// Evita que el corazón quede desfasado si la pantalla origen tenía datos viejos.
+  Future<void> _sincronizarEstadoLike() async {
+    try {
+      final tipos = await InteraccionesService.fetchMisInteracciones(
+        widget.user.id,
+        widget.idReceta,
+      );
+      if (mounted && !_likeEnCurso) {
+        setState(() => _isFavorite = tipos.contains('like'));
+      }
+    } catch (_) {
+      // si falla, se mantiene el valor optimista
+    }
+  }
+
+  Future<void> _handleLike() async {
+    if (_likeEnCurso) return;
+    final nuevoEstado = !_isFavorite;
+    setState(() {
+      _isFavorite = nuevoEstado;
+      _likeEnCurso = true;
+    });
+    try {
+      await InteraccionesService.toggleInteraction({
+        'id_usuario': widget.user.id,
+        'id_receta': widget.idReceta,
+        'tipo': 'like',
+        'is_adding': nuevoEstado,
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFavorite = !nuevoEstado);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al guardar el Like. Revisa tu conexión.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _likeEnCurso = false);
+    }
   }
 
   /// Abre el editor con la receta actual (formato getRecetaID) y, al volver,
@@ -577,7 +624,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     bottom: 16,
                     right: 16,
                     child: GestureDetector(
-                      onTap: () => setState(() => _isFavorite = !_isFavorite),
+                      onTap: _handleLike,
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(

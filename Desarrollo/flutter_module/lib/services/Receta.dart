@@ -26,11 +26,19 @@ class RecetaService {
 
 
 
-  static Future<List<RecetaFeed>> getRecetasUsuario(int usuarioId) =>
-      _fetchRecetas('getRecetasUsuario', {'usuarioId': usuarioId});
+  static Future<List<RecetaFeed>> getRecetasUsuario(int usuarioId, {int? limit, int? offset}) =>
+      _fetchRecetas('getRecetasUsuario', {
+        'usuarioId': usuarioId,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+      });
 
-  static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId) =>
-      _fetchRecetas('getGuardadosUsuario', {'usuarioId': usuarioId});
+  static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId, {int? limit, int? offset}) =>
+      _fetchRecetas('getGuardadosUsuario', {
+        'usuarioId': usuarioId,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+      });
 
   /// Conteo liviano de recetas activas del usuario (Java trae solo los ids).
   static Future<int> contarRecetas(int usuarioId) async {

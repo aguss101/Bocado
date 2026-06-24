@@ -44,9 +44,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   int _cantSiguiendo = 0;
   bool _estaCargandoStats = true;
 
-  Future<List<RecetaFeed>>? _futureRecetas;
-  Future<List<RecetaFeed>>? _futureGuardados;
-  Future<List<UserProfile>>? _futureSeguidos;
+  static const int _pageGrid = 12;
+  static const int _pageLista = 20;
+  late final _PagedList<RecetaFeed> _plRecetas;
+  _PagedList<RecetaFeed>? _plGuardados;
+  late final _PagedList<UserProfile> _plSeguidos;
 
   @override
   void initState() {
@@ -62,10 +64,22 @@ class _ProfileScreenState extends State<ProfileScreen>
       _user = widget.user;
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
-    _futureRecetas = RecetaService.getRecetasUsuario(idTarget);
-    _futureSeguidos = UsuarioService.getSeguidores(idTarget);
+    _plRecetas = _PagedList(
+      (off, lim) => RecetaService.getRecetasUsuario(idTarget, limit: lim, offset: off),
+      pageSize: _pageGrid,
+    );
+    _plSeguidos = _PagedList(
+      (off, lim) => UsuarioService.getSeguidores(idTarget, limit: lim, offset: off),
+      pageSize: _pageLista,
+    );
+    _cargarPrimera(_plRecetas);
+    _cargarPrimera(_plSeguidos);
     if (_isMiPerfil) {
-      _futureGuardados = RecetaService.getGuardadosUsuario(widget.user.id);
+      _plGuardados = _PagedList(
+        (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
+        pageSize: _pageGrid,
+      );
+      _cargarPrimera(_plGuardados!);
     }
     _cargarStats(idTarget);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
@@ -84,9 +98,11 @@ class _ProfileScreenState extends State<ProfileScreen>
             _isMiPerfil = true;
             _tabController.dispose();
             _tabController = TabController(length: 4, vsync: this);
-            _futureGuardados = RecetaService.getGuardadosUsuario(
-              widget.user.id,
+            _plGuardados = _PagedList(
+              (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
+              pageSize: _pageGrid,
             );
+            _cargarPrimera(_plGuardados!);
           }
           _estaCargandoPerfil = false;
         });
@@ -180,6 +196,17 @@ class _ProfileScreenState extends State<ProfileScreen>
   void didPopNext() {
     _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
+  }
+
+  Future<void> _cargarPrimera(_PagedList pl) async {
+    await pl.cargarPrimera();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _cargarMas(_PagedList pl) async {
+    if (pl.cargando || pl.cargandoMas || !pl.hayMas) return;
+    await pl.cargarMas();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -700,55 +727,72 @@ class _ProfileScreenState extends State<ProfileScreen>
     Color text,
     Color muted,
   ) {
-    return FutureBuilder<List<RecetaFeed>>(
-      future: _futureGuardados,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final pl = _plGuardados;
+    if (pl == null || pl.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (pl.items.isEmpty) {
+      return _buildPlaceholderTab(
+        'favorite_border',
+        'No hay recetas guardadas',
+        muted,
+      );
+    }
+    return _gridRecetasPaginado(
+      pl: pl,
+      conCrear: false,
+      surface: surface,
+      border: border,
+      text: text,
+      muted: muted,
+    );
+  }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error al cargar las recetas',
-              style: TextStyle(color: text),
-            ),
-          );
-        }
-
-        final recetas = snapshot.data ?? [];
-        if (recetas.isEmpty) {
-          return _buildPlaceholderTab(
-            'favorite_border',
-            'No hay recetas guardadas',
-            muted,
-          );
-        }
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: recetas.length,
-          itemBuilder: (context, index) {
-            final receta = recetas[index];
-
-            return _recipeCard(
-              surface: surface,
-              border: border,
-              text: text,
-              muted: muted,
-              receta: receta,
-              context: context,
-              themeNotifier: widget.themeNotifier,
-              user: widget.user,
-            );
-          },
-        );
+  /// GridView con scroll infinito para recetas/guardados. Si [conCrear], antepone
+  /// la tarjeta de "crear receta". Muestra un loader al final mientras hay más.
+  Widget _gridRecetasPaginado({
+    required _PagedList<RecetaFeed> pl,
+    required bool conCrear,
+    required Color surface,
+    required Color border,
+    required Color text,
+    required Color muted,
+  }) {
+    final extraInicio = conCrear ? 1 : 0;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) _cargarMas(pl);
+        return false;
       },
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: extraInicio + pl.items.length + (pl.hayMas ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (conCrear && index == 0) {
+            return _tarjetaCrearReceta(context, border, muted);
+          }
+          final i = index - extraInicio;
+          if (i >= pl.items.length) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return _recipeCard(
+            surface: surface,
+            border: border,
+            text: text,
+            muted: muted,
+            receta: pl.items[i],
+            context: context,
+            themeNotifier: widget.themeNotifier,
+            user: widget.user,
+          );
+        },
+      ),
     );
   }
 
@@ -759,33 +803,31 @@ class _ProfileScreenState extends State<ProfileScreen>
     Color text,
     Color muted,
   ) {
-    return FutureBuilder<List<UserProfile>>(
-      future: _futureSeguidos,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error al cargar la lista',
-              style: TextStyle(color: text),
-            ),
-          );
-        }
-
-        final seguidos = snapshot.data ?? [];
-        if (seguidos.isEmpty) {
-          return _buildPlaceholderTab('people', 'Aún no sigue a nadie', muted);
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: seguidos.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, i) => _SeguidoCard(
-            perfil: seguidos[i],
+    final pl = _plSeguidos;
+    if (pl.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (pl.items.isEmpty) {
+      return _buildPlaceholderTab('people', 'Aún no sigue a nadie', muted);
+    }
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) _cargarMas(pl);
+        return false;
+      },
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: pl.items.length + (pl.hayMas ? 1 : 0),
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          if (i >= pl.items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return _SeguidoCard(
+            perfil: pl.items[i],
             usuarioLogueadoId: widget.user.id,
             isMiPerfil: _isMiPerfil,
             surface: surface,
@@ -799,14 +841,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                       builder: (_) => ProfileScreen(
                           user: widget.user,
                           themeNotifier: widget.themeNotifier,
-                          idUsuarioTarget: seguidos[i].idSeguido,
+                          idUsuarioTarget: pl.items[i].idSeguido,
                       )
                   )
               );
               },
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -817,60 +859,25 @@ class _ProfileScreenState extends State<ProfileScreen>
     Color text,
     Color muted,
   ) {
-    return FutureBuilder<List<RecetaFeed>>(
-      future: _futureRecetas,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error al cargar las recetas',
-              style: TextStyle(color: text),
-            ),
-          );
-        }
-
-        final recetas = snapshot.data ?? [];
-        final itemCount = _isMiPerfil ? recetas.length + 1 : recetas.length;
-        if (recetas.isEmpty) {
-          return _buildPlaceholderTab(
-            'restaurant',
-            'No hay recetas publicadas',
-            muted,
-          );
-        }
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: itemCount,
-          itemBuilder: (context, index) {
-            if (_isMiPerfil && index == recetas.length) {
-              return _tarjetaCrearReceta(context, border, muted);
-            }
-
-            final receta = recetas[index];
-
-            return _recipeCard(
-              surface: surface,
-              border: border,
-              text: text,
-              muted: muted,
-              receta: receta,
-              context: context,
-              themeNotifier: widget.themeNotifier,
-              user: widget.user,
-            );
-          },
-        );
-      },
+    final pl = _plRecetas;
+    if (pl.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    // Si no hay recetas pero es mi perfil, igual mostramos la tarjeta de crear.
+    if (pl.items.isEmpty && !_isMiPerfil) {
+      return _buildPlaceholderTab(
+        'restaurant',
+        'No hay recetas publicadas',
+        muted,
+      );
+    }
+    return _gridRecetasPaginado(
+      pl: pl,
+      conCrear: _isMiPerfil,
+      surface: surface,
+      border: border,
+      text: text,
+      muted: muted,
     );
   }
 
@@ -947,6 +954,7 @@ Widget _recipeCard({
             carbFeed: receta.carbohidratosTotales,
             grasFeed: receta.grasasTotales,
             idAutor: receta.usuarioTarget,
+            isLikedInicial: receta.isLikedBy(user.id),
           ),
         ),
       );
@@ -1333,4 +1341,46 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
       oldDelegate.tabBar != tabBar ||
       oldDelegate.color != color ||
       oldDelegate.border != border;
+}
+
+/// Estado de una lista paginada (scroll infinito). El State la posee y llama a
+/// setState alrededor de [cargarPrimera]/[cargarMas]. El fetcher recibe (offset, limit).
+class _PagedList<T> {
+  final Future<List<T>> Function(int offset, int limit) fetch;
+  final int pageSize;
+  final List<T> items = [];
+  int _offset = 0;
+  bool cargando = true;
+  bool cargandoMas = false;
+  bool hayMas = true;
+
+  _PagedList(this.fetch, {this.pageSize = 12});
+
+  Future<void> cargarPrimera() async {
+    cargando = true;
+    items.clear();
+    _offset = 0;
+    hayMas = true;
+    try {
+      final lista = await fetch(0, pageSize);
+      items.addAll(lista);
+      _offset = lista.length;
+      hayMas = lista.length == pageSize;
+    } finally {
+      cargando = false;
+    }
+  }
+
+  Future<void> cargarMas() async {
+    if (cargandoMas || !hayMas || cargando) return;
+    cargandoMas = true;
+    try {
+      final lista = await fetch(_offset, pageSize);
+      items.addAll(lista);
+      _offset += lista.length;
+      hayMas = lista.length == pageSize;
+    } finally {
+      cargandoMas = false;
+    }
+  }
 }

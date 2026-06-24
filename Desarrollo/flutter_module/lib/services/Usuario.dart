@@ -107,9 +107,13 @@ class UsuarioService {
     final String json = await _channel.invokeMethod('getGeneros');
     return jsonDecode(json);
   }
-  static Future<List<UserProfile>> getSeguidores(int idUsuario) async{
+  static Future<List<UserProfile>> getSeguidores(int idUsuario, {int? limit, int? offset}) async{
     try{
-      final String jsonString = await _channel.invokeMethod('getSeguidores', {'id_usuario': idUsuario});
+      final String jsonString = await _channel.invokeMethod('getSeguidores', {
+        'id_usuario': idUsuario,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+      });
       final List<dynamic> jsonList = jsonDecode(jsonString);
 
       return jsonList.map((json) => UserProfile.fromJson(json)).toList();

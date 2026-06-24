@@ -220,7 +220,13 @@ public class AccessChannel {
 
     private void handleGetSeguidores(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/vista_mis_seguidos?select=*&id_seguidor=eq." + idUsuario, new okhttp3.Callback() {
+        Integer limit = call.argument("limit");
+        Integer offset = call.argument("offset");
+        String url = "/rest/v1/vista_mis_seguidos?select=*&id_seguidor=eq." + idUsuario;
+        if (limit != null) {
+            url += "&order=id_seguido.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
+        }
+        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }

@@ -7,6 +7,7 @@ import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
 import '../services/Receta.dart';
 import '../services/Instructions.dart';
+import '../route_observer.dart';
 import 'DetailRecipe.dart';
 import 'BarraNavegacion.dart';
 import 'package:share_plus/share_plus.dart';
@@ -217,6 +218,7 @@ class _FeedScreenState extends State<FeedScreen> {
                           carbFeed: recetaActual.carbohidratosTotales,
                           grasFeed: recetaActual.grasasTotales,
                           idAutor: recetaActual.usuarioTarget,
+                          isLikedInicial: recetaActual.isLikedBy(widget.user.id),
                         ),
                       ),
                     );
@@ -252,7 +254,7 @@ class _FeedArticleCard extends StatefulWidget {
   State<_FeedArticleCard> createState() => _FeedArticleCardState();
 }
 
-class _FeedArticleCardState extends State<_FeedArticleCard> {
+class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   late bool _isLiked;
   late bool _isSaved;
   late int _likesLocales;
@@ -263,6 +265,49 @@ class _FeedArticleCardState extends State<_FeedArticleCard> {
     _isLiked=widget.receta.isLikedBy(widget.user.id);
     _isSaved=widget.receta.isSavedBy(widget.user.id);
     _likesLocales = widget.receta.cantidadFavoritos;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Al volver al Feed desde el detalle, re-sincroniza like/save contra la BD para
+  /// reflejar cambios hechos allá. GET liviano (PK), ajusta el contador local si el
+  /// like cambió. Mantiene el flujo Detalle → Feed consistente.
+  @override
+  void didPopNext() {
+    _resincronizarInteracciones();
+  }
+
+  Future<void> _resincronizarInteracciones() async {
+    try {
+      final tipos = await InteraccionesService.fetchMisInteracciones(
+        widget.user.id,
+        widget.receta.idReceta,
+      );
+      if (!mounted) return;
+      final nuevoLike = tipos.contains('like');
+      final nuevoSave = tipos.contains('save');
+      if (nuevoLike == _isLiked && nuevoSave == _isSaved) return;
+      setState(() {
+        if (nuevoLike != _isLiked) {
+          _likesLocales += nuevoLike ? 1 : -1;
+          _isLiked = nuevoLike;
+        }
+        _isSaved = nuevoSave;
+      });
+    } catch (_) {
+      // si falla, se mantiene el estado actual
+    }
   }
 
   Future<void> _handleLike() async {

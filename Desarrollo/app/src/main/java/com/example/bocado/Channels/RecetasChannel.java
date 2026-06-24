@@ -4,11 +4,9 @@ import android.app.Activity;
 
 import com.example.bocado.DAO.AlimentoDAO;
 import com.example.bocado.DAO.EtiquetaDAO;
+import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Managers.HttpClientManager;
 import com.example.bocado.Managers.RecetaManager;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -140,42 +138,20 @@ public class RecetasChannel {
 
     // ── getRecetasUsuario ────────────────────────────────────────────────────────────
     private void handleGetRecetasUsuario(MethodCall call, MethodChannel.Result result) {
-        Integer usuarioId = call.argument("usuarioId");
-
-        HttpClientManager.getInstance().get(
-                "/rest/v1/vistas_recetas_macros?select=*&id_usuario=eq." + usuarioId,
-                new okhttp3.Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                    }
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        String body = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(body));
-                    }
-                }
-        );
+        RecetaManager.getInstance().listarPorUsuario(
+                call.argument("usuarioId"),
+                call.argument("limit"),
+                call.argument("offset"),
+                bridgeData(result));
     }
 
     // ── getGuardadosUsuario ────────────────────────────────────────────────────────────
     private void handleGetSaveUser(MethodCall call, MethodChannel.Result result) {
-        Integer usuarioId = call.argument("usuarioId");
-
-        HttpClientManager.getInstance().get(
-                "/rest/v1/vistas_recetas_macros?select=*,interacciones_usuario!inner(id_usuario,tipo_interaccion)&interacciones_usuario.id_usuario=eq." + usuarioId + "&interacciones_usuario.tipo_interaccion=eq.save",
-                new okhttp3.Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                    }
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        String body = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(body));
-                    }
-                }
-        );
+        RecetaManager.getInstance().listarGuardados(
+                call.argument("usuarioId"),
+                call.argument("limit"),
+                call.argument("offset"),
+                bridgeData(result));
     }
 
     // ── contarRecetas (lectura O(1) del contador mantenido por trigger) ──────────
@@ -205,63 +181,29 @@ public class RecetasChannel {
 
     // ── getRecetas (feed paginado, orden pseudoaleatorio estable por seed) ───────
     private void handleGetRecetas(MethodCall call, MethodChannel.Result result) {
-        String seed = call.argument("seed");
-        Integer limit = call.argument("limit");
-        Integer offset = call.argument("offset");
-
-        JSONObject body = new JSONObject();
-        try {
-            body.put("p_seed", seed != null ? seed : "0");
-            body.put("p_limit", limit != null ? limit : 10);
-            body.put("p_offset", offset != null ? offset : 0);
-        } catch (JSONException e) {
-            result.error("INVALID_ARGS", e.getMessage(), null);
-            return;
-        }
-
-        HttpClientManager.getInstance().post(
-                "/rest/v1/rpc/feed_aleatorio",
-                body.toString(),
-                new okhttp3.Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                    }
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        String resBody = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(resBody));
-                    }
-                }
-        );
+        RecetaManager.getInstance().feed(
+                call.argument("seed"),
+                call.argument("limit"),
+                call.argument("offset"),
+                bridgeData(result));
     }
 
     // ── getRecetaDetalle ──────────────────────────────────────────────────────
     private void handleGetRecetaDetalle(MethodCall call, MethodChannel.Result result) {
-        Integer id = call.argument("id");
-        String endpoint = "/rest/v1/recetas"
-                + "?select=*,usuarios!UR(nombre,foto),recetas_alimentos(cantidad,alimentos(nombre))"
-                + "&id=eq." + id;
+        RecetaManager.getInstance().detalle(call.argument("id"), bridgeData(result));
+    }
 
-        HttpClientManager.getInstance().get(endpoint, new okhttp3.Callback() {
+    /** Puente CallbackCB → Result devolviendo el payload tal cual (en hilo UI). */
+    private CallbackCB bridgeData(MethodChannel.Result result) {
+        return new CallbackCB() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            public void onSuccess(String data) {
+                activity.runOnUiThread(() -> result.success(data));
             }
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String body = response.body() != null ? response.body().string() : "[]";
-                    activity.runOnUiThread(() -> result.success(body));
-                } else {
-                    String detalle = response.body() != null ? response.body().string() : "Sin detalles";
-                    activity.runOnUiThread(() -> result.error(
-                            "API_ERROR",
-                            "Fallo Supabase. Detalle: " + detalle,
-                            null
-                    ));
-                }
+            public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
             }
-        });
+        };
     }
 }

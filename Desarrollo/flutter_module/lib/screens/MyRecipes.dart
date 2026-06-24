@@ -430,6 +430,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             carbFeed: receta.carbohidratosTotales,
             grasFeed: receta.grasasTotales,
             idAutor: receta.usuarioTarget,
+            isLikedInicial: receta.isLikedBy(widget.user.id),
           ),
         ),
       ),

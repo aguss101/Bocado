@@ -27,7 +27,7 @@ public class InteraccionDAO implements IInteraccion {
                 json.put("id_usuario", idUsuario);
                 json.put("id_receta", idReceta);
                 json.put("tipo_interaccion", tipo);
-                HttpClientManager.getInstance().post(TABLA, json.toString(), restCallback(cb));
+                HttpClientManager.getInstance().post(TABLA, json.toString(), restCallbackIdempotente(cb));
             } catch (Exception e) {
                 cb.onError(ErrorCode.ERROR_JSON, "Error armando la interacción: " + e.getMessage(), null);
             }
@@ -38,6 +38,13 @@ public class InteraccionDAO implements IInteraccion {
                     + "&tipo_interaccion=eq." + tipo;
             HttpClientManager.getInstance().delete(endpoint, restCallback(cb));
         }
+    }
+
+    @Override
+    public void fetchMisInteracciones(int idUsuario, int idReceta, CallbackCB cb) {
+        HttpClientManager.getInstance().get(
+                TABLA + "?select=tipo_interaccion&id_usuario=eq." + idUsuario + "&id_receta=eq." + idReceta,
+                restCallback(cb));
     }
 
     @Override
@@ -73,6 +80,30 @@ public class InteraccionDAO implements IInteraccion {
             public void onResponse(Call call, Response response) throws IOException {
                 String body = response.body() != null ? response.body().string() : "";
                 if (response.isSuccessful()) {
+                    cb.onSuccess(body);
+                } else {
+                    cb.onError(ErrorCode.ERROR_API, "Error " + response.code() + ": " + body, null);
+                }
+            }
+        };
+    }
+
+    /**
+     * Igual que restCallback pero trata el 409 (clave duplicada) como éxito: agregar
+     * una interacción que ya existe es idempotente — el estado deseado ya se cumple.
+     * Evita el "Error al guardar" cuando el estado en pantalla quedó desfasado del de la BD.
+     */
+    private Callback restCallbackIdempotente(CallbackCB cb) {
+        return new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onError(ErrorCode.NETWORK_ERROR, e.getMessage(), null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() != null ? response.body().string() : "";
+                if (response.isSuccessful() || response.code() == 409) {
                     cb.onSuccess(body);
                 } else {
                     cb.onError(ErrorCode.ERROR_API, "Error " + response.code() + ": " + body, null);

@@ -28,6 +28,7 @@ public class InteractionsChannel {
         switch (call.method) {
             case "updateSeguido" -> handleUpdateFollow(call, result);
             case "toggleInteraction" -> handleToggleInteraction(call, result);
+            case "fetchMisInteracciones" -> handleFetchMisInteracciones(call, result);
             case "fetchComentarios" -> handleFetchComentarios(call, result);
             case "enviarComentario" -> handleEnviarComentario(call, result);
             default -> result.notImplemented();
@@ -51,6 +52,14 @@ public class InteractionsChannel {
                 call.argument("tipo"),
                 call.argument("is_adding"),
                 bridgeOk(result));
+    }
+
+    // ── fetchMisInteracciones (estado like/save del usuario para una receta) ───────
+    private void handleFetchMisInteracciones(MethodCall call, MethodChannel.Result result) {
+        interaccionManager.fetchMisInteracciones(
+                call.argument("id_usuario"),
+                call.argument("id_receta"),
+                bridgeData(result));
     }
 
     // ── fetchComentarios ──────────────────────────────────────────────────────────
