@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import '../utils/IdCodec.dart';
 
@@ -12,6 +13,22 @@ class DeepLinkTarget {
 
 class NavigationService {
   static const _channel = MethodChannel('com.example.bocado/navigation');
+
+  static final _ctrl = StreamController<DeepLinkTarget>.broadcast();
+
+  /// Stream de deep links que llegan mientras la app ya está corriendo.
+  static Stream<DeepLinkTarget> get deepLinks => _ctrl.stream;
+
+  /// Registra el handler que recibe deep links de Java vía onNewIntent.
+  /// Llamar una sola vez al iniciar la app.
+  static void initIncomingLinks() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeepLink') {
+        final target = parse(call.arguments as String? ?? '');
+        if (target != null) _ctrl.add(target);
+      }
+    });
+  }
 
   /// Retorna el deep link inicial si la app fue abierta desde uno, o null.
   static Future<String?> getInitialDeepLink() async {

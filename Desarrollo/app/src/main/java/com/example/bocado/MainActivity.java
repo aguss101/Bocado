@@ -1,5 +1,6 @@
 package com.example.bocado;
 
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.splashscreen.SplashScreen;
@@ -17,6 +18,8 @@ import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.BinaryMessenger;
 
 public class MainActivity extends FlutterActivity {
+
+    private NavigationChannel navigationChannel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +48,21 @@ public class MainActivity extends FlutterActivity {
         new RecetasChannel(this, messenger);
         new ImagesChannel(this, messenger);
         new InteractionsChannel(this, messenger);
-        new NavigationChannel(messenger, deepLink);
+        navigationChannel = new NavigationChannel(messenger, deepLink);
+    }
+
+    // Cuando la app YA está corriendo y llega un intent nuevo (deep link desde otra app).
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (navigationChannel == null) return;
+        Uri data = intent.getData();
+        if (data == null) return;
+        boolean esCustom = "bocado".equals(data.getScheme());
+        boolean esHttps = "https".equals(data.getScheme()) && "links.bocado.tech".equals(data.getHost());
+        if (esCustom || esHttps) {
+            navigationChannel.onNewDeepLink(data.toString());
+        }
     }
 }

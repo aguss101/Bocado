@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
@@ -34,6 +35,7 @@ void main() async {
         // Sin conexión: confiamos en la sesión cacheada (modo offline).
       }
     }
+    NavigationService.initIncomingLinks();
     final deepLink = await NavigationService.getInitialDeepLink();
     if (deepLink != null) deepLinkTarget = NavigationService.parse(deepLink);
   } catch (e) {
@@ -55,9 +57,41 @@ class BocadoApp extends StatefulWidget {
 
 class _BocadoAppState extends State<BocadoApp> {
   final ThemeNotifier _themeNotifier = ThemeNotifier();
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<DeepLinkTarget>? _deepLinkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _deepLinkSub = NavigationService.deepLinks.listen(_onDeepLink);
+  }
+
+  void _onDeepLink(DeepLinkTarget target) {
+    final user = widget.savedUser;
+    if (user == null) return;
+    final nav = _navigatorKey.currentState;
+    if (nav == null) return;
+    final Widget pantalla = switch (target.tipo) {
+      DeepLinkTipo.perfil => ProfileScreen(
+          themeNotifier: _themeNotifier,
+          user: user,
+          idUsuarioTarget: target.id,
+        ),
+      DeepLinkTipo.receta => RecipeDetailScreen(
+          themeNotifier: _themeNotifier,
+          user: user,
+          idReceta: target.id,
+          protFeed: 0,
+          carbFeed: 0,
+          grasFeed: 0,
+        ),
+    };
+    nav.push(MaterialPageRoute(builder: (_) => pantalla));
+  }
 
   @override
   void dispose() {
+    _deepLinkSub?.cancel();
     _themeNotifier.dispose();
     super.dispose();
   }
@@ -96,6 +130,7 @@ class _BocadoAppState extends State<BocadoApp> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
+          navigatorKey: _navigatorKey,
           navigatorObservers: [routeObserver],
           home: _resolveHome(),
         );

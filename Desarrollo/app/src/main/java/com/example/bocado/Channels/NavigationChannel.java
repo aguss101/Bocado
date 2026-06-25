@@ -6,14 +6,21 @@ import io.flutter.plugin.common.MethodChannel;
 public class NavigationChannel {
 
     private static final String CHANNEL = "com.example.bocado/navigation";
+    private final MethodChannel channel;
 
     public NavigationChannel(BinaryMessenger messenger, String initialDeepLink) {
-        new MethodChannel(messenger, CHANNEL).setMethodCallHandler((call, result) -> {
+        this.channel = new MethodChannel(messenger, CHANNEL);
+        channel.setMethodCallHandler((call, result) -> {
             if ("getInitialDeepLink".equals(call.method)) {
-                result.success(initialDeepLink); // null si no hubo deep link
+                result.success(initialDeepLink);
             } else {
                 result.notImplemented();
             }
         });
+    }
+
+    // Llamado desde MainActivity.onNewIntent cuando la app ya está corriendo.
+    public void onNewDeepLink(String deepLink) {
+        channel.invokeMethod("onDeepLink", deepLink);
     }
 }
