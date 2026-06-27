@@ -37,16 +37,16 @@ jobs:
       - name: Build APK
         run: ./gradlew assembleRelease
 
-      - name: Publish APK via GitHub Release
+      - name: Publish APK to web repo (GitHub Pages)
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          gh release view current --repo aguss101/aguss101.github.io > /dev/null 2>&1 \
-            || gh release create current \
-                 --repo aguss101/aguss101.github.io \
-                 --title "Bocado APK" \
-                 --notes "Versión más reciente"
-          gh release upload current \
-            --repo aguss101/aguss101.github.io \
-            --clobber \
-            "app/build/outputs/apk/release/app-release.apk#bocado.apk"
+          git clone https://x-access-token:${GH_PAT}@github.com/aguss101/aguss101.github.io.git web-repo
+          mkdir -p web-repo/downloads
+          cp app/build/outputs/apk/release/app-release.apk web-repo/downloads/bocado.apk
+          cd web-repo
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add downloads/bocado.apk
+          git diff --staged --quiet || git commit -m "chore: update APK [skip ci]"
+          git push
