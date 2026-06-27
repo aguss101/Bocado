@@ -7,6 +7,8 @@ import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
 import '../services/Receta.dart';
 import '../services/Instructions.dart';
+import '../services/Update.dart';
+import '../widgets/UpdateDialog.dart';
 import '../route_observer.dart';
 import 'DetailRecipe.dart';
 import 'BarraNavegacion.dart';
@@ -50,6 +52,21 @@ class _FeedScreenState extends State<FeedScreen> {
     _seed = DateTime.now().millisecondsSinceEpoch.toString();
     _scrollController.addListener(_onScroll);
     _traerRecetas();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _chequearActualizacion());
+  }
+
+  /// Chequea si hay versión nueva. Si la hay y nunca se mostró el cartel para
+  /// esa versión, lo muestra una sola vez. El botón en la barra de navegación
+  /// queda visible siempre que haya update (lee UpdateService.cached).
+  Future<void> _chequearActualizacion() async {
+    final info = await UpdateService.verificar();
+    if (info == null || !info.disponible || !mounted) return;
+    setState(() {}); // refresca para que el botón del drawer aparezca
+    final yaVisto = await UpdateService.dialogYaVisto(info.versionName);
+    if (yaVisto || !mounted) return;
+    await UpdateService.marcarDialogVisto(info.versionName);
+    if (!mounted) return;
+    await mostrarDialogoActualizacion(context, info.versionName);
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import '../services/Session.dart';
+import '../services/Update.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
@@ -123,6 +124,35 @@ class SharedDrawer extends StatelessWidget {
                 ],
               ),
             ),
+
+            // ── ACTUALIZAR (solo si hay versión nueva) ──
+            if (UpdateService.cached?.disponible == true)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  BocadoSpacing.lg,
+                  BocadoSpacing.sm,
+                  BocadoSpacing.lg,
+                  0,
+                ),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(BocadoRadius.sm),
+                  ),
+                  tileColor: AppTheme.primary.withValues(alpha: 0.12),
+                  leading: const Icon(Icons.system_update, color: AppTheme.primary),
+                  title: const Text(
+                    'Actualizar app',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    UpdateService.abrirDescarga();
+                  },
+                ),
+              ),
 
             // ── CERRAR SESIÓN ──
             Padding(
