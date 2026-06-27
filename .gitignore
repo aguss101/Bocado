@@ -2,7 +2,8 @@
 .gradle/
 **/build/
 build/
-gradle/wrapper/gradle-wrapper.jar
+# El wrapper jar SÍ se versiona: el CI lo necesita para correr ./gradlew
+!gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 **/cache.properties
 
