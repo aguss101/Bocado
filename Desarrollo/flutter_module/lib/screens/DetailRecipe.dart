@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:core';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -136,6 +137,9 @@ class RecipeDetailScreen extends StatefulWidget {
   final double grasFeed;
   final int? idAutor;
   final bool isLikedInicial;
+  final bool isPreview;
+  final RecipeDetailData? previewData;
+  final List<Uint8List>? previewImageBytes;
 
   const RecipeDetailScreen({
     super.key,
@@ -147,6 +151,9 @@ class RecipeDetailScreen extends StatefulWidget {
     required this.grasFeed,
     this.idAutor,
     this.isLikedInicial = false,
+    this.isPreview = false,
+    this.previewData,
+    this.previewImageBytes,
   });
 
   @override
@@ -168,14 +175,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _isFavorite = widget.isLikedInicial; // valor optimista: el corazón aparece al instante
-    _traerDetalleDeLaReceta();
-    _sincronizarEstadoLike();             // corrige contra el estado real de la BD (en paralelo)
-    cargarComentarios(widget.idReceta);
+    _isFavorite = widget.isLikedInicial;
+    if (widget.previewData != null) {
+      _data = widget.previewData;
+      _isLoading = false;
+    } else {
+      _traerDetalleDeLaReceta();
+      _sincronizarEstadoLike();
+      cargarComentarios(widget.idReceta);
+    }
   }
 
-  /// Consulta liviana del like real del usuario (corre concurrente con el detalle).
-  /// Evita que el corazón quede desfasado si la pantalla origen tenía datos viejos.
   Future<void> _sincronizarEstadoLike() async {
     try {
       final tipos = await InteraccionesService.fetchMisInteracciones(
@@ -186,7 +196,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         setState(() => _isFavorite = tipos.contains('like'));
       }
     } catch (_) {
-      // si falla, se mantiene el valor optimista
     }
   }
 
@@ -472,12 +481,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final isDark = c.isDark;
     final surface = c.surfaceContainer;
     final outline = c.border;
-    final listaImagenes =
-        _data?.imageUrl
-            .split('|')
-            .where((url) => url.trim().isNotEmpty)
-            .toList() ??
-        [];
+    final List<dynamic> listaImagenes = widget.isPreview
+        ? [
+      ...(_data?.imageUrl
+          .split('|')
+          .where((url) => url.trim().isNotEmpty)
+          .toList() ?? []),
+      ...(widget.previewImageBytes ?? []),
+    ]
+        : (_data?.imageUrl
+        .split('|')
+        .where((url) => url.trim().isNotEmpty)
+        .toList() ?? []);
 
     if (_isLoading) {
       return Scaffold(
@@ -517,6 +532,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       );
     }
     return Scaffold(
+      appBar: widget.isPreview
+          ? AppBar(
+        title: const Text("VISTA PREVIA", style: TextStyle(fontSize: 16)),
+        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+      )
+          : null,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -556,32 +578,34 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 fit: StackFit.expand,
                 children: [
                   // 1. EL CARRUSEL (En el fondo de todo)
-                  listaImagenes.isNotEmpty &&
-                          listaImagenes.first.startsWith('http')
+                  listaImagenes.isNotEmpty
                       ? PageView(
-                          controller: _pageController,
-                          children: listaImagenes.map((url) {
-                            return BocadoNetworkImage(
-                              url: url.trim(),
-                              errorWidget: Container(
-                                color: AppTheme.surfaceContainerDark,
-                                child: const Icon(
-                                  Icons.restaurant_menu,
-                                  size: 64,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        )
-                      : Container(
-                          color: AppTheme.surfaceContainerDark,
-                          child: const Icon(
-                            Icons.restaurant_menu,
-                            size: 64,
-                            color: AppTheme.primary,
+                    controller: _pageController,
+                    children: listaImagenes.map((item) {
+                      if (item is Uint8List) {
+                        // Foto local del editor (bytes)
+                        return Image.memory(item, fit: BoxFit.cover);
+                      } else if (item is String && item.startsWith('http')) {
+                        // Foto ya subida (URL)
+                        return BocadoNetworkImage(
+                          url: item.trim(),
+                          errorWidget: Container(
+                            color: AppTheme.surfaceContainerDark,
+                            child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                           ),
-                        ),
+                        );
+                      } else {
+                        return Container(
+                          color: AppTheme.surfaceContainerDark,
+                          child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                        );
+                      }
+                    }).toList(),
+                  )
+                      : Container(
+                    color: AppTheme.surfaceContainerDark,
+                    child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                  ),
 
                   // 2. EL DEGRADADO OSCURO (Con IgnorePointer para que no bloquee los clicks)
                   const IgnorePointer(
@@ -637,6 +661,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
 
+                  if(!widget.isPreview)
                   // 4. BOTÓN DE FAVORITOS (Corazón)
                   Positioned(
                     bottom: 16,
@@ -750,7 +775,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 1.8,
+                    childAspectRatio: 1.65,
                     children: [
                       _NutriCard(
                         label: 'Calorías',
@@ -828,6 +853,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     );
                   }),
                   const SizedBox(height: 40),
+                  if(!widget.isPreview) ...[
                   // ---Seccion de comentarios---
                   const SizedBox(height: 16),
                   const Divider(height: 32),
@@ -853,6 +879,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ],
                   ),
+                  ],
                   const SizedBox(height: 12),
                   if (_comentarios.isEmpty)
                     const Padding(

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Receta.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_module/screens/DetailRecipe.dart';
 import '../services/UploadImg.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
@@ -566,7 +567,72 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ),
           const Spacer(),
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
-          _pillButton(icon: Icons.visibility_outlined, label: '', onTap: () {}),
+
+    _pillButton(
+    icon: Icons.visibility_outlined,
+    label: 'PREVIA',
+    onTap: () {
+      final fotosUrl = _listaFotos
+          .where((f) => f.url != null && f.url!.isNotEmpty)
+          .map((f) => f.url!)
+          .join('|');
+
+      final List<Uint8List> fotosBytes = _listaFotos
+          .where((f) => f.bytes != null)
+          .map((f) => f.bytes!)
+          .toList(); // 👈 NUEVO
+    // Construir ingredientes para el preview
+    final ingredientesPreview = _ingredients.map((ing) {
+    return IngredientItem(
+    nombre: ing.name,
+    cantidad: '${ing.quantity}${ing.unit}',
+    resaltado: false,
+    );
+    }).toList();
+
+    // Construir pasos para el preview
+    final pasosPreview = _pasos.asMap().entries.map((entry) {
+    return PreparationStep(
+    numeroPaso: entry.key + 1,
+    titulo: 'Paso ${entry.key + 1}',
+    descripcion: entry.value.description,
+    );
+    }).toList();
+
+    // Armar las URLs de fotos (solo las que ya tienen URL; las bytes aún no subidas se omiten)
+
+      final previewData = RecipeDetailData(
+        titulo: _nombreCtrl.text.isEmpty ? 'Sin título' : _nombreCtrl.text,
+        categoria: 'Vista previa',
+        imageUrl: fotosUrl,
+        calorias: double.tryParse(_caloriasCtrl.text) ?? 0.0,
+        proteina: '—',
+        carbos: '—',
+        grasas: '—',
+        duracion: _tiempoCtrl.text.isEmpty ? 'N/A' : '${_tiempoCtrl.text} min',
+        porciones: _porcionesCtrl.text.isEmpty ? '— porciones' : '${_porcionesCtrl.text} porciones',
+        ingredientes: ingredientesPreview,
+        pasos: pasosPreview,
+      );
+
+    Navigator.push(
+    context,
+    MaterialPageRoute(
+    builder: (context) => RecipeDetailScreen(
+    themeNotifier: widget.themeNotifier,
+    user: widget.user,
+    idReceta: -1,
+    protFeed: 0,
+    carbFeed: 0,
+    grasFeed: 0,
+    isPreview: true,
+    previewData: previewData,
+      previewImageBytes: fotosBytes,
+    ),
+    ),
+    );
+    },
+    ),
         ],
       ),
     );
