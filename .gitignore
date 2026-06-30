@@ -9,6 +9,8 @@ build/
 
 # ── CHECKSUMS / HASHES (generados por Gradle) ─────────
 *.lock
+# pubspec.lock SÍ se versiona: fija las versiones de plugins para builds reproducibles en CI
+!pubspec.lock
 *.bin
 *.probe
 *-checksums.*
