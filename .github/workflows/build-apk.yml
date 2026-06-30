@@ -28,6 +28,10 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Flutter pub get (módulo)
+        working-directory: Desarrollo/flutter_module
+        run: flutter pub get
+
       - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
