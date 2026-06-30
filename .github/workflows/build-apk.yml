@@ -41,7 +41,9 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ~/.android/debug.keystore
 
       - name: Build APK
-        run: ./gradlew assembleRelease
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
       - name: Publish APK + version.json to web repo (GitHub Pages)
         env:
