@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/theme/Notifier.dart';
+import '../services/Session.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';
 
@@ -42,6 +43,9 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
       });
 
       if (exito == true) {
+       widget.user.id_Cuenta = nuevoIdCuenta;
+       await SessionService.updateIdCuenta(nuevoIdCuenta);
+       if (!mounted) return;
         setState(() => _esPremium = nuevoEstado);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

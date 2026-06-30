@@ -22,6 +22,13 @@ class SessionService {
     if (user.bannerUrl    != null) await prefs.setString(_keyBannerUrl, user.bannerUrl!);
   }
 
+ /// Actualiza solo el id_cuenta en la sesión cacheada, si ya existe una.
+ /// No crea sesión para usuarios que no eligieron "Recordar sesión".
+ static Future<void> updateIdCuenta(int idCuenta) async {
+   final prefs = await SharedPreferences.getInstance();
+   if (prefs.getInt(_keyId) == null) return;
+   await prefs.setInt(_keyIdCuenta, idCuenta);
+ }
   /// return user saved
   static Future<usuario_Logged?> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
