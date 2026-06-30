@@ -534,9 +534,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     return Scaffold(
       appBar: widget.isPreview
           ? AppBar(
-        title: const Text("VISTA PREVIA", style: TextStyle(fontSize: 16)),
-        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        title: Text("VISTA PREVIA", style: TextStyle(fontSize: 16, color: c.text, fontWeight: FontWeight.bold)),
+        backgroundColor: c.bg.withValues(alpha: 0.9),
+        elevation: 0,
+        leading: IconButton(icon: Icon(Icons.close, color: c.muted), onPressed: () => Navigator.pop(context)),
       )
           : null,
       body: CustomScrollView(
