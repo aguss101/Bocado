@@ -10,6 +10,7 @@ import 'LogIn.dart';
 import 'MyRecipes.dart';
 import 'Profil.dart';
 import 'EditRecipe.dart';
+import 'PremiumStore.dart';
 
 
 class SharedDrawer extends StatelessWidget {
@@ -105,7 +106,23 @@ class SharedDrawer extends StatelessWidget {
                       },
                     ),
                   ),
-
+                  _buildMenuItem(
+                      context: context,
+                      icon: Icons.workspace_premium, // Icono de corona o premium
+                      title: 'Premium',
+                      isActive: rutaActual == 'premium',
+                      onTap: () {
+                        if (rutaActual != 'premium') {
+                          Navigator.pop(context); // Cerramos el drawer primero
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => PremiumStoreScreen(themeNotifier: themeNotifier, user: user))
+                          );
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      }
+                  ),
                   Divider(color: c.border),
 
                   _buildMenuItem(
@@ -124,6 +141,7 @@ class SharedDrawer extends StatelessWidget {
                 ],
               ),
             ),
+
 
             // ── ACTUALIZAR (solo si hay versión nueva) ──
             if (UpdateService.cached?.disponible == true)

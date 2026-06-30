@@ -7,12 +7,7 @@ import androidx.core.splashscreen.SplashScreen;
 
 import android.net.Uri;
 
-import com.example.bocado.Channels.AccessChannel;
-import com.example.bocado.Channels.InteractionsChannel;
-import com.example.bocado.Channels.RecetasChannel;
-import com.example.bocado.Channels.ImagesChannel;
-import com.example.bocado.Channels.NavigationChannel;
-import com.example.bocado.Channels.AppChannel;
+import com.example.bocado.Channels.*;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -50,6 +45,7 @@ public class MainActivity extends FlutterActivity {
         new ImagesChannel(this, messenger);
         new InteractionsChannel(this, messenger);
         new AppChannel(this, messenger);
+        new AccountChannel(this, messenger);
         navigationChannel = new NavigationChannel(messenger, deepLink);
     }
 
