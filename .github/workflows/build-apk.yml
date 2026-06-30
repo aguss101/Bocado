@@ -3,8 +3,7 @@ name: Build & Publish APK
 on:
   push:
     branches: [main]
-    paths:
-      - 'Desarrollo/**'
+  workflow_dispatch:
 
 defaults:
   run:
