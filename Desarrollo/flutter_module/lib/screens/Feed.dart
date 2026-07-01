@@ -44,7 +44,7 @@ class _FeedScreenState extends State<FeedScreen> {
   bool _estaCargando = true; // primera página
   bool _cargandoMas = false; // páginas siguientes
   bool _hayMas = true;
-  static const bool _isDebugMode = true;
+  static const bool _isDebugMode = false;
 
   @override
   void initState() {

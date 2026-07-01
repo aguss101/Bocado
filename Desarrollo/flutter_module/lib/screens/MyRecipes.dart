@@ -62,7 +62,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   _RecetaTab _tabSeleccionada = _RecetaTab.todas;
   final TextEditingController _searchController = TextEditingController();
-  String _busqueda = '';
+  List<String> _etiquetasFiltro = [];
 
   _OrdenOption _orden = const _OrdenOption(_OrdenCampo.nombre, true);
 
@@ -70,9 +70,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   void initState() {
     super.initState();
     _cargarRecetas();
-    _searchController.addListener(() {
-      setState(() => _busqueda = _searchController.text.trim().toLowerCase());
-    });
   }
 
   @override
@@ -96,9 +93,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   bool _esFavorito(RecetaFeed r) => r.usuarioTarget != widget.user.id;
-
   bool _esPublicada(RecetaFeed r) => r.activo == true && r.visibilidad == true;
-
   bool _esBorrador(RecetaFeed r) => r.activo == false && r.visibilidad == false;
 
   String? _primeraFoto(RecetaFeed r) {
@@ -110,58 +105,140 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   List<RecetaFeed> get _porTab {
     switch (_tabSeleccionada) {
-      case _RecetaTab.todas:
-        return _recetas;
-      case _RecetaTab.publicadas:
-        return _recetas.where(_esPublicada).toList();
-      case _RecetaTab.borradores:
-        return _recetas.where(_esBorrador).toList();
-      case _RecetaTab.favoritos:
-        return _recetas.where(_esFavorito).toList();
+      case _RecetaTab.todas: return _recetas;
+      case _RecetaTab.publicadas: return _recetas.where(_esPublicada).toList();
+      case _RecetaTab.borradores: return _recetas.where(_esBorrador).toList();
+      case _RecetaTab.favoritos: return _recetas.where(_esFavorito).toList();
     }
   }
 
+  // --- LÓGICA DE FILTRADO MIXTA (OR) CORREGIDA ---
   List<RecetaFeed> get _filtradas {
     final base = _porTab;
-    if (_busqueda.isEmpty) return base;
+    final textoLibre = _searchController.text.trim().toLowerCase();
+
+    // Si no hay filtros de chips y no hay texto libre, devolvemos la base
+    if (_etiquetasFiltro.isEmpty && textoLibre.isEmpty) return base;
+
     return base.where((r) {
-      final nombreMatch = r.nombre.toLowerCase().contains(_busqueda);
-      final etiquetaMatch =
-      r.etiquetas.any((e) => e.toLowerCase().contains(_busqueda));
-      return nombreMatch || etiquetaMatch;
+      // 1. Filtro de chips fijados (Etiqueta Exacta O Parte del nombre)
+      bool matchesTags = false;
+      if (_etiquetasFiltro.isNotEmpty) {
+        final etiquetasRecetaLower = (r.etiquetas ?? <String>[])
+            .where((e) => e != null)
+            .map((e) => e!.toLowerCase())
+            .toList();
+        final nombreRecetaLower = r.nombre.toLowerCase();
+
+        // La receta debe cumplir TODOS los chips (AND entre chips).
+        // Para cada chip individual, alcanza con que sea una etiqueta EXACTA
+        // o que aparezca como PARTE DEL NOMBRE de la receta (OR interno).
+        matchesTags = _etiquetasFiltro.every((filtro) {
+          final filtroLower = filtro.toLowerCase();
+          final esEtiquetaExacta = etiquetasRecetaLower.contains(filtroLower);
+          final esParteDelNombre = nombreRecetaLower.contains(filtroLower);
+          return esEtiquetaExacta || esParteDelNombre;
+        });
+      } else {
+        matchesTags = true; // Si no hay chips, no es un factor de descarte
+      }
+
+      // 2. Filtro de Texto Libre (Búsqueda Parcial OR)
+      bool matchesFreeText = false;
+      if (textoLibre.isNotEmpty) {
+        final nombreMatch = r.nombre.toLowerCase().contains(textoLibre);
+        final etiquetaParcialMatch = (r.etiquetas ?? <String>[])
+            .where((e) => e != null)
+            .any((e) => e!.toLowerCase().contains(textoLibre));
+
+        matchesFreeText = nombreMatch || etiquetaParcialMatch;
+      } else {
+        matchesFreeText = true; // Si no hay texto, no es un factor de descarte
+      }
+
+      // --- CORRECCIÓN AQUI ---
+      // La receta debe cumplir con (Coincidencia de etiquetas) O (Coincidencia de texto libre)
+      // OJO: Si hay chips activos, DEBE cumplirlos. Si además hay texto, DEBE cumplir UNA de las dos condiciones de texto.
+      // Si no hay chips activos, el primer bloque siempre da true.
+
+      // Lógica correcta:
+      // Si hay chips activos, la receta DEBE pasar el filtro de chips.
+      if (_etiquetasFiltro.isNotEmpty && !matchesTags) return false;
+
+      // Si hay texto libre, la receta DEBE pasar el filtro de texto.
+      if (textoLibre.isNotEmpty && !matchesFreeText) return false;
+
+      // Si pasa todos los filtros activos (o si no hay filtros activos), es un match.
+      return true;
+
     }).toList();
+  }
+
+  // Indica si, con los chips de filtro actualmente fijados (sin contar el
+  // texto libre que se esté tipeando), no se encuentra ninguna receta.
+  // Se usa para marcar los chips en rojo y para bloquear el ingreso de
+  // nuevos keywords mientras la situación no se resuelva.
+  bool get _filtroSinResultados {
+    if (_etiquetasFiltro.isEmpty) return false;
+    return _porTab.where((r) {
+      final etiquetasRecetaLower = (r.etiquetas ?? <String>[])
+          .where((e) => e != null)
+          .map((e) => e!.toLowerCase())
+          .toList();
+      final nombreRecetaLower = r.nombre.toLowerCase();
+      return _etiquetasFiltro.every((filtro) {
+        final filtroLower = filtro.toLowerCase();
+        final esEtiquetaExacta = etiquetasRecetaLower.contains(filtroLower);
+        final esParteDelNombre = nombreRecetaLower.contains(filtroLower);
+        return esEtiquetaExacta || esParteDelNombre;
+      });
+    }).isEmpty;
   }
 
   List<RecetaFeed> get _recetasVisibles {
     final lista = List<RecetaFeed>.from(_filtradas);
     int compare(RecetaFeed a, RecetaFeed b) {
       switch (_orden.campo) {
-        case _OrdenCampo.nombre:
-          return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
-        case _OrdenCampo.precio:
-          return a.precio.compareTo(b.precio);
-        case _OrdenCampo.calorias:
-          return a.caloriasTotales.compareTo(b.caloriasTotales);
-        case _OrdenCampo.rating:
-          return a.promedioCalificacion.compareTo(b.promedioCalificacion);
+        case _OrdenCampo.nombre: return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+        case _OrdenCampo.precio: return a.precio.compareTo(b.precio);
+        case _OrdenCampo.calorias: return a.caloriasTotales.compareTo(b.caloriasTotales);
+        case _OrdenCampo.rating: return a.promedioCalificacion.compareTo(b.promedioCalificacion);
       }
     }
-
     lista.sort(_orden.ascendente ? compare : (a, b) => compare(b, a));
     return lista;
   }
 
   bool _tabHabilitada(_RecetaTab tab) {
     switch (tab) {
-      case _RecetaTab.todas:
-        return _recetas.isNotEmpty;
-      case _RecetaTab.publicadas:
-        return _recetas.any(_esPublicada);
-      case _RecetaTab.borradores:
-        return _recetas.any(_esBorrador);
-      case _RecetaTab.favoritos:
-        return _recetas.any(_esFavorito);
+      case _RecetaTab.todas: return _recetas.isNotEmpty;
+      case _RecetaTab.publicadas: return _recetas.any(_esPublicada);
+      case _RecetaTab.borradores: return _recetas.any(_esBorrador);
+      case _RecetaTab.favoritos: return _recetas.any(_esFavorito);
     }
+  }
+
+  void _agregarEtiqueta(String texto) {
+    if (_filtroSinResultados) {
+      // Mientras los filtros actuales no devuelvan resultados, no se permite
+      // fijar nuevos keywords: primero hay que quitar el/los que sobran.
+      return;
+    }
+    final etiqueta = texto.trim();
+    if (etiqueta.isNotEmpty && !_etiquetasFiltro.contains(etiqueta)) {
+      setState(() {
+        _etiquetasFiltro.add(etiqueta);
+        _searchController.clear();
+      });
+    } else if (etiqueta.isNotEmpty) {
+      _searchController.clear();
+    }
+  }
+
+  void _removerEtiqueta(String etiqueta) {
+    setState(() {
+      _etiquetasFiltro.remove(etiqueta);
+    });
   }
 
   @override
@@ -176,28 +253,49 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         rutaActual: 'recetas',
       ),
       appBar: AppBar(
-        backgroundColor: _c.bg.withValues(alpha: 0.9),
+        backgroundColor: _c.bg,
         elevation: 0,
         iconTheme: IconThemeData(color: mutedColor),
-        title: Container(
-          decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(12)),
-          child: TextField(
-            controller: _searchController,
-            style: TextStyle(color: textColor, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Buscar por nombre o etiqueta...',
-              hintStyle: TextStyle(color: mutedColor),
-              prefixIcon: Icon(Icons.search, color: mutedColor, size: 20),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        title: Text(
+          'Mis Recetas',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textColor),
+        ),
+        centerTitle: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Container(
+              height: 45,
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _filtroSinResultados ? Colors.red : borderColor,
+                ),
+              ),
+              child: TextField(
+                controller: _searchController,
+                enabled: !_filtroSinResultados,
+                style: TextStyle(color: textColor, fontSize: 14),
+                textInputAction: TextInputAction.search,
+                onSubmitted: _agregarEtiqueta,
+                // NECESARIO: Para que el filtrado en tiempo real funcione
+                onChanged: (value) { setState(() {}); },
+                decoration: InputDecoration(
+                  hintText: _filtroSinResultados
+                      ? 'Quitá una etiqueta en rojo para poder buscar'
+                      : 'Buscar por nombre o etiqueta (presiona Enter para fijar)',
+                  hintStyle: TextStyle(color: mutedColor, fontSize: 12),
+                  prefixIcon: Icon(Icons.search, color: mutedColor, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                ),
+              ),
             ),
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list, color: mutedColor),
-            onPressed: _abrirSelectorOrden,
-          ),
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, color: AppTheme.primary),
@@ -213,18 +311,43 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_etiquetasFiltro.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _etiquetasFiltro.map((etiqueta) {
+                          final bool marcarError = _filtroSinResultados;
+                          return InputChip(
+                            label: Text(etiqueta),
+                            labelStyle: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: marcarError ? Colors.red : textColor,
+                            ),
+                            backgroundColor: marcarError
+                                ? Colors.red.withValues(alpha: 0.12)
+                                : borderColor,
+                            deleteIconColor: marcarError ? Colors.red : mutedColor,
+                            onDeleted: () => _removerEtiqueta(etiqueta),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            side: marcarError
+                                ? const BorderSide(color: Colors.red, width: 1)
+                                : BorderSide.none,
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   Text(
-                    'Mis Recetas',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textColor),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${recetasVisibles.length} recetas',
-                    style: TextStyle(fontSize: 14, color: mutedColor),
+                    '${recetasVisibles.length} recetas ${(_etiquetasFiltro.isNotEmpty || _searchController.text.isNotEmpty) ? "filtradas" : ""}',
+                    style: TextStyle(fontSize: 12, color: mutedColor),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -330,7 +453,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                   _orden.label,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 8,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.3,
                   ),
@@ -347,7 +470,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: surfaceColor,
-      isScrollControlled: true, // Esto es clave para listas largas
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -358,10 +481,8 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             _OrdenOption(campo, false),
           ],
         ];
-
         return SafeArea(
           child: Container(
-            // Ajuste dinámico de altura para no exceder la pantalla
             constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -384,8 +505,8 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                       final opcion = opciones[index];
                       final seleccionado = _orden == opcion;
                       return ListTile(
-                        dense: true, // Esto reduce la altura del ListTile
-                        visualDensity: VisualDensity.compact, // Reduce el padding interno
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
                         title: Text(
                           opcion.label,
                           style: TextStyle(
@@ -414,14 +535,21 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   Widget _buildEmptyState() {
-    final mensaje = _busqueda.isNotEmpty
-        ? 'No encontramos recetas para "$_busqueda"'
-        : switch (_tabSeleccionada) {
+    // CAMBIO CLAVE: Ahora verificamos si la lista de etiquetas está vacía
+    final bool hayFiltros = _etiquetasFiltro.isNotEmpty;
+
+    // Construimos el mensaje dinámicamente
+    String mensajeBase = switch (_tabSeleccionada) {
       _RecetaTab.todas => 'Todavía no tenés recetas',
       _RecetaTab.publicadas => 'No tenés recetas publicadas',
       _RecetaTab.borradores => 'No tenés borradores',
       _RecetaTab.favoritos => 'No tenés recetas favoritas',
     };
+
+    // Si hay filtros activos, cambiamos el mensaje para indicar qué se está buscando
+    final mensaje = hayFiltros
+        ? 'No encontramos recetas que coincidan con las etiquetas: ${_etiquetasFiltro.join(", ")}'
+        : mensajeBase;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
