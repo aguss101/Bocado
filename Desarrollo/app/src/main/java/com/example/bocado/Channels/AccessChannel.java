@@ -36,12 +36,14 @@ public class AccessChannel {
             case "getNaciones"       -> handleGetNaciones(result);
             case "getGeneros"        -> handleGetGeneros(result);
             case "getSeguidores" -> handleGetSeguidores(call, result);
+            case "getSeguidoresDe" -> handleGetSeguidoresDe(call, result);
             case "actualizarPerfil"  -> handleActualizarPerfil(call, result);
             case "getPerfilUsuario" -> handleGetPerfilUsuario(call, result);
             case "getPerfilEditable" -> handleGetPerfilEditable(call, result);
             case "contarSeguidores" -> handleContarSeguidores(call, result);
             case "contarSiguiendo"  -> handleContarSiguiendo(call, result);
             case "estasSiguiendo"   -> handleEstasSiguiendo(call, result);
+            case "estasSiguiendoVarios" -> handleEstasSiguiendoVarios(call, result);
             case "validarSesion"    -> handleValidarSesion(call, result);
             case "solicitarOtp"     -> handleSolicitarOtp(call, result);
             case "verificarOtp"     -> handleVerificarOtp(call, result);
@@ -233,6 +235,90 @@ public class AccessChannel {
             @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
                 String body = response.body() != null ? response.body().string() : "[]";
                 activity.runOnUiThread(() -> result.success(body));
+            }
+        });
+    }
+
+    /**
+     * De una lista de ids de usuario, cuáles ya sigue id_seguidor. Un solo pedido
+     * (filtro in.()) en vez de un estasSiguiendo por cada fila de la lista.
+     * Devuelve un array plano de ids seguidos, p.ej. [1,2].
+     */
+    private void handleEstasSiguiendoVarios(MethodCall call, MethodChannel.Result result) {
+        Integer idSeguidor = call.argument("id_seguidor");
+        java.util.List<Integer> ids = call.argument("ids_seguido");
+        if (ids == null || ids.isEmpty()) {
+            result.success("[]");
+            return;
+        }
+        StringBuilder lista = new StringBuilder();
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) lista.append(",");
+            lista.append(ids.get(i));
+        }
+        String url = "/rest/v1/seguidos_usuario?select=id_seguido&id_seguidor=eq." + idSeguidor
+                + "&id_seguido=in.(" + lista + ")";
+        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                try {
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    org.json.JSONArray idsSeguidos = new org.json.JSONArray();
+                    for (int i = 0; i < filas.length(); i++) {
+                        idsSeguidos.put(filas.getJSONObject(i).optInt("id_seguido"));
+                    }
+                    String bodyPlano = idsSeguidos.toString();
+                    activity.runOnUiThread(() -> result.success(bodyPlano));
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
+            }
+        });
+    }
+
+    /**
+     * Lista de quién sigue a id_usuario (lo inverso a vista_mis_seguidos, que trae
+     * a quién sigue id_usuario). No existe vista para esto: se arma con un embed de
+     * PostgREST sobre seguidos_usuario (un solo JOIN) y se reacomoda al mismo formato
+     * plano que ya devuelve vista_mis_seguidos, para reusar UserProfile en Flutter.
+     */
+    private void handleGetSeguidoresDe(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        Integer limit = call.argument("limit");
+        Integer offset = call.argument("offset");
+        String url = "/rest/v1/seguidos_usuario?select=id_seguidor,usuarios!id_seguidor(id,usuario,foto)&id_seguido=eq." + idUsuario;
+        if (limit != null) {
+            url += "&order=fecha_seguido.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
+        }
+        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                try {
+                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    org.json.JSONArray reacomodadas = new org.json.JSONArray();
+                    for (int i = 0; i < filas.length(); i++) {
+                        JSONObject fila = filas.getJSONObject(i);
+                        JSONObject usuario = fila.optJSONObject("usuarios");
+                        if (usuario == null) continue;
+                        JSONObject plana = new JSONObject();
+                        plana.put("id_seguido", idUsuario);
+                        plana.put("id_seguidor", fila.optInt("id_seguidor"));
+                        plana.put("nombre_usuario", usuario.optString("usuario", "Usuario"));
+                        plana.put("foto_url", usuario.isNull("foto") ? JSONObject.NULL : usuario.optString("foto"));
+                        plana.put("total_recetas", 0);
+                        reacomodadas.put(plana);
+                    }
+                    String bodyReacomodado = reacomodadas.toString();
+                    activity.runOnUiThread(() -> result.success(bodyReacomodado));
+                } catch (org.json.JSONException e) {
+                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+                }
             }
         });
     }

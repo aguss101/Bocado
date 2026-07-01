@@ -170,6 +170,36 @@ class UsuarioService {
     return result as bool;
   }
 
+  /// Lista de quién sigue a [idUsuario] (inverso de getSeguidores).
+  static Future<List<UserProfile>> getSeguidoresDe(int idUsuario, {int? limit, int? offset}) async {
+    try {
+      final String jsonString = await _channel.invokeMethod('getSeguidoresDe', {
+        'id_usuario': idUsuario,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+      });
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      return jsonList.map((json) => UserProfile.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// De [idsSeguido], cuáles ya sigue [idSeguidor]. Un solo pedido para toda una lista.
+  static Future<Set<int>> estasSiguiendoVarios(int idSeguidor, List<int> idsSeguido) async {
+    if (idsSeguido.isEmpty) return {};
+    try {
+      final String jsonString = await _channel.invokeMethod('estasSiguiendoVarios', {
+        'id_seguidor': idSeguidor,
+        'ids_seguido': idsSeguido,
+      });
+      final List<dynamic> lista = jsonDecode(jsonString);
+      return lista.map((e) => e as int).toSet();
+    } catch (e) {
+      return {};
+    }
+  }
+
   /// Aplica cambios de perfil tras verificar el OTP, de forma atómica
   /// (RPC actualizar_perfil_otp). [datos] = p_data: usuario, correo, id_genero, foto, banner.
   /// Lanza PlatformException si el código es inválido/vencido.

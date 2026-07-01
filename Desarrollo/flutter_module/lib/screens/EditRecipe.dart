@@ -191,7 +191,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   List<Map<String, dynamic>> _tagsSeleccionadas = [];
   List<Map<String, dynamic>> _tagsDisponibles = [];
   bool _esPublico = true;
-  final TextEditingController _tagsSearchCtrl = TextEditingController();
+  TextEditingController? _tagsFieldController;
 
   String? _validarReceta() {
     List<String> faltantes = [];
@@ -352,7 +352,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     _pesoPorcionCtrl.dispose();
     _tiempoCtrl.dispose();
     _caloriasCtrl.dispose();
-    _tagsSearchCtrl.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -1394,11 +1393,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Autocomplete<Map<String, dynamic>>(
 
                 fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  _tagsSearchCtrl.addListener(() {
-                    if (_tagsSearchCtrl.text.isEmpty && controller.text.isNotEmpty) {
-                      controller.text = "";
-                    }
-                  });
+                  _tagsFieldController = controller;
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
@@ -1426,7 +1421,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
                 onSelected: (selection) {
                   setState(() {
-                    _tagsSearchCtrl.clear();
+                    _tagsFieldController?.clear();
                     FocusScope.of(context).unfocus();
 
                     if (!_tagsSeleccionadas.any((t) => t['id'] == selection['id'])) {

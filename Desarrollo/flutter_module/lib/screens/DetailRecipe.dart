@@ -12,6 +12,7 @@ import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
 import 'EditRecipe.dart';
+import 'Profil.dart';
 import '../models/RecipeComment.dart';
 
 class RecipeDetailData {
@@ -28,6 +29,7 @@ class RecipeDetailData {
   final List<PreparationStep> pasos;
   final String nombreAutor;
   final String? fotoAutor;
+  final double? precioPorcion;
 
   const RecipeDetailData({
     required this.titulo,
@@ -43,6 +45,7 @@ class RecipeDetailData {
     required this.pasos,
     this.nombreAutor = '',
     this.fotoAutor,
+    this.precioPorcion,
   });
 
   factory RecipeDetailData.fromJson(
@@ -69,10 +72,21 @@ class RecipeDetailData {
           .map((item) => IngredientItem.fromJson(item))
           .toList(),
       pasos: PreparationStep.parsearInstrucciones(json['instrucciones'] ?? ''),
-      // Mismos nombres de campo que usa RecetaFeed para el autor de la receta.
-      nombreAutor: json['usuario'] ?? 'Usuario',
-      fotoAutor: json['foto_perfil'],
+      // obtenerDetalle embebe el autor anidado (usuarios!UR(usuario,foto)),
+      // no como campos planos "usuario"/"foto_perfil" (eso es de otro endpoint).
+      // Usamos el nombre de usuario (@handle), igual que el Feed — no el nombre real.
+      nombreAutor: (json['usuarios'] as Map<String, dynamic>?)?['usuario'] ?? 'Usuario',
+      fotoAutor: (json['usuarios'] as Map<String, dynamic>?)?['foto'],
+      precioPorcion: _calcularPrecioPorcion(json),
     );
+  }
+
+  /// Igual que `precio_porcion` en la vista `vistas_recetas_macros`: precio / porciones.
+  static double? _calcularPrecioPorcion(Map<String, dynamic> json) {
+    final precio = (json['precio'] as num?)?.toDouble();
+    final porciones = (json['porciones'] as num?)?.toInt() ?? 0;
+    if (precio == null || porciones <= 0) return null;
+    return precio / porciones;
   }
 }
 
@@ -180,18 +194,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       widget.idAutor != null && widget.idAutor == widget.user.id;
 
   /// Navega al perfil del usuario que creó la receta.
-  /// TODO: reemplazar por la navegación real cuando esté la pantalla de perfil, ej:
-  /// Navigator.push(context, MaterialPageRoute(
-  ///   builder: (_) => PerfilUsuarioScreen(idUsuario: widget.idAutor!),
-  /// ));
   void _irAlPerfilAutor() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Redirigir al perfil del usuario'),
-        duration: Duration(seconds: 2),
+    if (widget.idAutor == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          user: widget.user,
+          themeNotifier: widget.themeNotifier,
+          idUsuarioTarget: widget.idAutor,
+        ),
       ),
     );
-    if (widget.idAutor == null) return;
   }
 
   @override
@@ -613,20 +627,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         return BocadoNetworkImage(
                           url: item.trim(),
                           errorWidget: Container(
-                            color: AppTheme.surfaceContainerDark,
+                            color: c.surfaceContainer,
                             child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                           ),
                         );
                       } else {
                         return Container(
-                          color: AppTheme.surfaceContainerDark,
+                          color: c.surfaceContainer,
                           child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                         );
                       }
                     }).toList(),
                   )
                       : Container(
-                    color: AppTheme.surfaceContainerDark,
+                    color: c.surfaceContainer,
                     child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                   ),
 
@@ -812,17 +826,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 24,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _QuickInfo(
                         icon: Icons.schedule_outlined,
                         label: _data!.duracion,
                       ),
-                      const SizedBox(width: 24),
                       _QuickInfo(
                         icon: Icons.restaurant_outlined,
                         label: _data!.porciones,
                       ),
+                      if (_data!.precioPorcion != null)
+                        _QuickInfo(
+                          icon: Icons.attach_money,
+                          label: '\$${_data!.precioPorcion!.toStringAsFixed(2)} / porción',
+                          iconColor: AppTheme.primary,
+                          textColor: AppTheme.primary,
+                          fontSize: 15,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -998,18 +1022,27 @@ class _SectionTitle extends StatelessWidget {
 class _QuickInfo extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color? iconColor;
+  final Color? textColor;
+  final double fontSize;
 
-  const _QuickInfo({required this.icon, required this.label});
+  const _QuickInfo({
+    required this.icon,
+    required this.label,
+    this.iconColor,
+    this.textColor,
+    this.fontSize = 14,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppTheme.primary),
+        Icon(icon, size: 18, color: iconColor ?? AppTheme.primary),
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: textColor),
         ),
       ],
     );

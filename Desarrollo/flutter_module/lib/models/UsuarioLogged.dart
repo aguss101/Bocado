@@ -11,6 +11,7 @@ class usuario_Logged {
   Uint8List? bannerReady;
   String? fotoUrl;
   String? bannerUrl;
+  bool visibilidad;
 
   usuario_Logged(
     this.id,
@@ -20,6 +21,7 @@ class usuario_Logged {
     this.bannerBase64, {
     this.fotoUrl,
     this.bannerUrl,
+    this.visibilidad = true,
   }) {
     fotoReady   = _decode(fotoBase64);
     bannerReady = _decode(bannerBase64);
@@ -42,6 +44,7 @@ class usuario_Logged {
       null,
       fotoUrl: json['foto'],
       bannerUrl: json['banner'],
+      visibilidad: (json['visibilidad'] as bool?) ?? true,
     );
   }
 }

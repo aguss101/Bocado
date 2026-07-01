@@ -54,7 +54,7 @@ public class RecetaDAO {
 
     public void obtenerDetalle(int idReceta, CallbackCB cb) {
         HttpClientManager.getInstance().get(
-                "/rest/v1/recetas?select=*,usuarios!UR(nombre,foto),recetas_alimentos(cantidad,alimentos(nombre))"
+                "/rest/v1/recetas?select=*,usuarios!UR(usuario,foto),recetas_alimentos(cantidad,alimentos(nombre))"
                         + "&id=eq." + idReceta,
                 restCallback(cb));
     }

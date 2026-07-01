@@ -15,6 +15,7 @@ import '../models/RecetaFeed.dart';
 import '../screens/EditRecipe.dart';
 import '../screens/DetailRecipe.dart';
 import '../route_observer.dart';
+import 'FollowList.dart';
 
 class ProfileScreen extends StatefulWidget {
   final usuario_Logged user;
@@ -580,6 +581,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  /// Abre Seguidores/Siguiendo. Regla: mi perfil o perfil público → siempre se
+  /// puede ver. Perfil privado → solo si ya lo sigo. Si no se cumple, no pasa
+  /// nada (sin aviso, a propósito).
+  void _abrirSeguidoresOSiguiendo({required bool enSeguidores}) {
+    final puedeVer = _isMiPerfil || _user.visibilidad || _isFollowing;
+    if (!puedeVer) return;
+    final idTarget = widget.idUsuarioTarget ?? widget.user.id;
+    mostrarSeguidoresDialog(
+      context,
+      user: widget.user,
+      themeNotifier: widget.themeNotifier,
+      idPerfil: idTarget,
+      abrirEnSeguidores: enSeguidores,
+    );
+  }
+
   // ── STATS ─────────────────────────────────────────────────────────────────
   Widget _buildStats(Color surface, Color border, Color text, Color muted) {
     return Container(
@@ -600,18 +617,24 @@ class _ProfileScreenState extends State<ProfileScreen>
             muted,
           ),
           _dividerV(border),
-          _statItem(
-            _estaCargandoStats ? '—' : '$_cantSeguidores',
-            'Seguidores',
-            text,
-            muted,
+          GestureDetector(
+            onTap: () => _abrirSeguidoresOSiguiendo(enSeguidores: true),
+            child: _statItem(
+              _estaCargandoStats ? '—' : '$_cantSeguidores',
+              'Seguidores',
+              text,
+              muted,
+            ),
           ),
           _dividerV(border),
-          _statItem(
-            _estaCargandoStats ? '—' : '$_cantSiguiendo',
-            'Siguiendo',
-            text,
-            muted,
+          GestureDetector(
+            onTap: () => _abrirSeguidoresOSiguiendo(enSeguidores: false),
+            child: _statItem(
+              _estaCargandoStats ? '—' : '$_cantSiguiendo',
+              'Siguiendo',
+              text,
+              muted,
+            ),
           ),
         ],
       ),

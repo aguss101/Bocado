@@ -69,6 +69,16 @@ class _FeedScreenState extends State<FeedScreen> {
     await mostrarAvisoActualizacion(context, info.versionName);
   }
 
+  /// Tap en el logo/"Bocado" del AppBar: vuelve al principio del feed.
+  void _volverAlInicio() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -140,24 +150,27 @@ class _FeedScreenState extends State<FeedScreen> {
       appBar: AppBar(
         backgroundColor: c.bg,
         elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(BocadoRadius.sm),
+        title: GestureDetector(
+          onTap: _volverAlInicio,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(BocadoRadius.sm),
+                ),
+                child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
               ),
-              child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 8),
-            Text('Bocado',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: c.text,
-                )),
-          ],
+              const SizedBox(width: 8),
+              Text('Bocado',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: c.text,
+                  )),
+            ],
+          ),
         ),
         actions: [
           if (_isDebugMode)
@@ -475,10 +488,15 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                       ),
                     ),
                     // FOTO DE PERFIL DEL USUARIO CREADOR
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundImage: bocadoImageProvider(
-                          widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget)));
+                      },
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundImage: bocadoImageProvider(
+                            widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+                        ),
                       ),
                     ),
                     IconButton(

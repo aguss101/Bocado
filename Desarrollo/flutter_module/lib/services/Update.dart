@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,7 +21,10 @@ class UpdateService {
 
   /// Consulta version.json remoto y compara con la versión instalada.
   /// Devuelve null si no hay conexión (en ese caso no molestamos al usuario).
+  /// En builds de desarrollo (flutter run / debug) no chequea: el versionCode
+  /// local es un valor fijo de respaldo, siempre "atrasado" frente a lo publicado.
   static Future<UpdateInfo?> verificar() async {
+    if (kDebugMode) return null;
     try {
       final json = await _channel.invokeMethod<String>('verificarActualizacion');
       if (json == null) return null;

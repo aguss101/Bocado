@@ -2,8 +2,6 @@ plugins {
     id 'com.android.application'
 }
 
-// El CI inyecta la versión con -PciVersionCode / -PciVersionName (github.run_number).
-// Sin esas propiedades (build local) usa los valores por defecto.
 def ciVersionCode = (project.findProperty('ciVersionCode') ?: '2').toString().toInteger()
 def ciVersionName = (project.findProperty('ciVersionName') ?: '1.1').toString()
 
