@@ -26,6 +26,8 @@ class RecipeDetailData {
   final String porciones;
   final List<IngredientItem> ingredientes;
   final List<PreparationStep> pasos;
+  final String nombreAutor;
+  final String? fotoAutor;
 
   const RecipeDetailData({
     required this.titulo,
@@ -39,14 +41,16 @@ class RecipeDetailData {
     required this.porciones,
     required this.ingredientes,
     required this.pasos,
+    this.nombreAutor = '',
+    this.fotoAutor,
   });
 
   factory RecipeDetailData.fromJson(
-    Map<String, dynamic> json,
-    double _prot,
-    double _carb,
-    double _gras,
-  ) {
+      Map<String, dynamic> json,
+      double _prot,
+      double _carb,
+      double _gras,
+      ) {
     return RecipeDetailData(
       titulo: json['nombre'] ?? '',
       categoria: 'General',
@@ -65,6 +69,9 @@ class RecipeDetailData {
           .map((item) => IngredientItem.fromJson(item))
           .toList(),
       pasos: PreparationStep.parsearInstrucciones(json['instrucciones'] ?? ''),
+      // Mismos nombres de campo que usa RecetaFeed para el autor de la receta.
+      nombreAutor: json['usuario'] ?? 'Usuario',
+      fotoAutor: json['foto_perfil'],
     );
   }
 }
@@ -171,6 +178,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   bool get _esPropia =>
       widget.idAutor != null && widget.idAutor == widget.user.id;
+
+  /// Navega al perfil del usuario que creó la receta.
+  /// TODO: reemplazar por la navegación real cuando esté la pantalla de perfil, ej:
+  /// Navigator.push(context, MaterialPageRoute(
+  ///   builder: (_) => PerfilUsuarioScreen(idUsuario: widget.idAutor!),
+  /// ));
+  void _irAlPerfilAutor() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Redirigir al perfil del usuario'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    if (widget.idAutor == null) return;
+  }
 
   @override
   void initState() {
@@ -323,9 +345,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _mostrarDialogoComentario(
-    BuildContext context, {
-    int? idPadre,
-  }) async {
+      BuildContext context, {
+        int? idPadre,
+      }) async {
     final TextEditingController _controlador = TextEditingController();
 
     return showDialog(
@@ -558,13 +580,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   onPressed: _abriendoEditor ? null : _abrirEditor,
                   icon: _abriendoEditor
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                       : const Icon(Icons.edit_outlined, color: Colors.white),
                 ),
               IconButton(
@@ -658,34 +680,70 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             height: 1.1,
                           ),
                         ),
+                        if (!widget.isPreview) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: _irAlPerfilAutor,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Colors.white24,
+                                  backgroundImage: (_data!.fotoAutor != null &&
+                                      _data!.fotoAutor!.isNotEmpty)
+                                      ? bocadoImageProvider(_data!.fotoAutor!)
+                                      : null,
+                                  child: (_data!.fotoAutor == null ||
+                                      _data!.fotoAutor!.isEmpty)
+                                      ? const Icon(
+                                    Icons.person,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _data!.nombreAutor,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
 
                   if(!widget.isPreview)
                   // 4. BOTÓN DE FAVORITOS (Corazón)
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: GestureDetector(
-                      onTap: _handleLike,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                    Positioned(
+                      bottom: 16,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: _handleLike,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                          size: 24,
+                          child: Icon(
+                            _isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: _isFavorite ? Colors.red : Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
                   // 5. BOTÓN FLECHA ATRÁS (Al frente de todo)
                   if (listaImagenes.length > 1)
@@ -839,7 +897,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   ..._data!.ingredientes.map(
-                    (i) => _IngredientRow(item: i, outline: outline),
+                        (i) => _IngredientRow(item: i, outline: outline),
                   ),
                   const SizedBox(height: 28),
                   const _SectionTitle('Preparación'),
@@ -855,31 +913,31 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   }),
                   const SizedBox(height: 40),
                   if(!widget.isPreview) ...[
-                  // ---Seccion de comentarios---
-                  const SizedBox(height: 16),
-                  const Divider(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const _SectionTitle('Comentarios'),
-                      TextButton(
-                        onPressed: () => _abrirComentarios(
-                          context,
-                          surface,
-                          outline,
-                        ),
-                        child: const Text(
-                          'VER TODOS',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
-                            letterSpacing: 1,
+                    // ---Seccion de comentarios---
+                    const SizedBox(height: 16),
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const _SectionTitle('Comentarios'),
+                        TextButton(
+                          onPressed: () => _abrirComentarios(
+                            context,
+                            surface,
+                            outline,
+                          ),
+                          child: const Text(
+                            'VER TODOS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primary,
+                              letterSpacing: 1,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   ],
                   const SizedBox(height: 12),
                   if (_comentarios.isEmpty)
@@ -892,12 +950,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         .take(2)
                         .map(
                           (c) => _CommentCard(
-                            comment: c,
-                            surface: surface,
-                            outline: outline,
-                            onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
-                          ),
-                        ),
+                        comment: c,
+                        surface: surface,
+                        outline: outline,
+                        onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                      ),
+                    ),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -1048,18 +1106,18 @@ class _IngredientRow extends StatelessWidget {
         children: [
           highlighted
               ? const Icon(
-                  Icons.check_circle,
-                  color: AppTheme.primary,
-                  size: 16,
-                )
+            Icons.check_circle,
+            color: AppTheme.primary,
+            size: 16,
+          )
               : Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: AppTheme.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -1080,8 +1138,8 @@ class _IngredientRow extends StatelessWidget {
               color: highlighted
                   ? AppTheme.primary
                   : Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -1133,8 +1191,8 @@ class _StepCard extends StatelessWidget {
                         color: step.numeroPaso == 1
                             ? AppTheme.primary
                             : Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -1358,7 +1416,7 @@ class _CommentCard extends StatelessWidget {
                       Row(
                         children: List.generate(
                           5,
-                          (index) => Icon(
+                              (index) => Icon(
                             index < estrellas ? Icons.star : Icons.star_border,
                             size: 14,
                             color: AppTheme.primary,
@@ -1399,7 +1457,7 @@ class _CommentCard extends StatelessWidget {
         ),
         if (comment.respuestas.isNotEmpty)
           ...comment.respuestas.map(
-            (respuesta) => _CommentCard(
+                (respuesta) => _CommentCard(
               comment: respuesta,
               surface: surface,
               outline: outline,
