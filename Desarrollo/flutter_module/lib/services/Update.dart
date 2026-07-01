@@ -43,13 +43,13 @@ class UpdateService {
   }
 
   /// El cartel de primer plano se muestra una sola vez por versión nueva.
-  static Future<bool> dialogYaVisto(String versionName) async {
+  static Future<bool> avisoYaVisto(String versionName) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('update_dialog_$versionName') ?? false;
+    return prefs.getBool('update_aviso_$versionName') ?? false;
   }
 
-  static Future<void> marcarDialogVisto(String versionName) async {
+  static Future<void> marcarAvisoVisto(String versionName) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('update_dialog_$versionName', true);
+    await prefs.setBool('update_aviso_$versionName', true);
   }
 }

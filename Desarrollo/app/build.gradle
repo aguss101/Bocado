@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// El CI inyecta la versión con -PciVersionCode / -PciVersionName (github.run_number).
+// Sin esas propiedades (build local) usa los valores por defecto.
+def ciVersionCode = (project.findProperty('ciVersionCode') ?: '2').toString().toInteger()
+def ciVersionName = (project.findProperty('ciVersionName') ?: '1.1').toString()
+
 android {
     namespace 'com.example.bocado'
     compileSdk 36
@@ -15,8 +20,8 @@ android {
         applicationId "com.example.bocado"
         minSdk 26
         targetSdk 36
-        versionCode 2
-        versionName "1.1"
+        versionCode ciVersionCode
+        versionName ciVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

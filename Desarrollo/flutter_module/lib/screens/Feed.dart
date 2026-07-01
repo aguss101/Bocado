@@ -62,11 +62,11 @@ class _FeedScreenState extends State<FeedScreen> {
     final info = await UpdateService.verificar();
     if (info == null || !info.disponible || !mounted) return;
     setState(() {}); // refresca para que el botón del drawer aparezca
-    final yaVisto = await UpdateService.dialogYaVisto(info.versionName);
+    final yaVisto = await UpdateService.avisoYaVisto(info.versionName);
     if (yaVisto || !mounted) return;
-    await UpdateService.marcarDialogVisto(info.versionName);
+    await UpdateService.marcarAvisoVisto(info.versionName);
     if (!mounted) return;
-    await mostrarDialogoActualizacion(context, info.versionName);
+    await mostrarAvisoActualizacion(context, info.versionName);
   }
 
   @override

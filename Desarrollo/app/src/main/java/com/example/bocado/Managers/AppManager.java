@@ -5,11 +5,6 @@ import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.ErrorCode;
 
 import org.json.JSONObject;
-
-/**
- * Lógica de actualización: pide el version.json al DAO y lo compara contra la
- * versión instalada (versionLocal = BuildConfig.VERSION_CODE).
- */
 public class AppManager {
 
     private final AppDAO appDAO;
