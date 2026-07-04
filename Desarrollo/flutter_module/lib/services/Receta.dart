@@ -33,6 +33,12 @@ class RecetaService {
         if (offset != null) 'offset': offset,
       });
 
+  /// Recetas propias completas (incluye privadas y borradores). Usar SOLO
+  /// para ver las recetas del usuario logueado sobre sí mismo — nunca para
+  /// mirar el perfil de otra persona (ahí sigue yendo getRecetasUsuario).
+  static Future<List<RecetaFeed>> getMisRecetas(int usuarioId) =>
+      _fetchRecetas('getMisRecetas', {'usuarioId': usuarioId});
+
   static Future<List<RecetaFeed>> getGuardadosUsuario(int usuarioId, {int? limit, int? offset}) =>
       _fetchRecetas('getGuardadosUsuario', {
         'usuarioId': usuarioId,

@@ -472,7 +472,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         'id_dificultad': _dificultadData[_dificultad]['id'],
         'instrucciones': _pasos.map((s) => s.description).toList(),
         'precio': _calcularCostoTotal(),
-        'tiempo_coccion': _tiempoCtrl.text,
+        'tiempo_coccion': int.tryParse(_tiempoCtrl.text) ?? 0,
         'breve_descripcion': _descripcionCtrl.text,
 
         'ingredientes': _ingredients.map((ing) => {

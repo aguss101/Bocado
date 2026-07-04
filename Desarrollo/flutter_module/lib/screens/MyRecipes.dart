@@ -80,7 +80,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   Future<void> _cargarRecetas() async {
     try {
-      final lista = await RecetaService.getRecetasUsuario(widget.user.id);
+      final lista = await RecetaService.getMisRecetas(widget.user.id);
       if (mounted) {
         setState(() {
           _recetas = lista;
@@ -93,8 +93,11 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   bool _esFavorito(RecetaFeed r) => r.usuarioTarget != widget.user.id;
-  bool _esPublicada(RecetaFeed r) => r.activo == true && r.visibilidad == true;
-  bool _esBorrador(RecetaFeed r) => r.activo == false && r.visibilidad == false;
+  // "activo" es el que marca borrador/publicada de verdad (crear_receta lo fija
+  // según es_borrador); "visibilidad" es un toggle aparte (público/privado),
+  // independiente — no hay que exigir las dos condiciones juntas.
+  bool _esPublicada(RecetaFeed r) => r.activo == true;
+  bool _esBorrador(RecetaFeed r) => r.activo == false;
 
   String? _primeraFoto(RecetaFeed r) {
     final foto = r.foto;

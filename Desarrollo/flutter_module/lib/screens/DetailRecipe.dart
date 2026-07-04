@@ -560,7 +560,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Volver al Feed"),
+                child: const Text("Volver"),
               ),
             ],
           ),

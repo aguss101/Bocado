@@ -48,7 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   static const int _pageGrid = 12;
   static const int _pageLista = 20;
-  late final _PagedList<RecetaFeed> _plRecetas;
+  late _PagedList<RecetaFeed> _plRecetas;
   _PagedList<RecetaFeed>? _plGuardados;
   late final _PagedList<UserProfile> _plSeguidos;
 
@@ -67,7 +67,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
     _plRecetas = _PagedList(
-      (off, lim) => RecetaService.getRecetasUsuario(idTarget, limit: lim, offset: off),
+      _isMiPerfil
+          // Propio perfil: trae también privadas/borradores (sin paginar, RPC).
+          ? (off, lim) => RecetaService.getMisRecetas(idTarget)
+          // Perfil de otro: solo lo público, paginado (REST directo).
+          : (off, lim) => RecetaService.getRecetasUsuario(idTarget, limit: lim, offset: off),
       pageSize: _pageGrid,
     );
     _plSeguidos = _PagedList(
@@ -105,6 +109,12 @@ class _ProfileScreenState extends State<ProfileScreen>
               pageSize: _pageGrid,
             );
             _cargarPrimera(_plGuardados!);
+            // También recargar recetas por el camino "propio" (privadas/borradores).
+            _plRecetas = _PagedList(
+              (off, lim) => RecetaService.getMisRecetas(widget.user.id),
+              pageSize: _pageGrid,
+            );
+            _cargarPrimera(_plRecetas);
           }
           _estaCargandoPerfil = false;
         });

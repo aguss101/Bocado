@@ -37,6 +37,7 @@ public class RecetasChannel {
             case "saveReceta"      -> handleSaveReceta(call, result);
             case "getRecetas"      -> handleGetRecetas(call, result);
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
+            case "getMisRecetas" -> handleGetMisRecetas(call, result);
             case "getRecetaDetalle"-> handleGetRecetaDetalle(call, result);
             case "getGuardadosUsuario" -> handleGetSaveUser(call, result);
             case "contarRecetas"   -> handleContarRecetas(call, result);
@@ -142,6 +143,13 @@ public class RecetasChannel {
                 call.argument("usuarioId"),
                 call.argument("limit"),
                 call.argument("offset"),
+                bridgeData(result));
+    }
+
+    // ── getMisRecetas: propias completas (incluye privadas/borradores) ─────────
+    private void handleGetMisRecetas(MethodCall call, MethodChannel.Result result) {
+        RecetaManager.getInstance().misRecetasCompleto(
+                call.argument("usuarioId"),
                 bridgeData(result));
     }
 

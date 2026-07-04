@@ -38,6 +38,22 @@ public class RecetaDAO {
         HttpClientManager.getInstance().get(url, restCallback(cb));
     }
 
+    /**
+     * Recetas propias completas (incluye privadas y borradores). Vía RPC
+     * SECURITY DEFINER para que, con RLS activo, el dueño siga viendo todo lo
+     * suyo aunque la vista solo exponga lo público al resto. Sin paginación
+     * (misma limitación que listarPorUsuario RPC-equivalente: se trae todo de una).
+     */
+    public void misRecetasCompleto(int idUsuario, CallbackCB cb) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_id_usuario", idUsuario);
+            HttpClientManager.getInstance().post("/rest/v1/rpc/mis_recetas_completo", body.toString(), restCallback(cb));
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error armando la consulta: " + e.getMessage(), null);
+        }
+    }
+
     public void listarGuardados(int idUsuario, Integer limit, Integer offset, CallbackCB cb) {
         String url = VISTA + "?select=*,interacciones_usuario!inner(id_usuario,tipo_interaccion)"
                 + "&interacciones_usuario.id_usuario=eq." + idUsuario
@@ -52,11 +68,21 @@ public class RecetaDAO {
         return "&order=id_receta.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
     }
 
+    /**
+     * Detalle completo de una receta. Vía RPC SECURITY DEFINER (no REST directo)
+     * para que el dueño pueda seguir viendo el detalle de sus propias recetas
+     * privadas/borradores (activo=false) aunque RLS se lo oculte al resto.
+     * No agrega un agujero nuevo: antes de RLS, cualquiera con la anon key ya
+     * podía ver el detalle de cualquier receta por REST directo sin filtro.
+     */
     public void obtenerDetalle(int idReceta, CallbackCB cb) {
-        HttpClientManager.getInstance().get(
-                "/rest/v1/recetas?select=*,usuarios!UR(usuario,foto),recetas_alimentos(cantidad,alimentos(nombre))"
-                        + "&id=eq." + idReceta,
-                restCallback(cb));
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_id_receta", idReceta);
+            HttpClientManager.getInstance().post("/rest/v1/rpc/obtener_detalle_completo", body.toString(), restCallback(cb));
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error armando la consulta: " + e.getMessage(), null);
+        }
     }
 
     /** Mapea la respuesta REST de OkHttp al CallbackCB del proyecto. No toca UI. */

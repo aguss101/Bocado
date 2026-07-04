@@ -115,6 +115,14 @@ public class RecetaManager implements IReceta {
         recetaDAO.listarPorUsuario(idUsuario, limit, offset, cb);
     }
 
+    public void misRecetasCompleto(Integer idUsuario, CallbackCB cb) {
+        if (idUsuario == null) {
+            cb.onError(ErrorCode.NEGOCIO, "Falta el id del usuario.", null);
+            return;
+        }
+        recetaDAO.misRecetasCompleto(idUsuario, cb);
+    }
+
     public void listarGuardados(Integer idUsuario, Integer limit, Integer offset, CallbackCB cb) {
         if (idUsuario == null) {
             cb.onError(ErrorCode.NEGOCIO, "Falta el id del usuario.", null);
