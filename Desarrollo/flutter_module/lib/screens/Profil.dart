@@ -208,6 +208,28 @@ class _ProfileScreenState extends State<ProfileScreen>
   void didPopNext() {
     _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
+    // Al volver (p.ej. de publicar/editar una receta), refrescar mis recetas
+    // para que un borrador recién publicado pase de "Borradores" a "Publicadas".
+    if (_isMiPerfil) _refrescarMisRecetas();
+  }
+
+  /// Recarga mis recetas (publicadas + privadas + borradores) en silencio,
+  /// sin spinner, actualizando la lista ya cargada in-place.
+  Future<void> _refrescarMisRecetas() async {
+    if (!_isMiPerfil) return;
+    try {
+      final lista = await RecetaService.getMisRecetas(widget.user.id);
+      if (!mounted) return;
+      setState(() {
+        _plRecetas.items
+          ..clear()
+          ..addAll(lista);
+        _plRecetas.hayMas = false;
+        _plRecetas.cargando = false;
+      });
+    } catch (_) {
+      // si falla, se mantiene la lista actual
+    }
   }
 
   Future<void> _cargarPrimera(_PagedList pl) async {
@@ -329,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ? [
                         _buildRecetasTab(surface, border, text, muted),
                         _buildGuardadosTab(surface, border, text, muted),
-                        _buildPlaceholderTab('draft', 'Sin borradores', muted),
+                        _buildBorradoresTab(surface, border, text, muted),
                         _buildSeguidosTab(surface, border, text, muted),
                       ]
                     : [
@@ -887,7 +909,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── TAB: RECETAS ──────────────────────────────────────────────────────────
+  // ── TAB: RECETAS PUBLICADAS ───────────────────────────────────────────────
   Widget _buildRecetasTab(
     Color surface,
     Color border,
@@ -898,8 +920,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (pl.cargando) {
       return const Center(child: CircularProgressIndicator());
     }
-    // Si no hay recetas pero es mi perfil, igual mostramos la tarjeta de crear.
-    if (pl.items.isEmpty && !_isMiPerfil) {
+    if (_isMiPerfil) {
+      // Mi perfil: getMisRecetas trae TODO (publicadas + privadas + borradores).
+      // Esta pestaña muestra solo las publicadas (activo=true); los borradores
+      // (activo=false) van en su propia pestaña. La tarjeta "crear" va siempre.
+      final publicadas = pl.items.where((r) => r.activo).toList();
+      return _gridRecetasSimple(
+        items: publicadas,
+        conCrear: true,
+        surface: surface,
+        border: border,
+        text: text,
+        muted: muted,
+      );
+    }
+    // Perfil de otro: ya viene solo lo público (paginado por REST).
+    if (pl.items.isEmpty) {
       return _buildPlaceholderTab(
         'restaurant',
         'No hay recetas publicadas',
@@ -908,7 +944,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
     return _gridRecetasPaginado(
       pl: pl,
-      conCrear: _isMiPerfil,
+      conCrear: false,
       surface: surface,
       border: border,
       text: text,
@@ -916,10 +952,74 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // ── TAB: BORRADORES (solo mi perfil) ──────────────────────────────────────
+  Widget _buildBorradoresTab(
+    Color surface,
+    Color border,
+    Color text,
+    Color muted,
+  ) {
+    final pl = _plRecetas;
+    if (pl.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final borradores = pl.items.where((r) => !r.activo).toList();
+    if (borradores.isEmpty) {
+      return _buildPlaceholderTab('draft', 'Sin borradores', muted);
+    }
+    return _gridRecetasSimple(
+      items: borradores,
+      conCrear: false,
+      surface: surface,
+      border: border,
+      text: text,
+      muted: muted,
+    );
+  }
+
+  /// GridView sin scroll infinito para una lista ya materializada (mis recetas,
+  /// que getMisRecetas trae completa de una). Si [conCrear], antepone la tarjeta
+  /// de crear receta.
+  Widget _gridRecetasSimple({
+    required List<RecetaFeed> items,
+    required bool conCrear,
+    required Color surface,
+    required Color border,
+    required Color text,
+    required Color muted,
+  }) {
+    final extraInicio = conCrear ? 1 : 0;
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: extraInicio + items.length,
+      itemBuilder: (context, index) {
+        if (conCrear && index == 0) {
+          return _tarjetaCrearReceta(context, border, muted);
+        }
+        return _recipeCard(
+          surface: surface,
+          border: border,
+          text: text,
+          muted: muted,
+          receta: items[index - extraInicio],
+          context: context,
+          themeNotifier: widget.themeNotifier,
+          user: widget.user,
+        );
+      },
+    );
+  }
+
   Widget _tarjetaCrearReceta(BuildContext context, Color border, Color muted) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => RecipeEditorScreen(
@@ -928,6 +1028,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         );
+        // Al volver, refrescar para que la receta/borrador recién creado aparezca.
+        if (mounted) _refrescarMisRecetas();
       },
       child: Container(
         decoration: BoxDecoration(

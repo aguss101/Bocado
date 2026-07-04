@@ -339,7 +339,12 @@ public class AccessChannel {
 
     private void handleGetPerfilUsuario(MethodCall call, MethodChannel.Result result){
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=*", new okhttp3.Callback() {
+        // select explícito (NO *): con RLS/Fase 1, `anon` perdió el SELECT sobre
+        // contrasena/correo, y un `select=*` sobre usuarios devuelve 42501. El
+        // perfil de un tercero no necesita esas columnas de todas formas.
+        String cols = "id,id_cuenta,id_nacion,id_genero,nombre,apellido,usuario,"
+                + "fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner";
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=" + cols, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }
@@ -422,17 +427,27 @@ public class AccessChannel {
         );
     }
 
-    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero, visibilidad). */
+    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero, visibilidad).
+     * Vía RPC SECURITY DEFINER: con RLS/Fase 1, `anon` perdió el SELECT sobre
+     * `correo`, así que un GET REST con `select=...,correo,...` devuelve 42501.
+     * La RPC corre como `postgres` y puede leer el correo del propio usuario. */
     private void handleGetPerfilEditable(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=usuario,correo,id_genero,visibilidad", new okhttp3.Callback() {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("p_id", idUsuario);
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+            return;
+        }
+        HttpClientManager.getInstance().post("/rest/v1/rpc/obtener_perfil_editable", body.toString(), new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
             }
             @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
+                String respBody = response.body() != null ? response.body().string() : "[]";
                 try {
-                    org.json.JSONArray filas = new org.json.JSONArray(body);
+                    org.json.JSONArray filas = new org.json.JSONArray(respBody);
                     if (filas.length() == 0) {
                         activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
                         return;

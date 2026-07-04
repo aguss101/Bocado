@@ -3,7 +3,10 @@ class RecipeComment {
   final int? idComentarioPadre;
   final int idUsuario;
   final String comentario;
-  final DateTime fechaComentario;
+  // Puede ser null: hay comentarios (semilla) sin fecha en la BD. Antes se
+  // parseaba con DateTime.parse(null) y eso tiraba una excepción que hacía
+  // fallar TODO el .map() → la receta no mostraba NINGÚN comentario.
+  final DateTime? fechaComentario;
   final double? calificacion;
   final String nombreUsuario;
   final String avatarUrl;
@@ -14,7 +17,7 @@ class RecipeComment {
     this.idComentarioPadre,
     required this.idUsuario,
     required this.comentario,
-    required this.fechaComentario,
+    this.fechaComentario,
     this.calificacion,
     required this.nombreUsuario,
     this.avatarUrl = '',
@@ -23,13 +26,13 @@ class RecipeComment {
 
   factory RecipeComment.fromJson(Map<String, dynamic> json){
     return RecipeComment(
-      idComentario: json["id_comentario"],
-      idComentarioPadre: json["id_comentario_padre"],
-      idUsuario: json["id_comentarista"],
-      comentario: json["comentario"],
-      fechaComentario: DateTime.parse(json["fecha_comentario"]),
-      calificacion: json["calificacion"]?.toDouble(),
-      nombreUsuario: json["usuario"],
+      idComentario: (json["id_comentario"] as num?)?.toInt() ?? 0,
+      idComentarioPadre: (json["id_comentario_padre"] as num?)?.toInt(),
+      idUsuario: (json["id_comentarista"] as num?)?.toInt() ?? 0,
+      comentario: json["comentario"] ?? '',
+      fechaComentario: DateTime.tryParse(json["fecha_comentario"]?.toString() ?? ''),
+      calificacion: (json["calificacion"] as num?)?.toDouble(),
+      nombreUsuario: json["usuario"] ?? 'Usuario',
       avatarUrl: json["foto"] ?? '',
       respuestas: json["respuestas"] != null
           ? (json["respuestas"] as List).map((r) => RecipeComment.fromJson(r)).toList()

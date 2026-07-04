@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/screens/Profil.dart';
@@ -288,6 +289,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   late bool _isLiked;
   late bool _isSaved;
   late int _likesLocales;
+  late int _comentariosLocales;
 
   @override
   void initState(){
@@ -295,6 +297,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     _isLiked=widget.receta.isLikedBy(widget.user.id);
     _isSaved=widget.receta.isSavedBy(widget.user.id);
     _likesLocales = widget.receta.cantidadFavoritos;
+    _comentariosLocales = widget.receta.cantidadComentarios;
   }
 
   @override
@@ -316,6 +319,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   @override
   void didPopNext() {
     _resincronizarInteracciones();
+    _resincronizarComentarios();
   }
 
   Future<void> _resincronizarInteracciones() async {
@@ -337,6 +341,22 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       });
     } catch (_) {
       // si falla, se mantiene el estado actual
+    }
+  }
+
+  /// Al volver del detalle, recuenta los comentarios de la receta para reflejar
+  /// los que se hayan agregado allá. La vista `cant_comentarios` == cantidad de
+  /// filas planas que devuelve `fetchComentarios`, así que alcanza con contarlas.
+  Future<void> _resincronizarComentarios() async {
+    try {
+      final jsonString = await InteraccionesService.fetchComentarios(
+        widget.receta.idReceta,
+      );
+      final List<dynamic> lista = jsonDecode(jsonString);
+      if (!mounted || lista.length == _comentariosLocales) return;
+      setState(() => _comentariosLocales = lista.length);
+    } catch (_) {
+      // si falla, se mantiene el contador actual
     }
   }
 
@@ -581,7 +601,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         const SizedBox(width: 20),
                         _buildActionButton(
                           icon: Icons.chat_bubble_outline,
-                          label: '${widget.receta.cantidadComentarios}', // Dinámico
+                          label: '$_comentariosLocales', // Dinámico
                           color: c.muted,
                           onTap: () {},
                         ),

@@ -418,19 +418,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       await InteraccionesService.enviarComentario(datos);
 
       await cargarComentarios(widget.idReceta);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('¡Comentario publicado!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
     } catch (e) {
       print("Error publicando: $e");
       if (mounted) {
@@ -1433,15 +1420,16 @@ class _CommentCard extends StatelessWidget {
                             fontSize: isReply ? 13 : 14,
                           ),
                         ),
-                        Text(
-                          "${comment.fechaComentario.day}/${comment.fechaComentario.month}/${comment.fechaComentario.year}",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        if (comment.fechaComentario != null)
+                          Text(
+                            "${comment.fechaComentario!.day}/${comment.fechaComentario!.month}/${comment.fechaComentario!.year}",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
