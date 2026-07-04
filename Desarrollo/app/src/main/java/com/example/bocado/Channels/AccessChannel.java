@@ -53,7 +53,12 @@ public class AccessChannel {
         }
     }
 
-    /** Paso 1 del login social: ¿ya existe una cuenta con ese correo? */
+    /** Paso 1 del login social: ¿ya existe una cuenta con ese correo?
+     * Vía RPC SECURITY DEFINER: con RLS/Fase 1, `anon` perdió el SELECT sobre
+     * `correo` — y en Postgres eso bloquea también FILTRAR por esa columna
+     * (`WHERE correo = ...`), no solo devolverla. El REST directo daba 42501
+     * y rompía el login/registro con Google por completo. La RPC corre como
+     * `postgres` y puede filtrar por correo sin exponerlo en la respuesta. */
     private void handleLoginGoogle(MethodCall call, MethodChannel.Result result) {
         String email = call.argument("email");
         if (email == null || email.trim().isEmpty()) {
@@ -61,22 +66,23 @@ public class AccessChannel {
             return;
         }
 
-        String correoQuery;
+        JSONObject body = new JSONObject();
         try {
-            correoQuery = java.net.URLEncoder.encode(email, "UTF-8");
-        } catch (java.io.UnsupportedEncodingException e) {
-            correoQuery = email;
+            body.put("p_correo", email);
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+            return;
         }
 
-        HttpClientManager.getInstance().get(
-                "/rest/v1/usuarios?correo=eq." + correoQuery + "&activo=eq.true&select=id,id_cuenta,usuario,foto,banner",
+        HttpClientManager.getInstance().post(
+                "/rest/v1/rpc/buscar_usuario_por_correo_google", body.toString(),
                 new okhttp3.Callback() {
                     @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                         activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
                     }
                     @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                        String body = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(body));
+                        String respBody = response.body() != null ? response.body().string() : "[]";
+                        activity.runOnUiThread(() -> result.success(respBody));
                     }
                 });
     }

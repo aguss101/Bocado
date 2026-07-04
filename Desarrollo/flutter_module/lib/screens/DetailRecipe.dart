@@ -64,7 +64,7 @@ class RecipeDetailData {
       proteina: _prot.toStringAsFixed(1),
       carbos: _carb.toStringAsFixed(1),
       grasas: _gras.toStringAsFixed(1),
-      duracion: 'N/A',
+      duracion: _formatDuracion(json['tiempo_coccion']),
 
       /// Que hacemos con esto? lo sacamos directamente de las instrucciones y hacemos que lo puedan elegir desde las pantallas de crearReceta?
       porciones: '${json['porciones'] ?? 0} porciones',
@@ -79,6 +79,13 @@ class RecipeDetailData {
       fotoAutor: (json['usuarios'] as Map<String, dynamic>?)?['foto'],
       precioPorcion: _calcularPrecioPorcion(json),
     );
+  }
+
+  /// `tiempo_coccion` (minutos, int) → texto para el detalle. Null/0 → 'N/A'.
+  static String _formatDuracion(dynamic raw) {
+    final min = (raw as num?)?.toInt() ?? 0;
+    if (min <= 0) return 'N/A';
+    return '$min min';
   }
 
   /// Igual que `precio_porcion` en la vista `vistas_recetas_macros`: precio / porciones.

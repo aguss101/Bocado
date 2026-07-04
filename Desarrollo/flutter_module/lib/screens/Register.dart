@@ -208,6 +208,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final naciones = await UsuarioService.getNaciones();
       final generos  = await UsuarioService.getGeneros();
+      // Orden alfabético de países (la BD no garantiza orden).
+      naciones.sort((a, b) => (a['nombre'] ?? '')
+          .toString()
+          .toLowerCase()
+          .compareTo((b['nombre'] ?? '').toString().toLowerCase()));
       if (mounted) {
         setState(() {
           _naciones = naciones;

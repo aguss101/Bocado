@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'theme/App.dart';
 import 'theme/Notifier.dart';
@@ -130,6 +131,19 @@ class _BocadoAppState extends State<BocadoApp> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
+          // App en español: fuerza el locale para que widgets nativos (ej. el
+          // calendario de showDatePicker) se muestren en español sin depender
+          // del idioma del dispositivo.
+          locale: const Locale('es'),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('es'),
+            Locale('en'),
+          ],
           navigatorKey: _navigatorKey,
           navigatorObservers: [routeObserver],
           home: _resolveHome(),

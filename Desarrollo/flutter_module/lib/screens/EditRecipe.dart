@@ -193,6 +193,21 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool _esPublico = true;
   TextEditingController? _tagsFieldController;
 
+  /// Validación por paso antes de avanzar con "CONTINUAR". Devuelve el mensaje
+  /// de error o null si el paso está OK. Hoy solo el paso 3 (preparación) exige
+  /// contenido: al menos un paso de preparación (así ni un borrador puede
+  /// quedar sin instrucciones).
+  String? _validarPaso(int step) {
+    switch (step) {
+      case 3:
+        if (_pasos.isEmpty) {
+          return 'Agregá al menos un paso de preparación para continuar.';
+        }
+        break;
+    }
+    return null;
+  }
+
   String? _validarReceta() {
     List<String> faltantes = [];
 
@@ -1700,6 +1715,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 if (esUltimoPaso) {
                   _showResumenDialog();
                 } else {
+                  final error = _validarPaso(_step);
+                  if (error != null) {
+                    _snack(error);
+                    return;
+                  }
                   setState(() => _step++);
                 }
               },
