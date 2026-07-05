@@ -19,11 +19,12 @@ public class Usuario
     private boolean visibilidad;
     private String foto;
     private String banner;
+    private String bio;
 
     public Usuario() {
     }
 
-    public Usuario(int id, String cuenta, String nacion, String genero, String nombre, String apellido, String correo, String usuario, String contrasena, String fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, String foto, String banner) {
+    public Usuario(int id, String cuenta, String nacion, String genero, String nombre, String apellido, String correo, String usuario, String contrasena, String fecha_Nacimiento, Timestamp fecha_Creacion, Timestamp fecha_Acceso, boolean activo, boolean visibilidad, String foto, String banner, String bio) {
         this.id = id;
         this.cuenta = cuenta;
         this.nacion = nacion;
@@ -40,6 +41,7 @@ public class Usuario
         this.visibilidad = visibilidad;
         this.foto = foto;
         this.banner = banner;
+        this.bio = bio;
     }
 
     public int getId() {
@@ -169,5 +171,8 @@ public class Usuario
     public void setBanner(String banner) {
         this.banner = banner;
     }
+
+    public String getBio(){return this.bio;}
+    public void setBio(String bio){this.bio = bio;}
 
 }

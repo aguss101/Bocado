@@ -29,6 +29,8 @@ public class Mapper {
         u.setActivo(json.optBoolean("activo", true));
         u.setVisibilidad(json.optBoolean("visibilidad", true));
 
+        u.setBio(json.optString("bio", ""));
+
         u.setFoto(json.isNull("foto") ? null : json.optString("foto", null));
         u.setBanner(json.isNull("banner") ? null : json.optString("banner", null));
 
@@ -46,6 +48,7 @@ public class Mapper {
         data.put("id_nacion", Integer.parseInt(u.getNacion()));
         data.put("id_genero", Integer.parseInt(u.getGenero()));
         data.put("fecha_nacimiento", u.getFecha_Nacimiento());
+        data.put("bio", u.getBio());
 
         return data;
     }
@@ -58,6 +61,7 @@ public class Mapper {
         json.put("usuario", u.getUsuario());
         json.put("foto",   u.getFoto()   != null ? u.getFoto()   : JSONObject.NULL);
         json.put("banner", u.getBanner() != null ? u.getBanner() : JSONObject.NULL);
+        json.put("bio", u.getBio() != null ? u.getBio() : "");
 
         return json;
     }
@@ -68,6 +72,7 @@ public class Mapper {
         json.put("correo", u.getCorreo());
         json.put("id_genero", Integer.parseInt(u.getGenero()));
         json.put("visibilidad", u.isVisibilidad());
+        json.put("bio", u.getBio());
         return json;
     }
 

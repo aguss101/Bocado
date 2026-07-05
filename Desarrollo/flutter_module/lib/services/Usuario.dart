@@ -124,6 +124,7 @@ class UsuarioService {
     String? fotoUrl,
     String? bannerUrl,
     bool? visibilidad,
+    String? bio,
   }) async {
     await _channel.invokeMethod('actualizarPerfil', {
       'id': id,
@@ -133,6 +134,7 @@ class UsuarioService {
       if (fotoUrl != null) 'fotoUrl': fotoUrl,
       if (bannerUrl != null) 'bannerUrl': bannerUrl,
       if (visibilidad != null) 'visibilidad': visibilidad,
+      if (bio != null) 'bio': bio,
     });
   }
 

@@ -4,6 +4,7 @@ class UserProfile {
   final String nombreUsuario;
   final String? fotoUrl;
   final int totalRecetas;
+  final String? bio;
 
   UserProfile({
     required this.idSeguido,
@@ -11,6 +12,7 @@ class UserProfile {
     required this.nombreUsuario,
     this.fotoUrl,
     required this.totalRecetas,
+    this.bio,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class UserProfile {
       nombreUsuario: json['nombre_usuario'] ?? 'Usuario Desconocido',
       fotoUrl: json['foto_url'],
       totalRecetas: json['total_recetas'] ?? 0,
+      bio: json['bio'],
     );
   }
 }

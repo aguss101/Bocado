@@ -6,7 +6,7 @@ import '../services/Instructions.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
-import 'Profil.dart';
+import 'Profile.dart';
 
 Future<void> mostrarSeguidoresDialog(
   BuildContext context, {

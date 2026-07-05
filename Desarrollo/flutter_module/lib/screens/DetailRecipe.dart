@@ -12,7 +12,7 @@ import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
 import 'EditRecipe.dart';
-import 'Profil.dart';
+import 'Profile.dart';
 import '../models/RecipeComment.dart';
 
 class RecipeDetailData {

@@ -12,6 +12,7 @@ class usuario_Logged {
   String? fotoUrl;
   String? bannerUrl;
   bool visibilidad;
+  String? bio;
 
   usuario_Logged(
     this.id,
@@ -22,6 +23,7 @@ class usuario_Logged {
     this.fotoUrl,
     this.bannerUrl,
     this.visibilidad = true,
+        this.bio,
   }) {
     fotoReady   = _decode(fotoBase64);
     bannerReady = _decode(bannerBase64);
@@ -45,6 +47,7 @@ class usuario_Logged {
       fotoUrl: json['foto'],
       bannerUrl: json['banner'],
       visibilidad: (json['visibilidad'] as bool?) ?? true,
+      bio: json['bio'],
     );
   }
 }

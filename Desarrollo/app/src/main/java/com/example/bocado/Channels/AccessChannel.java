@@ -193,6 +193,10 @@ public class AccessChannel {
             if (visibilidad != null)
                 actualizaciones.put("visibilidad", visibilidad);
 
+            String bio = call.argument("bio");
+            if (bio != null && !bio.trim().isEmpty())
+                actualizaciones.put("bio", bio);
+
             usuarioManager.update(id, actualizaciones, new CallbackCB() {
                 @Override public void onSuccess(String response) {
                     activity.runOnUiThread(() -> result.success("ok"));
@@ -326,7 +330,7 @@ public class AccessChannel {
     private void handleGetPerfilUsuario(MethodCall call, MethodChannel.Result result){
         Integer idUsuario = call.argument("id_usuario");
         String cols = "id,id_cuenta,id_nacion,id_genero,nombre,apellido,usuario,"
-                + "fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner";
+                + "fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner,bio";
         HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=" + cols, new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));

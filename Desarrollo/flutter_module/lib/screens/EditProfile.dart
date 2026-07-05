@@ -33,6 +33,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usuarioCtrl;
   late TextEditingController _correoCtrl;
+  late TextEditingController _bioCtrl;
+
   int? _generoId;
   List<dynamic> _generos = [];
   int _cantRecetas = 0;
@@ -51,22 +53,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _usuarioCtrl = TextEditingController(text: widget.user.usuario);
     _correoCtrl  = TextEditingController();
+    _bioCtrl = TextEditingController();
     _cargarDatos();
   }
 
   Future<void> _cargarDatos() async {
     try {
       final (generos, perfil, cantRecetas, cantSeguidores) = await (
-        UsuarioService.getGeneros(),
-        UsuarioService.getPerfilEditable(widget.user.id),
-        RecetaService.contarRecetas(widget.user.id),
-        UsuarioService.contarSeguidores(widget.user.id),
+      UsuarioService.getGeneros(),
+      UsuarioService.getPerfilEditable(widget.user.id),
+      RecetaService.contarRecetas(widget.user.id),
+      UsuarioService.contarSeguidores(widget.user.id),
       ).wait;
       if (!mounted) return;
       setState(() {
         _generos = generos;
         _usuarioCtrl.text = perfil['usuario'] ?? widget.user.usuario;
         _correoCtrl.text  = perfil['correo'] ?? '';
+        _bioCtrl.text = perfil['bio'] ?? '';
         _usuarioOriginal  = _usuarioCtrl.text;
         _correoOriginal   = _correoCtrl.text;
         _generoId = perfil['id_genero'] as int?;
@@ -91,6 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _usuarioCtrl.dispose();
     _correoCtrl.dispose();
+    _bioCtrl.dispose();
     super.dispose();
   }
 
@@ -110,6 +115,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final datos = <String, dynamic>{
       'usuario': usuarioNuevo,
       'correo': correoNuevo,
+      'bio': _bioCtrl.text.trim(),
       if (_generoId != null) 'id_genero': _generoId,
       if (_fotoUrl != null) 'foto': _fotoUrl,
       if (_bannerUrl != null) 'banner': _bannerUrl,
@@ -138,6 +144,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         idGenero:  _generoId,
         fotoUrl:   _fotoUrl,
         bannerUrl: _bannerUrl,
+        bio: _bioCtrl.text.trim(),
       );
       await _finalizarYsalir();
     } on Exception catch (e) {
@@ -154,8 +161,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _usuarioCtrl.text.trim(),
       widget.user.fotoBase64,
       widget.user.bannerBase64,
-      fotoUrl:   _fotoUrl   ?? widget.user.fotoUrl,
-      bannerUrl: _bannerUrl ?? widget.user.bannerUrl,
+      fotoUrl:     _fotoUrl   ?? widget.user.fotoUrl,
+      bannerUrl:   _bannerUrl ?? widget.user.bannerUrl,
+      bio:         _bioCtrl.text.trim(),
+      visibilidad: _visibilidad,
     );
     await SessionService.saveSession(updatedUser);
     widget.onSaved?.call(updatedUser);
@@ -197,16 +206,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _cambiarFoto() => _pickAndUpload(
-        label: 'foto',
-        upload: (src) => ImageUploadService.uploadFotoPerfil(widget.user.id, src),
-        onDone: (url) => setState(() => _fotoUrl = _bustCache(url)),
-      );
+    label: 'foto',
+    upload: (src) => ImageUploadService.uploadFotoPerfil(widget.user.id, src),
+    onDone: (url) => setState(() => _fotoUrl = _bustCache(url)),
+  );
 
   Future<void> _cambiarBanner() => _pickAndUpload(
-        label: 'banner',
-        upload: (src) => ImageUploadService.uploadBanner(widget.user.id, src),
-        onDone: (url) => setState(() => _bannerUrl = _bustCache(url)),
-      );
+    label: 'banner',
+    upload: (src) => ImageUploadService.uploadBanner(widget.user.id, src),
+    onDone: (url) => setState(() => _bannerUrl = _bustCache(url)),
+  );
 
   String _bustCache(String url) => '$url?t=${DateTime.now().millisecondsSinceEpoch}';
 
@@ -560,9 +569,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   items: _generos
                       .map((g) => DropdownMenuItem<int>(
-                            value: g['id'] as int,
-                            child: Text(g['nombre'] as String),
-                          ))
+                    value: g['id'] as int,
+                    child: Text(g['nombre'] as String),
+                  ))
                       .toList(),
                   onChanged: (v) => setState(() => _generoId = v),
                   validator: (v) => v == null ? 'Seleccioná un género' : null,
@@ -571,6 +580,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 28),
                 Divider(color: border),
                 const SizedBox(height: 20),
+                _fieldLabel('Biografía'),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _bioCtrl,
+                  maxLines: 4, // Permitir más espacio para la bio
+                  maxLength: 160, // Recomendado para bios cortas
+                  style: TextStyle(color: text, fontSize: 14),
+                  decoration: _inputDecoration(
+                    hint: 'Contá un poco sobre vos...',
+                    prefixIcon: Icons.edit_note_outlined,
+                    bg: inputBg,
+                    border: border,
+                    muted: muted,
+                  ),
+                ),
+                const SizedBox(height: 18),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -602,13 +627,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         onPressed: _saving ? null : _guardarCambios,
                         child: _saving
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
                             : const Text('Guardar cambios',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -676,7 +701,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       fillColor: bg,
       prefixIcon: Icon(prefixIcon, size: 18, color: muted),
       contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: border),

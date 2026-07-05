@@ -8,7 +8,7 @@ import '../widgets/Common.dart';
 import 'Feed.dart';
 import 'LogIn.dart';
 import 'MyRecipes.dart';
-import 'Profil.dart';
+import 'Profile.dart';
 import 'EditRecipe.dart';
 import 'PremiumStore.dart';
 
@@ -129,7 +129,11 @@ class SharedDrawer extends StatelessWidget {
                       isActive: rutaActual == 'perfil',
                       onTap: () {
                         if (rutaActual != 'perfil') {
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(themeNotifier: themeNotifier, user: user)));
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(
+                              themeNotifier: themeNotifier,
+                              user: user,
+                              idUsuarioTarget: user.id
+                          )));
                         } else {
                           Navigator.pop(context);
                         }

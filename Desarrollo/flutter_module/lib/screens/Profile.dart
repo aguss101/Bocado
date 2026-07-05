@@ -8,7 +8,7 @@ import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';
 import 'BarraNavegacion.dart';
-import 'EditProfil.dart';
+import 'EditProfile.dart';
 import '../services/Usuario.dart';
 import '../services/Instructions.dart';
 import '../models/RecetaFeed.dart';
@@ -60,10 +60,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController = TabController(length: _isMiPerfil ? 2 : 1, vsync: this);
 
     final idTarget = widget.idUsuarioTarget ?? widget.user.id;
+    _user = widget.user;
     if (_isMiPerfil) {
-      _user = widget.user;
+      _cargarPerfilPropio(widget.user.id);
     } else {
-      _user = widget.user;
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
 
@@ -121,6 +121,21 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SnackBar(content: Text('Error al cargar el perfil')),
         );
       }
+    }
+  }
+
+  Future<void> _cargarPerfilPropio(int idUsuario) async {
+    setState(() => _estaCargandoPerfil = true);
+    try {
+      final usuarioActualizado = await UsuarioService.getPerfilUsuario(idUsuario);
+      if (mounted) {
+        setState(() {
+          _user = usuarioActualizado;
+          _estaCargandoPerfil = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _estaCargandoPerfil = false);
     }
   }
 
@@ -298,12 +313,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 indicatorWeight: 2,
                 labelColor: AppTheme.primary,
                 unselectedLabelColor: muted,
-                labelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
+                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                isScrollable: false,
                 tabs: _isMiPerfil
                     ? const [
                   Tab(text: 'Recetas Publicadas'),
@@ -386,8 +397,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Transform.translate(
                 offset: const Offset(0, -40),
@@ -395,7 +407,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(top: 10),
                 child: Row(
                   children: [
                     _isMiPerfil
@@ -404,9 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 40),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -437,17 +447,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                         : ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isFollowing
-                            ? Color.lerp(
-                          AppTheme.primary,
-                          Colors.black,
-                          0.30,
-                        )
+                            ? Color.lerp(AppTheme.primary, Colors.black, 0.30)
                             : AppTheme.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 40),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -481,21 +485,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                         icon: Icon(Icons.share_outlined, color: muted),
                         onPressed: () {
                           final username = _user.usuario;
-                          final idPerfil =
-                              widget.idUsuarioTarget ?? widget.user.id;
+                          final idPerfil = widget.idUsuarioTarget ?? widget.user.id;
                           final slug = IdCodec.encodePerfil(idPerfil);
                           SharePlus.instance.share(
                             ShareParams(
-                              text:
-                              '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
+                              text: '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
                                   'https://links.bocado.tech/perfil/$slug',
                             ),
                           );
                         },
-                        constraints: const BoxConstraints(
-                          minWidth: 40,
-                          minHeight: 40,
-                        ),
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                         padding: EdgeInsets.zero,
                       ),
                     ),
@@ -504,57 +503,36 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ],
           ),
-          Transform.translate(
-            offset: const Offset(0, -32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+
+
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
                   _user.usuario,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: text,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '@${_user.usuario.toLowerCase().replaceAll(' ', '_')}',
-                  style: TextStyle(color: muted, fontSize: 13),
+              ),
+              if (_user.id_Cuenta == 2) ...[
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.emoji_events, // Icono de corona
+                  color: Colors.amber,
+                  size: 20,
                 ),
-                const SizedBox(height: 10),
-                if (_user.id_Cuenta == 2)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.verified_outlined,
-                          size: 12,
-                          color: AppTheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'PRO',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
-            ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '@${_user.usuario.toLowerCase().replaceAll(' ', '_')}',
+            style: TextStyle(color: muted, fontSize: 13),
           ),
         ],
       ),
@@ -668,61 +646,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bio',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
-              letterSpacing: 1,
-            ),
-          ),
+          Text('Bio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primary, letterSpacing: 1)),
           const SizedBox(height: 8),
           Text(
-            'Cocinero apasionado por la ciencia detrás de la fermentación. '
-                'Compartiendo recetas y técnicas artesanales.',
+            _user.bio ?? "Sin biografía",
             style: TextStyle(fontSize: 13, color: muted, height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          Divider(color: border),
-          const SizedBox(height: 12),
-          Text(
-            'Especialidades',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ['Panadería', 'Fermentación', 'Gluten Free']
-                .map(
-                  (tag) => Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: border.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: border),
-                ),
-                child: Text(
-                  tag,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: muted,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            )
-                .toList(),
           ),
         ],
       ),

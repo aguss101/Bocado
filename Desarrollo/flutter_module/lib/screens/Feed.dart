@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
-import 'package:flutter_module/screens/Profil.dart';
+import 'package:flutter_module/screens/Profile.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';

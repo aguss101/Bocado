@@ -7,7 +7,7 @@ import 'theme/App.dart';
 import 'theme/Notifier.dart';
 import 'screens/LogIn.dart';
 import 'screens/Feed.dart';
-import 'screens/Profil.dart';
+import 'screens/Profile.dart';
 import 'screens/EditRecipe.dart';
 import 'screens/DetailRecipe.dart';
 import 'services/Session.dart';
