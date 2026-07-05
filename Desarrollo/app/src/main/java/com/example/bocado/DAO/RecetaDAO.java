@@ -270,4 +270,33 @@ public class RecetaDAO {
             callback.onError(ErrorCode.ERROR_INTERNO, e.getMessage(), null);
         }
     }
+
+    public void cambiarEstado(int idReceta, boolean nuevoEstado, CallbackCB cb) {
+        org.json.JSONObject payload = new org.json.JSONObject();
+        try {
+            payload.put("p_id_receta", idReceta);
+            payload.put("p_nuevo_estado", nuevoEstado);
+        } catch (org.json.JSONException e) {
+            cb.onError("JSON_ERROR", "Error al construir los datos: " + e.getMessage(), null);
+            return;
+        }
+
+        HttpClientManager.getInstance().post("/rest/v1/rpc/cambiar_estado_receta", payload.toString(), new okhttp3.Callback() {
+            @Override
+            public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                cb.onError("NETWORK_ERROR", e.getMessage(), null);
+            }
+
+            @Override
+            public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                if (!response.isSuccessful()) {
+                    String errorBody = response.body() != null ? response.body().string() : "Error HTTP: " + response.code();
+                    cb.onError("DB_ERROR", errorBody, null);
+                } else {
+                    cb.onSuccess(null);
+                }
+            }
+        });
+    }
+
 }

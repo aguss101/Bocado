@@ -477,6 +477,57 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                   ],
                 ),
               ),
+
+              if (widget.receta.usuarioTarget == widget.user.id)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('¿Seguro que querés eliminar esta receta?'),
+                          duration: const Duration(seconds: 5),
+                          behavior: SnackBarBehavior.floating,
+                          action: SnackBarAction(
+                            label: 'ELIMINAR',
+                            textColor: Colors.redAccent,
+                            onPressed: () async {
+                              try {
+                                await RecetaService.cambiarEstadoReceta(widget.receta.idReceta);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Receta eliminada correctamente')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Error al eliminar la receta. Revisa tu conexión.')),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
 
@@ -518,46 +569,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                             widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.more_horiz, color: c.muted),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          backgroundColor: c.surface,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(BocadoRadius.xl)),
-                          ),
-                          builder: (BuildContext context) {
-                            return Wrap(
-                              children: [
-                                ListTile(
-                                  leading: Icon(Icons.person, color: c.muted),
-                                  title: Text('Ver Perfil', style: TextStyle(color: c.text)),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget)));
-                                  },
-                                ),
-                                ListTile(
-                                  leading: Icon(Icons.report_problem, color: c.muted),
-                                  title: Text('Reportar receta', style: TextStyle(color: c.text)),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.delete, color: Colors.redAccent),
-                                  title: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
                     ),
                   ],
                 ),

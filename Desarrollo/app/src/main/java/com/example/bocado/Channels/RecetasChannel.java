@@ -44,7 +44,7 @@ public class RecetasChannel {
             case "getEtiquetas" -> handleGetEtiquetas(call, result);
             case "getRecetaID" -> handleGetRecetaID(call, result);
             case "updateReceta" -> handleUpdateReceta(call, result);
-
+            case "cambiarEstadoReceta" -> handleCambiarEstadoReceta(call, result);
             default                -> result.notImplemented();
         }
     }
@@ -213,5 +213,12 @@ public class RecetasChannel {
                 activity.runOnUiThread(() -> result.error(code, message, details));
             }
         };
+    }
+    private void handleCambiarEstadoReceta(MethodCall call, MethodChannel.Result result) {
+        RecetaManager.getInstance().cambiarEstado(
+                call.argument("id_receta"),
+                call.argument("nuevo_estado"),
+                bridgeData(result)
+        );
     }
 }

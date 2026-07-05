@@ -96,4 +96,14 @@ class RecetaService {
     final result = await _channel.invokeMethod('updateReceta', datos);
     return jsonDecode(result as String) as Map<String, dynamic>;
   }
+
+  static Future<void> cambiarEstadoReceta(int idReceta, {bool nuevoEstado = false}) async {
+    await _channel.invokeMethod('cambiarEstadoReceta',
+      {
+        'id_receta': idReceta,
+        'nuevo_estado': nuevoEstado,
+      },
+    );
+  }
+
 }

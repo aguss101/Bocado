@@ -139,4 +139,13 @@ public class RecetaManager implements IReceta {
         recetaDAO.obtenerDetalle(idReceta, cb);
     }
 
+    public void cambiarEstado(Integer idReceta, Boolean nuevoEstado, CallbackCB cb) {
+        if (idReceta == null || nuevoEstado == null) {
+            cb.onError("INVALID_ARGS", "Faltan parámetros (id_receta o nuevo_estado)", null);
+            return;
+        }
+
+        recetaDAO.cambiarEstado(idReceta, nuevoEstado, cb);
+    }
+
 }

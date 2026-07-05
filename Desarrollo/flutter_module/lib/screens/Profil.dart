@@ -47,18 +47,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _estaCargandoStats = true;
 
   static const int _pageGrid = 12;
-  static const int _pageLista = 20;
   late _PagedList<RecetaFeed> _plRecetas;
   _PagedList<RecetaFeed>? _plGuardados;
-  late final _PagedList<UserProfile> _plSeguidos;
 
   @override
   void initState() {
     super.initState();
     _isMiPerfil =
         widget.idUsuarioTarget == null ||
-        widget.idUsuarioTarget == widget.user.id;
-    _tabController = TabController(length: _isMiPerfil ? 4 : 2, vsync: this);
+            widget.idUsuarioTarget == widget.user.id;
+
+    _tabController = TabController(length: _isMiPerfil ? 2 : 1, vsync: this);
+
     final idTarget = widget.idUsuarioTarget ?? widget.user.id;
     if (_isMiPerfil) {
       _user = widget.user;
@@ -66,27 +66,23 @@ class _ProfileScreenState extends State<ProfileScreen>
       _user = widget.user;
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
+
     _plRecetas = _PagedList(
       _isMiPerfil
-          // Propio perfil: trae también privadas/borradores (sin paginar, RPC).
           ? (off, lim) => RecetaService.getMisRecetas(idTarget)
-          // Perfil de otro: solo lo público, paginado (REST directo).
           : (off, lim) => RecetaService.getRecetasUsuario(idTarget, limit: lim, offset: off),
       pageSize: _pageGrid,
     );
-    _plSeguidos = _PagedList(
-      (off, lim) => UsuarioService.getSeguidores(idTarget, limit: lim, offset: off),
-      pageSize: _pageLista,
-    );
     _cargarPrimera(_plRecetas);
-    _cargarPrimera(_plSeguidos);
+
     if (_isMiPerfil) {
       _plGuardados = _PagedList(
-        (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
+            (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
         pageSize: _pageGrid,
       );
       _cargarPrimera(_plGuardados!);
     }
+
     _cargarStats(idTarget);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
   }
@@ -98,20 +94,19 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (mounted) {
         setState(() {
           _user = usuarioTercero;
-          // Red de seguridad: si el "tercero" es en realidad el usuario logueado,
-          // tratarlo como perfil propio (oculta Seguir, restaura los 4 tabs).
+
           if (usuarioTercero.id == widget.user.id && !_isMiPerfil) {
             _isMiPerfil = true;
             _tabController.dispose();
-            _tabController = TabController(length: 4, vsync: this);
+            _tabController = TabController(length: 2, vsync: this);
             _plGuardados = _PagedList(
-              (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
+                  (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
               pageSize: _pageGrid,
             );
             _cargarPrimera(_plGuardados!);
-            // También recargar recetas por el camino "propio" (privadas/borradores).
+
             _plRecetas = _PagedList(
-              (off, lim) => RecetaService.getMisRecetas(widget.user.id),
+                  (off, lim) => RecetaService.getMisRecetas(widget.user.id),
               pageSize: _pageGrid,
             );
             _cargarPrimera(_plRecetas);
@@ -202,19 +197,13 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (route is PageRoute) routeObserver.subscribe(this, route);
   }
 
-  /// Se dispara al volver a esta pantalla desde otra (pop). Refresca contadores
-  /// para reflejar follows/unfollows hechos en otras pantallas.
   @override
   void didPopNext() {
     _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
-    // Al volver (p.ej. de publicar/editar una receta), refrescar mis recetas
-    // para que un borrador recién publicado pase de "Borradores" a "Publicadas".
     if (_isMiPerfil) _refrescarMisRecetas();
   }
 
-  /// Recarga mis recetas (publicadas + privadas + borradores) en silencio,
-  /// sin spinner, actualizando la lista ya cargada in-place.
   Future<void> _refrescarMisRecetas() async {
     if (!_isMiPerfil) return;
     try {
@@ -227,9 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         _plRecetas.hayMas = false;
         _plRecetas.cargando = false;
       });
-    } catch (_) {
-      // si falla, se mantiene la lista actual
-    }
+    } catch (_) {}
   }
 
   Future<void> _cargarPrimera(_PagedList pl) async {
@@ -276,9 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         centerTitle: true,
         actions: [
-          // ── Toggle de tema ──
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
-          // ── Abrir drawer ──
           Builder(
             builder: (ctx) => IconButton(
               icon: const Icon(Icons.menu, color: AppTheme.primary),
@@ -291,79 +276,63 @@ class _ProfileScreenState extends State<ProfileScreen>
       body: _estaCargandoPerfil
           ? const Center(child: CircularProgressIndicator())
           : NestedScrollView(
-              headerSliverBuilder: (context, _) => [
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── PORTADA ──
-                      _buildCover(isDark),
-
-                      // ── DATOS DEL USUARIO ──
-                      _buildProfileInfo(surface, border, text, muted, context),
-
-                      // ── STATS ──
-                      _buildStats(surface, border, text, muted),
-
-                      // ── BIO + ESPECIALIDADES ──
-                      _buildBioCard(surface, border, text, muted),
-
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                ),
-                // ── TAB BAR ──
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _StickyTabBarDelegate(
-                    TabBar(
-                      controller: _tabController,
-                      indicatorColor: AppTheme.primary,
-                      indicatorWeight: 2,
-                      labelColor: AppTheme.primary,
-                      unselectedLabelColor: muted,
-                      labelStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      tabs: _isMiPerfil
-                          ? const [
-                              Tab(text: 'Recetas Publicadas'),
-                              Tab(text: 'Guardados'),
-                              Tab(text: 'Borradores'),
-                              Tab(text: 'Seguidos'),
-                            ]
-                          : const [
-                              Tab(text: 'Recetas Publicadas'),
-                              Tab(text: 'Seguidos'),
-                            ],
-                    ),
-                    color: bg,
-                    border: border,
-                  ),
-                ),
+        headerSliverBuilder: (context, _) => [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCover(isDark),
+                _buildProfileInfo(surface, border, text, muted, context),
+                _buildStats(surface, border, text, muted),
+                _buildBioCard(surface, border, text, muted),
+                const SizedBox(height: 8),
               ],
-              body: TabBarView(
-                controller: _tabController,
-                children: _isMiPerfil
-                    ? [
-                        _buildRecetasTab(surface, border, text, muted),
-                        _buildGuardadosTab(surface, border, text, muted),
-                        _buildBorradoresTab(surface, border, text, muted),
-                        _buildSeguidosTab(surface, border, text, muted),
-                      ]
-                    : [
-                        _buildRecetasTab(surface, border, text, muted),
-                        _buildSeguidosTab(surface, border, text, muted),
-                      ],
-              ),
             ),
+          ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickyTabBarDelegate(
+              TabBar(
+                controller: _tabController,
+                indicatorColor: AppTheme.primary,
+                indicatorWeight: 2,
+                labelColor: AppTheme.primary,
+                unselectedLabelColor: muted,
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: _isMiPerfil
+                    ? const [
+                  Tab(text: 'Recetas Publicadas'),
+                  Tab(text: 'Guardados'),
+                ]
+                    : const [
+                  Tab(text: 'Recetas Publicadas'),
+                ],
+              ),
+              color: bg,
+              border: border,
+            ),
+          ),
+        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: _isMiPerfil
+              ? [
+            _buildRecetasTab(surface, border, text, muted),
+            _buildGuardadosTab(surface, border, text, muted),
+          ]
+              : [
+            _buildRecetasTab(surface, border, text, muted),
+          ],
+        ),
+      ),
     );
   }
 
-  // ── PORTADA ──────────────────────────────────────────────────────────────
   Widget _buildCover(bool isDark) {
     return SizedBox(
       height: 180,
@@ -371,24 +340,22 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Imagen de banner o color sólido
           _user.bannerUrl != null
               ? BocadoNetworkImage(url: _user.bannerUrl!)
               : _user.bannerReady != null
               ? Image.memory(_user.bannerReady!, fit: BoxFit.cover)
               : Container(
-                  color: isDark
-                      ? const Color(0xFF1A1108)
-                      : const Color(0xFFF5E0C8),
-                  child: Center(
-                    child: Icon(
-                      Icons.restaurant_menu,
-                      size: 48,
-                      color: AppTheme.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ),
-          // Gradiente sutil encima
+            color: isDark
+                ? const Color(0xFF1A1108)
+                : const Color(0xFFF5E0C8),
+            child: Center(
+              child: Icon(
+                Icons.restaurant_menu,
+                size: 48,
+                color: AppTheme.primary.withValues(alpha: 0.3),
+              ),
+            ),
+          ),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -406,111 +373,105 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── DATOS DE PERFIL ───────────────────────────────────────────────────────
   Widget _buildProfileInfo(
-    Color surface,
-    Color border,
-    Color text,
-    Color muted,
-    BuildContext context,
-  ) {
+      Color surface,
+      Color border,
+      Color text,
+      Color muted,
+      BuildContext context,
+      ) {
     return Container(
       color: surface,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar + botones en fila
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Avatar — sobresale 40px sobre la portada
               Transform.translate(
                 offset: const Offset(0, -40),
                 child: _buildAvatar(),
               ),
               const Spacer(),
-              // Botones alineados al centro del avatar visible
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
                   children: [
-                    // Editar perfil
                     _isMiPerfil
                         ? ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 40),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditProfileScreen(
+                              user: _user,
+                              themeNotifier: widget.themeNotifier,
+                              onSaved: (updated) {
+                                setState(() => _user = updated);
+                              },
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditProfileScreen(
-                                    user: _user,
-                                    themeNotifier: widget.themeNotifier,
-                                    onSaved: (updated) {
-                                      setState(() => _user = updated);
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Editar Perfil',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          )
-                        : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isFollowing
-                                  ? Color.lerp(
-                                      AppTheme.primary,
-                                      Colors.black,
-                                      0.30,
-                                    )
-                                  : AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 40),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
-                            ),
-                            onPressed: _isLoadingFollow ? null : _toggleSeguir,
-                            child: _isLoadingFollow
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    _isFollowing ? 'Siguiendo' : 'Seguir',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
                           ),
+                        );
+                      },
+                      child: const Text(
+                        'Editar Perfil',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    )
+                        : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isFollowing
+                            ? Color.lerp(
+                          AppTheme.primary,
+                          Colors.black,
+                          0.30,
+                        )
+                            : AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: _isLoadingFollow ? null : _toggleSeguir,
+                      child: _isLoadingFollow
+                          ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : Text(
+                        _isFollowing ? 'Siguiendo' : 'Seguir',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    // Compartir
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: border),
@@ -526,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           SharePlus.instance.share(
                             ShareParams(
                               text:
-                                  '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
+                              '¡Mirá el perfil de $username en Bocado! 👨‍🍳\n'
                                   'https://links.bocado.tech/perfil/$slug',
                             ),
                           );
@@ -543,7 +504,6 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ],
           ),
-          // Nombre y handle (compensar el transform del avatar)
           Transform.translate(
             offset: const Offset(0, -32),
             child: Column(
@@ -563,7 +523,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   style: TextStyle(color: muted, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
-                // Badge PRO
                 if (_user.id_Cuenta == 2)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -613,9 +572,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  /// Abre Seguidores/Siguiendo. Regla: mi perfil o perfil público → siempre se
-  /// puede ver. Perfil privado → solo si ya lo sigo. Si no se cumple, no pasa
-  /// nada (sin aviso, a propósito).
   void _abrirSeguidoresOSiguiendo({required bool enSeguidores}) {
     final puedeVer = _isMiPerfil || _user.visibilidad || _isFollowing;
     if (!puedeVer) return;
@@ -629,7 +585,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── STATS ─────────────────────────────────────────────────────────────────
   Widget _buildStats(Color surface, Color border, Color text, Color muted) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -701,7 +656,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _dividerV(Color border) =>
       Container(height: 36, width: 1, color: border);
 
-  // ── BIO + ESPECIALIDADES ──────────────────────────────────────────────────
   Widget _buildBioCard(Color surface, Color border, Color text, Color muted) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -714,7 +668,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Bio
           Text(
             'Bio',
             style: TextStyle(
@@ -727,13 +680,12 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 8),
           Text(
             'Cocinero apasionado por la ciencia detrás de la fermentación. '
-            'Compartiendo recetas y técnicas artesanales.',
+                'Compartiendo recetas y técnicas artesanales.',
             style: TextStyle(fontSize: 13, color: muted, height: 1.5),
           ),
           const SizedBox(height: 16),
           Divider(color: border),
           const SizedBox(height: 12),
-          // Especialidades
           Text(
             'Especialidades',
             style: TextStyle(
@@ -750,26 +702,26 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: ['Panadería', 'Fermentación', 'Gluten Free']
                 .map(
                   (tag) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: border.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: border),
-                    ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: muted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: border.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: border),
+                ),
+                child: Text(
+                  tag,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: muted,
+                    letterSpacing: 0.5,
                   ),
-                )
+                ),
+              ),
+            )
                 .toList(),
           ),
         ],
@@ -777,13 +729,50 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── TAB: GUARDADOS  ──────────────────────────────────────────────────────────
+  Widget _buildRecetasTab(
+      Color surface,
+      Color border,
+      Color text,
+      Color muted,
+      ) {
+    final pl = _plRecetas;
+    if (pl.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_isMiPerfil) {
+      final publicadas = pl.items.where((r) => r.activo).toList();
+      return _gridRecetasSimple(
+        items: publicadas,
+        conCrear: true,
+        surface: surface,
+        border: border,
+        text: text,
+        muted: muted,
+      );
+    }
+    if (pl.items.isEmpty) {
+      return _buildPlaceholderTab(
+        'restaurant',
+        'No hay recetas publicadas',
+        muted,
+      );
+    }
+    return _gridRecetasPaginado(
+      pl: pl,
+      conCrear: false,
+      surface: surface,
+      border: border,
+      text: text,
+      muted: muted,
+    );
+  }
+
   Widget _buildGuardadosTab(
-    Color surface,
-    Color border,
-    Color text,
-    Color muted,
-  ) {
+      Color surface,
+      Color border,
+      Color text,
+      Color muted,
+      ) {
     final pl = _plGuardados;
     if (pl == null || pl.cargando) {
       return const Center(child: CircularProgressIndicator());
@@ -805,8 +794,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  /// GridView con scroll infinito para recetas/guardados. Si [conCrear], antepone
-  /// la tarjeta de "crear receta". Muestra un loader al final mientras hay más.
   Widget _gridRecetasPaginado({
     required _PagedList<RecetaFeed> pl,
     required bool conCrear,
@@ -853,133 +840,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ── TAB: SEGUIDOS ─────────────────────────────────────────────────────────
-  Widget _buildSeguidosTab(
-    Color surface,
-    Color border,
-    Color text,
-    Color muted,
-  ) {
-    final pl = _plSeguidos;
-    if (pl.cargando) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (pl.items.isEmpty) {
-      return _buildPlaceholderTab('people', 'Aún no sigue a nadie', muted);
-    }
-    return NotificationListener<ScrollNotification>(
-      onNotification: (n) {
-        if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) _cargarMas(pl);
-        return false;
-      },
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: pl.items.length + (pl.hayMas ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          if (i >= pl.items.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return _SeguidoCard(
-            perfil: pl.items[i],
-            usuarioLogueadoId: widget.user.id,
-            isMiPerfil: _isMiPerfil,
-            surface: surface,
-            border: border,
-            text: text,
-            muted: muted,
-            onTap: (){
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => ProfileScreen(
-                          user: widget.user,
-                          themeNotifier: widget.themeNotifier,
-                          idUsuarioTarget: pl.items[i].idSeguido,
-                      )
-                  )
-              );
-              },
-          );
-        },
-      ),
-    );
-  }
-
-  // ── TAB: RECETAS PUBLICADAS ───────────────────────────────────────────────
-  Widget _buildRecetasTab(
-    Color surface,
-    Color border,
-    Color text,
-    Color muted,
-  ) {
-    final pl = _plRecetas;
-    if (pl.cargando) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_isMiPerfil) {
-      // Mi perfil: getMisRecetas trae TODO (publicadas + privadas + borradores).
-      // Esta pestaña muestra solo las publicadas (activo=true); los borradores
-      // (activo=false) van en su propia pestaña. La tarjeta "crear" va siempre.
-      final publicadas = pl.items.where((r) => r.activo).toList();
-      return _gridRecetasSimple(
-        items: publicadas,
-        conCrear: true,
-        surface: surface,
-        border: border,
-        text: text,
-        muted: muted,
-      );
-    }
-    // Perfil de otro: ya viene solo lo público (paginado por REST).
-    if (pl.items.isEmpty) {
-      return _buildPlaceholderTab(
-        'restaurant',
-        'No hay recetas publicadas',
-        muted,
-      );
-    }
-    return _gridRecetasPaginado(
-      pl: pl,
-      conCrear: false,
-      surface: surface,
-      border: border,
-      text: text,
-      muted: muted,
-    );
-  }
-
-  // ── TAB: BORRADORES (solo mi perfil) ──────────────────────────────────────
-  Widget _buildBorradoresTab(
-    Color surface,
-    Color border,
-    Color text,
-    Color muted,
-  ) {
-    final pl = _plRecetas;
-    if (pl.cargando) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    final borradores = pl.items.where((r) => !r.activo).toList();
-    if (borradores.isEmpty) {
-      return _buildPlaceholderTab('draft', 'Sin borradores', muted);
-    }
-    return _gridRecetasSimple(
-      items: borradores,
-      conCrear: false,
-      surface: surface,
-      border: border,
-      text: text,
-      muted: muted,
-    );
-  }
-
-  /// GridView sin scroll infinito para una lista ya materializada (mis recetas,
-  /// que getMisRecetas trae completa de una). Si [conCrear], antepone la tarjeta
-  /// de crear receta.
   Widget _gridRecetasSimple({
     required List<RecetaFeed> items,
     required bool conCrear,
@@ -1028,7 +888,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         );
-        // Al volver, refrescar para que la receta/borrador recién creado aparezca.
         if (mounted) _refrescarMisRecetas();
       },
       child: Container(
@@ -1106,27 +965,23 @@ Widget _recipeCard({
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── IMAGEN DE LA RECETA ──
           Expanded(
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // ── AQUÍ EL CAMBIO ──
                 (receta.foto != null && receta.foto!.isNotEmpty)
                     ? BocadoNetworkImage(
-                        url: receta.foto!.split('|')[0],
-                        memCacheWidth: 600,
-                      )
+                  url: receta.foto!.split('|')[0],
+                  memCacheWidth: 600,
+                )
                     : Container(
-                        color: AppTheme.primary.withValues(alpha: 0.08),
-                        child: Icon(
-                          Icons.restaurant,
-                          size: 40,
-                          color: AppTheme.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-
-                // ── BADGE SUPERIOR DERECHO (Calorías) ──
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  child: Icon(
+                    Icons.restaurant,
+                    size: 40,
+                    color: AppTheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
                 Positioned(
                   top: 8,
                   right: 8,
@@ -1152,8 +1007,6 @@ Widget _recipeCard({
               ],
             ),
           ),
-
-          // ── INFO DE LA RECETA ──
           Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -1173,7 +1026,6 @@ Widget _recipeCard({
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Calificación
                     Row(
                       children: [
                         const Icon(
@@ -1192,8 +1044,6 @@ Widget _recipeCard({
                         ),
                       ],
                     ),
-
-                    // Etiqueta
                     Expanded(
                       child: Text(
                         stringEtiqueta,
@@ -1219,7 +1069,6 @@ Widget _recipeCard({
   );
 }
 
-// ── PLACEHOLDER GENÉRICO ──────────────────────────────────────────────────
 Widget _buildPlaceholderTab(String iconName, String msg, Color muted) {
   final icons = {
     'favorite_border': Icons.favorite_border,
@@ -1231,224 +1080,16 @@ Widget _buildPlaceholderTab(String iconName, String msg, Color muted) {
   );
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────
-Widget _glassButton({
-  required IconData icon,
-  required String label,
-  required VoidCallback onTap,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-// ── CARD DE SEGUIDO CON BOTÓN SEGUIR/SIGUIENDO ───────────────────────────────
-class _SeguidoCard extends StatefulWidget {
-  final UserProfile perfil;
-  final int usuarioLogueadoId;
-  final bool isMiPerfil;
-  final Color surface;
-  final Color border;
-  final Color text;
-  final Color muted;
-  final VoidCallback onTap;
-
-  const _SeguidoCard({
-    required this.perfil,
-    required this.usuarioLogueadoId,
-    required this.isMiPerfil,
-    required this.surface,
-    required this.border,
-    required this.text,
-    required this.muted,
-    required this.onTap,
-  });
-
-  @override
-  State<_SeguidoCard> createState() => _SeguidoCardState();
-}
-
-class _SeguidoCardState extends State<_SeguidoCard> {
-  bool _siguiendo = false;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isMiPerfil) {
-      // Están en mi lista de seguidos → ya los sigo por definición
-      _siguiendo = true;
-    } else {
-      _loading = true;
-      _checkSiguiendo();
-    }
-  }
-
-  Future<void> _checkSiguiendo() async {
-    try {
-      final result = await UsuarioService.estasSiguiendo(
-        widget.usuarioLogueadoId,
-        widget.perfil.idSeguido,
-      );
-      if (mounted)
-        setState(() {
-          _siguiendo = result;
-          _loading = false;
-        });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _toggle() async {
-    if (_loading) return;
-    final siguiendoActual = _siguiendo;
-    setState(() => _loading = true);
-    try {
-      await InteraccionesService.actualizarSeguido({
-        'id_seguidor': widget.usuarioLogueadoId,
-        'id_seguido': widget.perfil.idSeguido,
-        'siguiendo': siguiendoActual,
-      });
-      if (mounted)
-        setState(() {
-          _siguiendo = !siguiendoActual;
-          _loading = false;
-        });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final perfil = widget.perfil;
-    final nombre = perfil.nombreUsuario;
-    final inicial = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: widget.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: widget.border),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-              backgroundImage:
-                  (perfil.fotoUrl != null && perfil.fotoUrl!.isNotEmpty)
-                  ? bocadoImageProvider(perfil.fotoUrl!)
-                  : null,
-              child: (perfil.fotoUrl == null || perfil.fotoUrl!.isEmpty)
-                  ? Text(
-                      inicial,
-                      style: const TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: widget.text,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${perfil.totalRecetas} recetas',
-                    style: TextStyle(fontSize: 12, color: widget.muted),
-                  ),
-                ],
-              ),
-            ),
-            perfil.idSeguido != widget.usuarioLogueadoId
-                ? ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _siguiendo
-                          ? Color.lerp(AppTheme.primary, Colors.black, 0.30)
-                          : AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: _loading ? null : _toggle,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(_siguiendo ? 'Siguiendo' : 'Seguir'),
-                  )
-                : const SizedBox.shrink(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── DELEGATE PARA TAB BAR STICKY ─────────────────────────────────────────────
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
   final Color color;
   final Color border;
 
   const _StickyTabBarDelegate(
-    this.tabBar, {
-    required this.color,
-    required this.border,
-  });
+      this.tabBar, {
+        required this.color,
+        required this.border,
+      });
 
   @override
   double get minExtent => tabBar.preferredSize.height + 1;
@@ -1458,10 +1099,10 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
+      BuildContext context,
+      double shrinkOffset,
+      bool overlapsContent,
+      ) {
     return Container(
       color: color,
       child: Column(
@@ -1476,12 +1117,10 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_StickyTabBarDelegate oldDelegate) =>
       oldDelegate.tabBar != tabBar ||
-      oldDelegate.color != color ||
-      oldDelegate.border != border;
+          oldDelegate.color != color ||
+          oldDelegate.border != border;
 }
 
-/// Estado de una lista paginada (scroll infinito). El State la posee y llama a
-/// setState alrededor de [cargarPrimera]/[cargarMas]. El fetcher recibe (offset, limit).
 class _PagedList<T> {
   final Future<List<T>> Function(int offset, int limit) fetch;
   final int pageSize;

@@ -76,6 +76,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _visibilidad = (perfil['visibilidad'] as bool?) ?? true;
         _cantRecetas = cantRecetas;
         _cantSeguidores = cantSeguidores;
+        _bannerUrl = perfil['banner'] ?? perfil['bannerUrl'] ?? widget.user.bannerUrl;
+        _fotoUrl = perfil['foto'] ?? perfil['fotoUrl'] ?? widget.user.fotoUrl;
         _cargando = false;
       });
     } catch (e) {
@@ -337,73 +339,151 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   // ── COLUMNA IZQUIERDA: AVATAR ─────────────────────────────────────────────
-  Widget _buildAvatarColumn(
-      Color text, Color muted, Color surface, Color border) {
-
+  Widget _buildAvatarColumn(Color text, Color muted, Color surface, Color border) {
     final String? urlImgMomentanea = _fotoUrl ?? widget.user.fotoUrl;
+    final String? urlBannerMomentaneo = _bannerUrl ?? widget.user.bannerUrl;
+
     return Column(
       children: [
-        // Avatar grande con botón cámara
         Stack(
           clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
           children: [
-            BocadoAvatar(
-              fotoUrl: urlImgMomentanea,
-              fotoBytes: widget.user.fotoReady,
-              initial: widget.user.usuario.isNotEmpty
-                  ? widget.user.usuario[0].toUpperCase()
-                  : '?',
-              size: 140,
-              radius: 20,
-              initialFontSize: 52,
-              background: Colors.transparent,
+            // 1. BANNER AL FONDO
+            Container(
+              width: double.infinity,
+              height: 140,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: urlBannerMomentaneo != null ? null : AppTheme.primary.withValues(alpha: 0.06),
+                image: urlBannerMomentaneo != null && urlBannerMomentaneo.isNotEmpty
+                    ? DecorationImage(
+                  image: bocadoImageProvider(urlBannerMomentaneo),
+                  fit: BoxFit.cover,
+                )
+                    : null,
+              ),
+              child: urlBannerMomentaneo == null || urlBannerMomentaneo.isEmpty
+                  ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.panorama_outlined, color: AppTheme.primary, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Añadir banner',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              )
+                  : null,
             ),
-            // Botón cámara
+
+            // 2. BOTÓN FLOTANTE PARA CAMBIAR EL BANNER
             Positioned(
-              bottom: -8,
-              right: -8,
+              top: 12,
+              right: 12,
               child: GestureDetector(
-                onTap: _uploading ? null : _cambiarFoto,
+                onTap: _uploading ? null : _cambiarBanner,
                 child: Container(
-                  width: 44,
-                  height: 44,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: surface, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.photo_camera,
-                      color: Colors.white, size: 22),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
+              ),
+            ),
+
+            // 3. AVATAR SUPERPUESTO
+            Positioned(
+              top: 80,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: BocadoAvatar(
+                      fotoUrl: urlImgMomentanea,
+                      fotoBytes: widget.user.fotoReady,
+                      initial: widget.user.usuario.isNotEmpty
+                          ? widget.user.usuario[0].toUpperCase()
+                          : '?',
+                      size: 110,
+                      radius: 20,
+                      initialFontSize: 46,
+                      background: Colors.transparent,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: -4,
+                    child: GestureDetector(
+                      onTap: _uploading ? null : _cambiarFoto,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: surface, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.photo_camera, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        // Nombre
+        const SizedBox(height: 64),
+
         Text(
           widget.user.usuario,
-          style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.bold, color: text),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: text),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           'Chef Bocado',
           style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 1,
               color: AppTheme.primary),
         ),
-        const SizedBox(height: 14),
-        // Chips stats
+        const SizedBox(height: 16),
+
+        // Chips de estadísticas
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -413,42 +493,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _chipStat('$_cantSeguidores ${_cantSeguidores == 1 ? 'Seguidor' : 'Seguidores'}', border, text),
           ],
         ),
-        const SizedBox(height: 16),
-        // Banner upload
-        GestureDetector(
-          onTap: _uploading ? null : _cambiarBanner,
-          child: Container(
-            width: double.infinity,
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.4)),
-              color: _bannerUrl != null ? null : AppTheme.primary.withValues(alpha: 0.06),
-              image: _bannerUrl != null
-                  ? DecorationImage(image: bocadoImageProvider(_bannerUrl!), fit: BoxFit.cover)
-                  : null,
-            ),
-            child: _bannerUrl == null
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.panorama_outlined, color: AppTheme.primary, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Cambiar banner',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  )
-                : null,
-          ),
-        ),
         if (_uploading) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           const LinearProgressIndicator(color: AppTheme.primary),
         ],
       ],
