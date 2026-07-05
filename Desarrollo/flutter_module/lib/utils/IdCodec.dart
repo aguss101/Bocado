@@ -1,18 +1,9 @@
-/// Codifica un id entero a un slug corto reversible para usar en links públicos
-/// (perfiles y recetas), de modo que el id real no quede a la vista en la URL.
-///
-/// No es criptografía: es una biyección determinista (multiplicación modular tipo
-/// Knuth/Optimus + base62). Alcanza para que el id no sea obvio ni predecible en el
-/// link, sin tocar la base de datos ni hacer consultas extra (decodifica local).
 class IdCodec {
-  // Módulo primo (2^31 - 1): cualquier multiplicador en [1, _mod) es coprimo → invertible.
   static const int _mod = 2147483647;
 
-  // Multiplicadores distintos por tipo: el mismo id da slugs distintos en perfil vs receta.
   static const int _multPerfil = 1580030173;
   static const int _multReceta = 1212121211;
 
-  // Letras primero para que los slugs cortos empiecen con letra. Todos URL-safe.
   static const String _alphabet =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -55,7 +46,6 @@ class IdCodec {
     return n;
   }
 
-  // Inverso modular por Euclides extendido (mult es coprimo con _mod primo → siempre existe).
   static int _modInverse(int a, int m) {
     int t = 0, newT = 1;
     int r = m, newR = a % m;

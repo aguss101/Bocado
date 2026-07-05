@@ -12,7 +12,6 @@ import okhttp3.Response;
 import java.io.IOException;
 
 
-/* Nada de BD: por eso usa el cliente OkHttp crudo (getRawClient) */
 public class AppDAO {
 
     private static final String URL_VERSION = "https://links.bocado.tech/version.json";

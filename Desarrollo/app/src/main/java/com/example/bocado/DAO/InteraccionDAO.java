@@ -61,7 +61,6 @@ public class InteraccionDAO implements IInteraccion {
         }
     }
 
-    /** Mapea la respuesta REST de OkHttp al CallbackCB del proyecto. No toca UI. */
     private Callback restCallback(CallbackCB cb) {
         return new Callback() {
             @Override

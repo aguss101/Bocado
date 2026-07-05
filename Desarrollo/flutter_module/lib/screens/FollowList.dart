@@ -8,9 +8,6 @@ import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
 import 'Profil.dart';
 
-/// Cartel centrado (diálogo) con 2 pestañas (Seguidores / Siguiendo) para el
-/// perfil [idPerfil]. El gating de privacidad (perfil privado → no se puede
-/// abrir) se resuelve ANTES de llamar a esto, en Profil.dart.
 Future<void> mostrarSeguidoresDialog(
   BuildContext context, {
   required usuario_Logged user,
@@ -76,7 +73,6 @@ class _FollowListDialogState extends State<_FollowListDialog>
     await lista.cargarPrimera();
     if (!mounted) return;
     setState(() {});
-    // Estado de seguimiento en lote: un solo pedido para toda la página.
     final ids = lista.items.map((p) => lista.otroId(p)).where((id) => id != widget.user.id).toList();
     final seguidos = await UsuarioService.estasSiguiendoVarios(widget.user.id, ids);
     if (!mounted) return;
@@ -210,7 +206,7 @@ class _FollowListTabState extends State<_FollowListTab> {
           usuarioLogueadoId: widget.user.id,
           idOtro: otroId,
           onTap: () {
-            Navigator.pop(context); // cierra el cartel de seguidores
+            Navigator.pop(context);
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -259,9 +255,6 @@ class _FollowTileState extends State<_FollowTile> {
   @override
   void didUpdateWidget(covariant _FollowTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // La lista carga en 2 pasos: primero se pinta con siguiendoInicial=false
-    // (mientras se resuelve el chequeo en lote), y después llega el valor real.
-    // Sin esto, la fila queda pegada al primer valor para siempre.
     if (oldWidget.siguiendoInicial != widget.siguiendoInicial) {
       _siguiendo = widget.siguiendoInicial;
     }
@@ -348,8 +341,6 @@ class _FollowTileState extends State<_FollowTile> {
   }
 }
 
-/// Paginación mínima para una lista de UserProfile, con set de "a quiénes sigo"
-/// resuelto en lote (ver _cargar en FollowListScreen).
 class _PagedFollowList {
   final Future<List<UserProfile>> Function(int offset, int limit) fetch;
   final int Function(UserProfile) otroId;

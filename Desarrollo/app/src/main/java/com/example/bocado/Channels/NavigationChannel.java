@@ -19,7 +19,6 @@ public class NavigationChannel {
         });
     }
 
-    // Llamado desde MainActivity.onNewIntent cuando la app ya está corriendo.
     public void onNewDeepLink(String deepLink) {
         channel.invokeMethod("onDeepLink", deepLink);
     }

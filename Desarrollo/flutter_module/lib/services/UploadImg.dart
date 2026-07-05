@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
-/// El cel saca fotos de 10+- MB. Las comprimimos antes de subir.
 class _Preset {
   final int width;
   final int height;
@@ -19,11 +18,9 @@ class ImageUploadService {
   static final _picker = ImagePicker();
   static const _channel = MethodChannel('com.example.bocado/images');
 
-  /// Abre galería o cámara. Devuelve null si el usuario canceló.
   static Future<XFile?> pickImage(ImageSource source) =>
       _picker.pickImage(source: source, imageQuality: 100);
 
- //Compresion
   static Future<Uint8List> _compress(String path, _Preset p) async {
     final result = await FlutterImageCompress.compressWithFile(
       path,
@@ -36,7 +33,6 @@ class ImageUploadService {
     return result;
   }
 
-  // Subida -> Storage
   static Future<String> _upload(String bucket, String path, Uint8List bytes) async {
     final String url = await _channel.invokeMethod('subirImagen', {
       'bucket': bucket,
@@ -46,7 +42,6 @@ class ImageUploadService {
     return url;
   }
 
-  /// Elige una imagen, la comprime y la sube.
   static Future<String?> _pickCompressUpload(
       ImageSource source, _Preset preset, String bucket, String path) async {
     final file = await pickImage(source);
@@ -55,26 +50,21 @@ class ImageUploadService {
     return _upload(bucket, path, bytes);
   }
 
-  /// Elige y sube la foto de perfil.
   static Future<String?> uploadFotoPerfil(int userId, ImageSource source) =>
       _pickCompressUpload(source, _presetFoto, 'avatars', '$userId/foto.jpg');
 
-  /// Elige y sube el banner de perfil.
   static Future<String?> uploadBanner(int userId, ImageSource source) =>
       _pickCompressUpload(source, _presetBanner, 'avatars', '$userId/banner.jpg');
 
-  /// Elige y sube la imagen de una receta.
   static Future<String?> uploadRecetaImage(String id, Uint8List source) =>
       _upload('recetas', '$id/portada.jpg', source);
 
-  /// Elegir y comprimir (sin subir).
   static Future<Uint8List?> pickAndCompressReceta(ImageSource source) async {
     final file = await pickImage(source);
     if (file == null) return null;
     return _compress(file.path, _presetReceta);
   }
 
-  /// Bytes ya comprimidos.
   static Future<String> uploadRecetaBytes(int recetaId, Uint8List bytes) =>
       _upload('recetas', '$recetaId/portada.jpg', bytes);
 }

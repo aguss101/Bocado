@@ -11,8 +11,6 @@ class RecetaService {
     return lista.map((e) => RecetaFeed.fromJson(e)).toList();
   }
 
-  /// Feed paginado con orden pseudoaleatorio estable: el mismo [seed] mantiene
-  /// el orden consistente entre páginas (evita duplicados/huecos al scrollear).
   static Future<List<RecetaFeed>> getRecetas({
     required String seed,
     required int limit,
@@ -33,9 +31,6 @@ class RecetaService {
         if (offset != null) 'offset': offset,
       });
 
-  /// Recetas propias completas (incluye privadas y borradores). Usar SOLO
-  /// para ver las recetas del usuario logueado sobre sí mismo — nunca para
-  /// mirar el perfil de otra persona (ahí sigue yendo getRecetasUsuario).
   static Future<List<RecetaFeed>> getMisRecetas(int usuarioId) =>
       _fetchRecetas('getMisRecetas', {'usuarioId': usuarioId});
 
@@ -46,7 +41,6 @@ class RecetaService {
         if (offset != null) 'offset': offset,
       });
 
-  /// Conteo liviano de recetas activas del usuario (Java trae solo los ids).
   static Future<int> contarRecetas(int usuarioId) async {
     final result =
         await _channel.invokeMethod('contarRecetas', {'usuarioId': usuarioId});
@@ -63,7 +57,6 @@ class RecetaService {
     return lista.first as Map<String, dynamic>;
   }
 
-  /// Trae la receta en el formato que espera el editor (RecipeEditorScreen).
   static Future<Map<String, dynamic>> getRecetaParaEditar(int idReceta) async {
     final String json = await _channel.invokeMethod(
       'getRecetaID',

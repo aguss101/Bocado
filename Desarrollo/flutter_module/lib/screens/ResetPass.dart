@@ -31,8 +31,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _newPasswordController.text == _confirmPasswordController.text &&
           _newPasswordController.text.isNotEmpty;
 
-  /// Error de la nueva contraseña (mín. 8, igual que el registro), o null si OK.
-  /// Devuelve null mientras el campo esté vacío para no molestar antes de escribir.
   String? get _passwordError {
     if (_newPasswordController.text.isEmpty) return null;
     return Validaciones.contrasena(_newPasswordController.text);
@@ -101,7 +99,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Title ───────────────────────────────────────
                   Text(
                     'Restablecer contraseña',
                     textAlign: TextAlign.center,
@@ -119,7 +116,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Nueva contraseña ───────────────────────────
                   const AuthFieldLabel('Nueva contraseña'),
                   const SizedBox(height: 8),
                   AuthTextField(
@@ -141,7 +137,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                   ),
 
-                  // ── Error de contraseña (mín. 8) en vivo ───────
                   if (_passwordError != null) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -159,7 +154,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ],
                   const SizedBox(height: 20),
 
-                  // ── Confirmar contraseña ───────────────────────
                   const AuthFieldLabel('Confirmar contraseña'),
                   const SizedBox(height: 8),
                   AuthTextField(
@@ -181,7 +175,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                   ),
 
-                  // ── Match indicator ────────────────────────────
                   if (_confirmPasswordController.text.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -208,7 +201,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ],
                   const SizedBox(height: 28),
 
-                  // ── Submit ──────────────────────────────────────
                   AuthPrimaryButton(
                     label: _saving ? 'Restableciendo...' : 'Restablecer contraseña',
                     onTap: _submit,
@@ -216,7 +208,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Back ────────────────────────────────────────
                   Divider(color: outline),
                   const SizedBox(height: 16),
                   Center(
@@ -246,7 +237,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
             ),
 
-            // ── Decorative element ─────────────────────────────
             const SizedBox(height: 24),
             Column(
               children: [

@@ -33,7 +33,6 @@ void main() async {
           savedUser = null;
         }
       } on PlatformException {
-        // Sin conexión: confiamos en la sesión cacheada (modo offline).
       }
     }
     NavigationService.initIncomingLinks();
@@ -131,9 +130,6 @@ class _BocadoAppState extends State<BocadoApp> {
           themeMode: themeMode,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          // App en español: fuerza el locale para que widgets nativos (ej. el
-          // calendario de showDatePicker) se muestren en español sin depender
-          // del idioma del dispositivo.
           locale: const Locale('es'),
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

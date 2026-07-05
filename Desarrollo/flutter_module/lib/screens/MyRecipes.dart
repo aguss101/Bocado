@@ -93,9 +93,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   bool _esFavorito(RecetaFeed r) => r.usuarioTarget != widget.user.id;
-  // "activo" es el que marca borrador/publicada de verdad (crear_receta lo fija
-  // según es_borrador); "visibilidad" es un toggle aparte (público/privado),
-  // independiente — no hay que exigir las dos condiciones juntas.
   bool _esPublicada(RecetaFeed r) => r.activo == true;
   bool _esBorrador(RecetaFeed r) => r.activo == false;
 
@@ -115,16 +112,13 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     }
   }
 
-  // --- LÓGICA DE FILTRADO MIXTA (OR) CORREGIDA ---
   List<RecetaFeed> get _filtradas {
     final base = _porTab;
     final textoLibre = _searchController.text.trim().toLowerCase();
 
-    // Si no hay filtros de chips y no hay texto libre, devolvemos la base
     if (_etiquetasFiltro.isEmpty && textoLibre.isEmpty) return base;
 
     return base.where((r) {
-      // 1. Filtro de chips fijados (Etiqueta Exacta O Parte del nombre)
       bool matchesTags = false;
       if (_etiquetasFiltro.isNotEmpty) {
         final etiquetasRecetaLower = (r.etiquetas ?? <String>[])
@@ -133,9 +127,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             .toList();
         final nombreRecetaLower = r.nombre.toLowerCase();
 
-        // La receta debe cumplir TODOS los chips (AND entre chips).
-        // Para cada chip individual, alcanza con que sea una etiqueta EXACTA
-        // o que aparezca como PARTE DEL NOMBRE de la receta (OR interno).
         matchesTags = _etiquetasFiltro.every((filtro) {
           final filtroLower = filtro.toLowerCase();
           final esEtiquetaExacta = etiquetasRecetaLower.contains(filtroLower);
@@ -143,10 +134,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           return esEtiquetaExacta || esParteDelNombre;
         });
       } else {
-        matchesTags = true; // Si no hay chips, no es un factor de descarte
+        matchesTags = true;
       }
 
-      // 2. Filtro de Texto Libre (Búsqueda Parcial OR)
       bool matchesFreeText = false;
       if (textoLibre.isNotEmpty) {
         final nombreMatch = r.nombre.toLowerCase().contains(textoLibre);
@@ -156,31 +146,19 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
         matchesFreeText = nombreMatch || etiquetaParcialMatch;
       } else {
-        matchesFreeText = true; // Si no hay texto, no es un factor de descarte
+        matchesFreeText = true;
       }
 
-      // --- CORRECCIÓN AQUI ---
-      // La receta debe cumplir con (Coincidencia de etiquetas) O (Coincidencia de texto libre)
-      // OJO: Si hay chips activos, DEBE cumplirlos. Si además hay texto, DEBE cumplir UNA de las dos condiciones de texto.
-      // Si no hay chips activos, el primer bloque siempre da true.
 
-      // Lógica correcta:
-      // Si hay chips activos, la receta DEBE pasar el filtro de chips.
       if (_etiquetasFiltro.isNotEmpty && !matchesTags) return false;
 
-      // Si hay texto libre, la receta DEBE pasar el filtro de texto.
       if (textoLibre.isNotEmpty && !matchesFreeText) return false;
 
-      // Si pasa todos los filtros activos (o si no hay filtros activos), es un match.
       return true;
 
     }).toList();
   }
 
-  // Indica si, con los chips de filtro actualmente fijados (sin contar el
-  // texto libre que se esté tipeando), no se encuentra ninguna receta.
-  // Se usa para marcar los chips en rojo y para bloquear el ingreso de
-  // nuevos keywords mientras la situación no se resuelva.
   bool get _filtroSinResultados {
     if (_etiquetasFiltro.isEmpty) return false;
     return _porTab.where((r) {
@@ -223,8 +201,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   void _agregarEtiqueta(String texto) {
     if (_filtroSinResultados) {
-      // Mientras los filtros actuales no devuelvan resultados, no se permite
-      // fijar nuevos keywords: primero hay que quitar el/los que sobran.
       return;
     }
     final etiqueta = texto.trim();
@@ -283,7 +259,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 style: TextStyle(color: textColor, fontSize: 14),
                 textInputAction: TextInputAction.search,
                 onSubmitted: _agregarEtiqueta,
-                // NECESARIO: Para que el filtrado en tiempo real funcione
                 onChanged: (value) { setState(() {}); },
                 decoration: InputDecoration(
                   hintText: _filtroSinResultados
@@ -538,10 +513,8 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   Widget _buildEmptyState() {
-    // CAMBIO CLAVE: Ahora verificamos si la lista de etiquetas está vacía
     final bool hayFiltros = _etiquetasFiltro.isNotEmpty;
 
-    // Construimos el mensaje dinámicamente
     String mensajeBase = switch (_tabSeleccionada) {
       _RecetaTab.todas => 'Todavía no tenés recetas',
       _RecetaTab.publicadas => 'No tenés recetas publicadas',
@@ -549,7 +522,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       _RecetaTab.favoritos => 'No tenés recetas favoritas',
     };
 
-    // Si hay filtros activos, cambiamos el mensaje para indicar qué se está buscando
     final mensaje = hayFiltros
         ? 'No encontramos recetas que coincidan con las etiquetas: ${_etiquetasFiltro.join(", ")}'
         : mensajeBase;

@@ -45,7 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final genero = _idGeneroSeleccionado;
     final fechaNacimiento = _fechaNacimientoSeleccionada;
 
-    // Validación campo por campo: muestra el primer error específico.
     final error = Validaciones.nombre(nombre, campo: 'nombre')
         ?? Validaciones.nombre(apellido, campo: 'apellido')
         ?? Validaciones.correo(email)
@@ -193,7 +192,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (seleccion != null && seleccion != _fechaNacimientoSeleccionada) {
       setState(() {
         _fechaNacimientoSeleccionada = seleccion;
-        // Formateamos la fecha (Ej: 28/03/2000)
         _fechaController.text = "${seleccion.day}/${seleccion.month}/${seleccion.year}";
       });
     }
@@ -208,7 +206,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final naciones = await UsuarioService.getNaciones();
       final generos  = await UsuarioService.getGeneros();
-      // Orden alfabético de países (la BD no garantiza orden).
       naciones.sort((a, b) => (a['nombre'] ?? '')
           .toString()
           .toLowerCase()
@@ -278,7 +275,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const AuthBrandHeader(),
-              // ── Title ─────────────────────────────────────────
               Text(
                 'Crea tu cuenta',
                 textAlign: TextAlign.center,
@@ -330,7 +326,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Email ─────────────────────────────────────────
               const AuthFieldLabel('Correo electrónico'),
               const SizedBox(height: 8),
               AuthTextField(
@@ -400,7 +395,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Password ──────────────────────────────────────
               const AuthFieldLabel('Contraseña'),
               const SizedBox(height: 8),
               AuthTextField(
@@ -422,7 +416,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Terms ─────────────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -476,7 +469,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 AuthErrorBox(_errorMessage!),
                 const SizedBox(height: 16),
               ],
-              // ── Submit ────────────────────────────────────────
               AuthPrimaryButton(
                 label: 'Registrarse',
                 onTap: _register,

@@ -35,7 +35,6 @@ public class InteractionsChannel {
         }
     }
 
-    // ── updateSeguido ───────────────────────────────────────────────────────────
     private void handleUpdateFollow(MethodCall call, MethodChannel.Result result) {
         int idSeguidor = call.argument("id_seguidor");
         int idSeguido = call.argument("id_seguido");
@@ -44,7 +43,6 @@ public class InteractionsChannel {
         usuarioManager.updatefollow(idSeguidor, idSeguido, siguiendo, bridgeData(result));
     }
 
-    // ── toggleInteraccion (like / save) ──────────────────────────────────────────
     private void handleToggleInteraction(MethodCall call, MethodChannel.Result result) {
         interaccionManager.toggleInteraccion(
                 call.argument("id_usuario"),
@@ -54,7 +52,6 @@ public class InteractionsChannel {
                 bridgeOk(result));
     }
 
-    // ── fetchMisInteracciones (estado like/save del usuario para una receta) ───────
     private void handleFetchMisInteracciones(MethodCall call, MethodChannel.Result result) {
         interaccionManager.fetchMisInteracciones(
                 call.argument("id_usuario"),
@@ -62,12 +59,10 @@ public class InteractionsChannel {
                 bridgeData(result));
     }
 
-    // ── fetchComentarios ──────────────────────────────────────────────────────────
     private void handleFetchComentarios(MethodCall call, MethodChannel.Result result) {
         interaccionManager.fetchComentarios(call.argument("recetaId"), bridgeData(result));
     }
 
-    // ── enviarComentario ──────────────────────────────────────────────────────────
     private void handleEnviarComentario(MethodCall call, MethodChannel.Result result) {
         interaccionManager.enviarComentario(
                 call.argument("id_receta"),
@@ -77,7 +72,6 @@ public class InteractionsChannel {
                 bridgeOk(result));
     }
 
-    /** Puente CallbackCB → Result devolviendo el payload tal cual (en hilo UI). */
     private CallbackCB bridgeData(MethodChannel.Result result) {
         return new CallbackCB() {
             @Override
@@ -91,7 +85,6 @@ public class InteractionsChannel {
         };
     }
 
-    /** Puente CallbackCB → Result que confirma con `true` (Flutter espera bool). */
     private CallbackCB bridgeOk(MethodChannel.Result result) {
         return new CallbackCB() {
             @Override

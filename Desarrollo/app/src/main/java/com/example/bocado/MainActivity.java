@@ -28,8 +28,6 @@ public class MainActivity extends FlutterActivity {
         super.configureFlutterEngine(flutterEngine);
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
 
-        // Extraer deep link de perfil o receta:
-        //   bocado://{perfil|receta}/{slug} o https://links.bocado.tech/{perfil|receta}/{slug}
         String deepLink = null;
         Uri data = getIntent().getData();
         if (data != null) {
@@ -49,7 +47,6 @@ public class MainActivity extends FlutterActivity {
         navigationChannel = new NavigationChannel(messenger, deepLink);
     }
 
-    // Cuando la app YA está corriendo y llega un intent nuevo (deep link desde otra app).
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);

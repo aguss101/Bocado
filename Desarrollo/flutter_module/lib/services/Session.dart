@@ -10,7 +10,6 @@ class SessionService {
   static const _keyFotoUrl   = 'session_foto_url';
   static const _keyBannerUrl = 'session_banner_url';
 
-  /// Datos del usuario perdido
   static Future<void> saveSession(usuario_Logged user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyId,       user.id);
@@ -22,14 +21,11 @@ class SessionService {
     if (user.bannerUrl    != null) await prefs.setString(_keyBannerUrl, user.bannerUrl!);
   }
 
- /// Actualiza solo el id_cuenta en la sesión cacheada, si ya existe una.
- /// No crea sesión para usuarios que no eligieron "Recordar sesión".
  static Future<void> updateIdCuenta(int idCuenta) async {
    final prefs = await SharedPreferences.getInstance();
    if (prefs.getInt(_keyId) == null) return;
    await prefs.setInt(_keyIdCuenta, idCuenta);
  }
-  /// return user saved
   static Future<usuario_Logged?> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getInt(_keyId);
@@ -46,7 +42,6 @@ class SessionService {
     );
   }
 
-  /// Log out
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyId);

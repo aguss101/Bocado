@@ -88,7 +88,6 @@ public class RecetasChannel {
         }).start();
     }
 
-    // ── getAlimentos ──────────────────────────────────────────────────────────
     private void handleGetAlimento(MethodChannel.Result result) {
         new Thread(() -> {
             try {
@@ -100,7 +99,6 @@ public class RecetasChannel {
         }).start();
     }
 
-    // ── addAlimento ───────────────────────────────────────────────────────────
     private void handleAddAlimento(MethodCall call, MethodChannel.Result result) {
         String nombre     = call.argument("nombre");
         Integer idUsuario = call.argument("id_usuario");
@@ -117,7 +115,6 @@ public class RecetasChannel {
         }).start();
     }
 
-    // ── saveReceta ────────────────────────────────────────────────────────────
     private void handleSaveReceta(MethodCall call, MethodChannel.Result result) {
         Map<String, Object> args = call.arguments();
 
@@ -137,7 +134,6 @@ public class RecetasChannel {
         });
     }
 
-    // ── getRecetasUsuario ────────────────────────────────────────────────────────────
     private void handleGetRecetasUsuario(MethodCall call, MethodChannel.Result result) {
         RecetaManager.getInstance().listarPorUsuario(
                 call.argument("usuarioId"),
@@ -146,14 +142,12 @@ public class RecetasChannel {
                 bridgeData(result));
     }
 
-    // ── getMisRecetas: propias completas (incluye privadas/borradores) ─────────
     private void handleGetMisRecetas(MethodCall call, MethodChannel.Result result) {
         RecetaManager.getInstance().misRecetasCompleto(
                 call.argument("usuarioId"),
                 bridgeData(result));
     }
 
-    // ── getGuardadosUsuario ────────────────────────────────────────────────────────────
     private void handleGetSaveUser(MethodCall call, MethodChannel.Result result) {
         RecetaManager.getInstance().listarGuardados(
                 call.argument("usuarioId"),
@@ -162,7 +156,6 @@ public class RecetasChannel {
                 bridgeData(result));
     }
 
-    // ── contarRecetas (lectura O(1) del contador mantenido por trigger) ──────────
     private void handleContarRecetas(MethodCall call, MethodChannel.Result result) {
         Integer usuarioId = call.argument("usuarioId");
         HttpClientManager.getInstance().get(
@@ -187,7 +180,6 @@ public class RecetasChannel {
         );
     }
 
-    // ── getRecetas (feed paginado, orden pseudoaleatorio estable por seed) ───────
     private void handleGetRecetas(MethodCall call, MethodChannel.Result result) {
         RecetaManager.getInstance().feed(
                 call.argument("seed"),
@@ -196,12 +188,10 @@ public class RecetasChannel {
                 bridgeData(result));
     }
 
-    // ── getRecetaDetalle ──────────────────────────────────────────────────────
     private void handleGetRecetaDetalle(MethodCall call, MethodChannel.Result result) {
         RecetaManager.getInstance().detalle(call.argument("id"), bridgeData(result));
     }
 
-    /** Puente CallbackCB → Result devolviendo el payload tal cual (en hilo UI). */
     private CallbackCB bridgeData(MethodChannel.Result result) {
         return new CallbackCB() {
             @Override

@@ -9,8 +9,6 @@ class InteraccionesService {
     return result as bool;
   }
 
-  /// Estado real (en BD) de las interacciones del usuario para una receta.
-  /// Devuelve el set de tipos presentes, p.ej. {'like', 'save'}.
   static Future<Set<String>> fetchMisInteracciones(int idUsuario, int idReceta) async {
     final String json = await _channel.invokeMethod('fetchMisInteracciones', {
       'id_usuario': idUsuario,

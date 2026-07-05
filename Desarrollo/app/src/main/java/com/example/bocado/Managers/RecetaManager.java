@@ -98,7 +98,6 @@ public class RecetaManager implements IReceta {
         }
     }
 
-    // ── Lectores (Fase 2: encapsulados desde RecetasChannel) ──────────────────────
     public void feed(String seed, Integer limit, Integer offset, CallbackCB cb) {
         recetaDAO.feedAleatorio(
                 seed,

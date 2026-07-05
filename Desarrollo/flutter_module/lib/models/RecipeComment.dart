@@ -3,9 +3,6 @@ class RecipeComment {
   final int? idComentarioPadre;
   final int idUsuario;
   final String comentario;
-  // Puede ser null: hay comentarios (semilla) sin fecha en la BD. Antes se
-  // parseaba con DateTime.parse(null) y eso tiraba una excepción que hacía
-  // fallar TODO el .map() → la receta no mostraba NINGÚN comentario.
   final DateTime? fechaComentario;
   final double? calificacion;
   final String nombreUsuario;

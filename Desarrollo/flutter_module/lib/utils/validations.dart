@@ -1,14 +1,11 @@
 class Validaciones {
   Validaciones._();
 
-  // Crreo: algo@dominio.tld (tld de 2+ caracteres).
   static final RegExp _correoRegExp =
       RegExp(r'^[\w.+-]+@([\w-]+\.)+[\w-]{2,}$');
 
-  // Usuario: letras, números, punto y guion bajo (sin espacios ni símbolos).
   static final RegExp _usuarioRegExp = RegExp(r'^[\w.]+$');
 
-  // Nombre/Apellido
   static String? nombre(String value, {required String campo}) {
     final v = value.trim();
     if (v.isEmpty) return 'Ingresá tu $campo.';
@@ -42,7 +39,6 @@ class Validaciones {
     return null;
   }
 
-  /// Campo de texto genérico requerido con un [mensaje] a medida.
   static String? requerido(String? value, String mensaje) {
     if (value == null || value.trim().isEmpty) return mensaje;
     return null;

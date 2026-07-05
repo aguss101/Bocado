@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Resolver único de colores semánticos según el brightness actual.
-/// Reemplaza el bloque `isDark ? AppTheme.xDark : AppTheme.xLight` repetido en
-/// cada `build()`. Uso: `final c = BocadoColors.of(context);` → `c.bg`, `c.surface`...
 class BocadoColors {
   final bool isDark;
   final Color bg;
@@ -62,7 +59,6 @@ class AppTheme {
   static const Color primary = Color(0xFFD96E11);
   static const Color primaryDark = Color(0xFFD96E11);
 
-  // Dark theme colors
   static const Color bgDark = Color(0xFF0D0701);
   static const Color surfaceDark = Color(0xFF1A140F);
   static const Color surfaceContainerDark = Color(0xFF241D17);
@@ -70,7 +66,6 @@ class AppTheme {
   static const Color onSurfaceDark = Color(0xFFF5E6D3);
   static const Color secondaryDark = Color(0xFFA19E9A);
 
-  // Light theme colors
   static const Color bgLight = Color(0xFFFFFFFF);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceContainerLight = Color(0xFFFFFBF5);

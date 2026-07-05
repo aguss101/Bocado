@@ -20,7 +20,6 @@ public class RecetaDAO {
 
     private static final String VISTA = "/rest/v1/vistas_recetas_macros";
 
-    // ── Lectores (feed, perfil, guardados, detalle) ───────────────────────────────
     public void feedAleatorio(String seed, int limit, int offset, CallbackCB cb) {
         try {
             JSONObject body = new JSONObject();
@@ -38,12 +37,6 @@ public class RecetaDAO {
         HttpClientManager.getInstance().get(url, restCallback(cb));
     }
 
-    /**
-     * Recetas propias completas (incluye privadas y borradores). Vía RPC
-     * SECURITY DEFINER para que, con RLS activo, el dueño siga viendo todo lo
-     * suyo aunque la vista solo exponga lo público al resto. Sin paginación
-     * (misma limitación que listarPorUsuario RPC-equivalente: se trae todo de una).
-     */
     public void misRecetasCompleto(int idUsuario, CallbackCB cb) {
         try {
             JSONObject body = new JSONObject();
@@ -62,19 +55,11 @@ public class RecetaDAO {
         HttpClientManager.getInstance().get(url, restCallback(cb));
     }
 
-    /** Sufijo de paginación estable. Si limit es null, no pagina (trae todo, como antes). */
     private String paginar(Integer limit, Integer offset) {
         if (limit == null) return "";
         return "&order=id_receta.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
     }
 
-    /**
-     * Detalle completo de una receta. Vía RPC SECURITY DEFINER (no REST directo)
-     * para que el dueño pueda seguir viendo el detalle de sus propias recetas
-     * privadas/borradores (activo=false) aunque RLS se lo oculte al resto.
-     * No agrega un agujero nuevo: antes de RLS, cualquiera con la anon key ya
-     * podía ver el detalle de cualquier receta por REST directo sin filtro.
-     */
     public void obtenerDetalle(int idReceta, CallbackCB cb) {
         try {
             JSONObject body = new JSONObject();
@@ -85,7 +70,6 @@ public class RecetaDAO {
         }
     }
 
-    /** Mapea la respuesta REST de OkHttp al CallbackCB del proyecto. No toca UI. */
     private Callback restCallback(CallbackCB cb) {
         return new Callback() {
             @Override
@@ -108,7 +92,6 @@ public class RecetaDAO {
     public void create(Map<String, Object> args, CallbackCB callback) {
         try {
             JSONObject recetaJson = new JSONObject();
-            // Datos básicos
             recetaJson.put("id_usuario", args.get("id_usuario"));
             recetaJson.put("nombre", args.get("nombre"));
             recetaJson.put("calorias_totales", args.get("calorias_totales"));
@@ -206,7 +189,6 @@ public class RecetaDAO {
     public void update(Map<String, Object> args, CallbackCB callback) {
         try {
             JSONObject recetaJson = new JSONObject();
-            // Datos básicos
             recetaJson.put("id", args.get("id"));
             recetaJson.put("id_usuario", args.get("id_usuario"));
             recetaJson.put("nombre", args.get("nombre"));

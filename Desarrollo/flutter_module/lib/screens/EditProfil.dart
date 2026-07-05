@@ -54,11 +54,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _cargarDatos();
   }
 
-  /// Trae el catálogo de géneros y los datos editables del propio perfil
-  /// (usuario, correo, id_genero) y precarga el formulario.
   Future<void> _cargarDatos() async {
     try {
-      // Las 4 lecturas son independientes → en paralelo (antes eran 4 round-trips en serie).
       final (generos, perfil, cantRecetas, cantSeguidores) = await (
         UsuarioService.getGeneros(),
         UsuarioService.getPerfilEditable(widget.user.id),
@@ -102,16 +99,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final usuarioNuevo = _usuarioCtrl.text.trim();
     final correoNuevo  = _correoCtrl.text.trim();
-    // ¿Cambió correo o usuario? → confirmación por OTP (pantalla estilo reset).
     final cambioSensible =
         correoNuevo != _correoOriginal || usuarioNuevo != _usuarioOriginal;
 
     if (!cambioSensible) {
-      await _aplicarCambios(); // foto/género/etc. → directo, sin OTP
+      await _aplicarCambios();
       return;
     }
 
-    // Los cambios se aplican atómicamente (RPC) recién tras validar el OTP.
     final datos = <String, dynamic>{
       'usuario': usuarioNuevo,
       'correo': correoNuevo,
@@ -125,15 +120,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         builder: (_) => ConfirmEditScreen(
           themeNotifier: widget.themeNotifier,
           idUsuario: widget.user.id,
-          correo: _correoOriginal, // el código va al correo ACTUAL
+          correo: _correoOriginal,
           datos: datos,
         ),
       ),
     );
-    if (confirmado == true) await _finalizarYsalir(); // ya quedó guardado en la BD
+    if (confirmado == true) await _finalizarYsalir();
   }
 
-  /// Guarda directo (sin OTP) — para cambios no sensibles (foto/banner/género).
   Future<void> _aplicarCambios() async {
     setState(() => _saving = true);
     try {
@@ -153,7 +147,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  /// Actualiza la sesión local y cierra la pantalla (los datos ya están en la BD).
   Future<void> _finalizarYsalir() async {
     final updatedUser = usuario_Logged(
       widget.user.id,
@@ -215,8 +208,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         onDone: (url) => setState(() => _bannerUrl = _bustCache(url)),
       );
 
-  /// Storage sobrescribe la imagen en la MISMA URL (upsert), así que NetworkImage
-  /// la mostraría cacheada. Le sumamos ?t=<timestamp> para forzar que la recargue.
   String _bustCache(String url) => '$url?t=${DateTime.now().millisecondsSinceEpoch}';
 
   Future<void> _pickAndUpload({
@@ -272,9 +263,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         centerTitle: true,
         actions: [
-          // Toggle de tema
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
-          // Abrir drawer
           Builder(
             builder: (ctx) => IconButton(
               icon: const Icon(Icons.menu, color: AppTheme.primary),
@@ -291,7 +280,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── ENCABEZADO ──
             Text(
               'Información de cuenta',
               style: TextStyle(
@@ -304,7 +292,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 28),
 
-            // ── CONTENIDO PRINCIPAL ──
             LayoutBuilder(builder: (context, constraints) {
               final isWide = constraints.maxWidth > 640;
               if (isWide) {
@@ -338,7 +325,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ── COLUMNA IZQUIERDA: AVATAR ─────────────────────────────────────────────
   Widget _buildAvatarColumn(Color text, Color muted, Color surface, Color border) {
     final String? urlImgMomentanea = _fotoUrl ?? widget.user.fotoUrl;
     final String? urlBannerMomentaneo = _bannerUrl ?? widget.user.bannerUrl;
@@ -349,7 +335,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
-            // 1. BANNER AL FONDO
             Container(
               width: double.infinity,
               height: 140,
@@ -382,7 +367,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   : null,
             ),
 
-            // 2. BOTÓN FLOTANTE PARA CAMBIAR EL BANNER
             Positioned(
               top: 12,
               right: 12,
@@ -412,7 +396,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
 
-            // 3. AVATAR SUPERPUESTO
             Positioned(
               top: 80,
               child: Stack(
@@ -483,7 +466,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         const SizedBox(height: 16),
 
-        // Chips de estadísticas
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -514,12 +496,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ── COLUMNA DERECHA: FORMULARIO ───────────────────────────────────────────
   Widget _buildFormColumn(Color surface, Color border, Color text,
       Color muted, Color inputBg) {
     return Column(
       children: [
-        // Formulario
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -532,7 +512,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Nombre de usuario ──
                 _fieldLabel('Nombre de usuario'),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -549,7 +528,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 18),
 
-                // ── Correo electrónico ──
                 _fieldLabel('Correo electrónico'),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -563,12 +541,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     border: border,
                     muted: muted,
                   ),
-                  // Obligatorio + formato válido (ej: nombre@dominio.com).
                   validator: (v) => Validaciones.correo(v ?? ''),
                 ),
                 const SizedBox(height: 18),
 
-                // ── Género ──
                 _fieldLabel('Género'),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<int>(
@@ -596,7 +572,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Divider(color: border),
                 const SizedBox(height: 20),
 
-                // ── Botones ──
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -645,7 +620,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         const SizedBox(height: 16),
 
-        // ── Cards de acción ──
         Row(
           children: [
             Expanded(
@@ -677,7 +651,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ── HELPERS ───────────────────────────────────────────────────────────────
   Widget _fieldLabel(String label) {
     return Text(
       label.toUpperCase(),

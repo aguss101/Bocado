@@ -193,10 +193,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool _esPublico = true;
   TextEditingController? _tagsFieldController;
 
-  /// Validación por paso antes de avanzar con "CONTINUAR". Devuelve el mensaje
-  /// de error o null si el paso está OK. Hoy solo el paso 3 (preparación) exige
-  /// contenido: al menos un paso de preparación (así ni un borrador puede
-  /// quedar sin instrucciones).
   String? _validarPaso(int step) {
     switch (step) {
       case 3:
@@ -594,8 +590,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       final List<Uint8List> fotosBytes = _listaFotos
           .where((f) => f.bytes != null)
           .map((f) => f.bytes!)
-          .toList(); // 👈 NUEVO
-    // Construir ingredientes para el preview
+          .toList();
     final ingredientesPreview = _ingredients.map((ing) {
     return IngredientItem(
     nombre: ing.name,
@@ -604,7 +599,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     );
     }).toList();
 
-    // Construir pasos para el preview
     final pasosPreview = _pasos.asMap().entries.map((entry) {
     return PreparationStep(
     numeroPaso: entry.key + 1,
@@ -613,7 +607,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     );
     }).toList();
 
-    // Armar las URLs de fotos (solo las que ya tienen URL; las bytes aún no subidas se omiten)
 
       final previewData = RecipeDetailData(
         titulo: _nombreCtrl.text.isEmpty ? 'Sin título' : _nombreCtrl.text,

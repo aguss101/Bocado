@@ -6,10 +6,6 @@ import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
 
-/**
- * Canal de subida de imágenes a Supabase Storage. Flutter elige y comprime la
- * imagen (frontend) y manda los bytes por acá; la subida (backend) vive en Java.
- */
 public class ImagesChannel {
 
     private static final String CHANNEL = "com.example.bocado/images";
@@ -28,7 +24,6 @@ public class ImagesChannel {
         }
     }
 
-    /** Sube los bytes recibidos a {bucket}/{path} y devuelve la URL pública. */
     private void handleUploadImg(MethodCall call, MethodChannel.Result result) {
         String bucket = call.argument("bucket");
         String path   = call.argument("path");

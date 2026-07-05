@@ -8,15 +8,12 @@ class UsuarioService {
   static const _channel = MethodChannel('com.example.bocado/access');
   static final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Nación/género/fecha (datos que Google no provee) en el onboarding.
 
   static Future<GoogleAuth> signInWithGoogle() async {
-  // Siempre aparezca el selector de cuentas
     await _googleSignIn.signOut();
     final account = await _googleSignIn.signIn();
-    if (account == null) return GoogleAuth.cancelado(); // el usuario canceló
+    if (account == null) return GoogleAuth.cancelado();
 
-    // 1) ¿Ya existe una cuenta con ese correo? → login.
     final String response =
         await _channel.invokeMethod('loginGoogle', {'email': account.email});
     final List<dynamic> lista = jsonDecode(response);
@@ -24,7 +21,6 @@ class UsuarioService {
       return GoogleAuth.login(usuario_Logged.fromJson(lista.first));
     }
 
-    // 2) datos de google:
     final partes = account.displayName?.split(' ') ?? [];
     final nombre = partes.isNotEmpty ? partes.first : '';
     final apellido = partes.length > 1 ? partes.sublist(1).join(' ') : '';
@@ -36,7 +32,6 @@ class UsuarioService {
     ));
   }
 
-  /// Crea el usuario de Google en la app.
   static Future<usuario_Logged> registrarUsuarioGoogle({
     required GooglePerfil perfil,
     required int nacion,
@@ -65,7 +60,6 @@ class UsuarioService {
     return usuario_Logged.fromJson(data);
   }
 
-  /// La cuenta existe y está activa?.
 
   static Future<bool> sesionVigente(int id) async {
     final String response =
@@ -142,26 +136,22 @@ class UsuarioService {
     });
   }
 
-  /// Trae los campos editables del PROPIO perfil: { usuario, correo, id_genero }.
   static Future<Map<String, dynamic>> getPerfilEditable(int id) async {
     final String response =
         await _channel.invokeMethod('getPerfilEditable', {'id_usuario': id});
     return jsonDecode(response) as Map<String, dynamic>;
   }
 
-  /// Conteo liviano de seguidores del usuario (Java trae solo los id_seguidor).
   static Future<int> contarSeguidores(int id) async {
     final result = await _channel.invokeMethod('contarSeguidores', {'id_usuario': id});
     return result as int;
   }
 
-  /// Conteo liviano de usuarios a los que sigue este usuario (id_seguidor = id).
   static Future<int> contarSiguiendo(int id) async {
     final result = await _channel.invokeMethod('contarSiguiendo', {'id_usuario': id});
     return result as int;
   }
 
-  /// Comprueba si [idSeguidor] ya sigue a [idSeguido].
   static Future<bool> estasSiguiendo(int idSeguidor, int idSeguido) async {
     final result = await _channel.invokeMethod('estasSiguiendo', {
       'id_seguidor': idSeguidor,
@@ -170,7 +160,6 @@ class UsuarioService {
     return result as bool;
   }
 
-  /// Lista de quién sigue a [idUsuario] (inverso de getSeguidores).
   static Future<List<UserProfile>> getSeguidoresDe(int idUsuario, {int? limit, int? offset}) async {
     try {
       final String jsonString = await _channel.invokeMethod('getSeguidoresDe', {
@@ -185,7 +174,6 @@ class UsuarioService {
     }
   }
 
-  /// De [idsSeguido], cuáles ya sigue [idSeguidor]. Un solo pedido para toda una lista.
   static Future<Set<int>> estasSiguiendoVarios(int idSeguidor, List<int> idsSeguido) async {
     if (idsSeguido.isEmpty) return {};
     try {
@@ -200,9 +188,6 @@ class UsuarioService {
     }
   }
 
-  /// Aplica cambios de perfil tras verificar el OTP, de forma atómica
-  /// (RPC actualizar_perfil_otp). [datos] = p_data: usuario, correo, id_genero, foto, banner.
-  /// Lanza PlatformException si el código es inválido/vencido.
   static Future<void> actualizarPerfilOtp({
     required int id,
     required String codigo,
@@ -224,12 +209,10 @@ class UsuarioService {
     return usuario_Logged.fromJson(data);
   }
 
-  // ── Reestablecer pass (OTP) ─────────────────────────────────
   static Future<void> solicitarOtp(String correo) async {
     await _channel.invokeMethod('solicitarOtp', {'correo': correo});
   }
 
-  /// Valida código OTP.
   static Future<bool> verificarOtp(String correo, String codigo) async {
     final bool ok = await _channel.invokeMethod('verificarOtp', {
       'correo': correo,
@@ -238,7 +221,6 @@ class UsuarioService {
     return ok;
   }
 
-  /// Re-verifica el OTP y cambia la contraseña.
   static Future<void> resetearPassword(String correo, String codigo, String nueva) async {
     await _channel.invokeMethod('resetearPassword', {
       'correo': correo,
@@ -249,10 +231,8 @@ class UsuarioService {
 }
 
 class GoogleAuth {
-  /// != null  → el correo tiene cuenta: login.
   final usuario_Logged? existente;
 
-  /// != null  → usuario nuevo: falta completar el perfil (onboarding).
   final GooglePerfil? nuevo;
 
   const GoogleAuth._(this.existente, this.nuevo);
@@ -264,7 +244,6 @@ class GoogleAuth {
   bool get cancelado => existente == null && nuevo == null;
 }
 
-/// Datos de google y onboarding
 class GooglePerfil {
   final String correo;
   final String nombre;

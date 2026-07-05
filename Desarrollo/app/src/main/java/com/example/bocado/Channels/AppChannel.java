@@ -14,9 +14,6 @@ import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-/**
- * Canal app-level: chequeo de actualización y apertura de la descarga del APK.
- */
 public class AppChannel {
 
     private static final String CHANNEL = "com.example.bocado/app";

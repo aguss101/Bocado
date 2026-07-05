@@ -94,7 +94,6 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── PLAN ACTUAL ──
             Row(
               children: [
                 Expanded(child: _buildTypeCard(context, "Gratuita", !_esPremium)),
@@ -104,7 +103,6 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
             ),
             const SizedBox(height: BocadoSpacing.xl),
 
-            // ── OPCIONES ──
             Container(
               padding: const EdgeInsets.all(BocadoSpacing.lg),
               decoration: BoxDecoration(
@@ -154,7 +152,6 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
             ),
             const SizedBox(height: BocadoSpacing.xl),
 
-            // ── BENEFICIOS ──
             Align(
               alignment: Alignment.centerLeft,
               child: Text(

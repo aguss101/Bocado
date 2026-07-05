@@ -5,15 +5,11 @@ import '../theme/Notifier.dart';
 import '../widgets/AuthDetails.dart';
 import '../services/Usuario.dart';
 
-/// Confirmación por OTP de cambios sensibles del perfil (correo / usuario).
-/// Misma UX que el reset de contraseña: código + cuenta regresiva + reenviar.
-/// Al confirmar, aplica los cambios atómicamente vía `actualizar_perfil_otp`.
-/// Devuelve `true` (Navigator.pop) si los cambios se aplicaron.
 class ConfirmEditScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final int idUsuario;
-  final String correo;               // correo ACTUAL: a dónde va el código.
-  final Map<String, dynamic> datos;  // p_data con los cambios a aplicar.
+  final String correo;
+  final Map<String, dynamic> datos;
 
   const ConfirmEditScreen({
     super.key,
@@ -32,15 +28,14 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
   bool _sending = false;
   bool _saving = false;
 
-  // Mismo cooldown que el reset (lo que dura el OTP).
-  static const _resendCooldown = 600; // 10 min
+  static const _resendCooldown = 600;
   Timer? _resendTimer;
   int _secondsLeft = 0;
 
   @override
   void initState() {
     super.initState();
-    _enviar(isResend: false); // manda el código apenas se abre la pantalla.
+    _enviar(isResend: false);
   }
 
   @override
@@ -110,7 +105,7 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
         datos: widget.datos,
       );
       if (!mounted) return;
-      Navigator.pop(context, true); // éxito: los cambios ya se aplicaron en la BD.
+      Navigator.pop(context, true);
     } catch (_) {
       if (mounted) _snack('Código inválido o vencido. Probá de nuevo.', isError: true);
     } finally {

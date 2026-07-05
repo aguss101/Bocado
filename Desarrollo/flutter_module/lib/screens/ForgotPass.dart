@@ -21,9 +21,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _sending = false;
   bool _verifying = false;
 
-  // Reenvío: tras enviar el código hay que esperar 10 min (lo que dura el OTP)
-  // antes de poder pedir uno nuevo. Mientras tanto mostramos una cuenta regresiva.
-  static const _resendCooldown = 600; // segundos = 10 minutos
+  static const _resendCooldown = 600;
   Timer? _resendTimer;
   int _secondsLeft = 0;
 
@@ -66,8 +64,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
-  /// Pide (o reenvía) el código. Reenviar genera uno NUEVO e invalida el anterior
-  /// (lo hace la RPC create_otp en la BD), y reinicia la cuenta regresiva.
   Future<void> _request({required bool isResend}) async {
     final correo = _emailController.text.trim();
     if (correo.isEmpty) {
@@ -131,7 +127,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final isDark = c.isDark;
     final secondary = c.muted;
     final outline = c.border;
-    // Habilitado solo si no estamos enviando y no hay cooldown activo.
     final canRequest = !_sending && _secondsLeft == 0;
 
     return AuthScaffold(
@@ -141,7 +136,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Title ─────────────────────────────────────────
               Text(
                 'Recuperar acceso',
                 style: TextStyle(
@@ -157,7 +151,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Email ─────────────────────────────────────────
               const AuthFieldLabel('Correo electrónico'),
               const SizedBox(height: 8),
               AuthTextField(
@@ -168,7 +161,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ── Send code button ──────────────────────────────
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
@@ -197,7 +189,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Verification code ─────────────────────────────
               const AuthFieldLabel('Código de verificación'),
               const SizedBox(height: 8),
               AuthTextField(
@@ -214,7 +205,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
 
-              // ── Resend hint + cuenta regresiva / reenviar ─────
               if (_codeSent) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -252,7 +242,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ],
               const SizedBox(height: 28),
 
-              // ── Submit ────────────────────────────────────────
               AuthPrimaryButton(
                 label: _verifying ? 'Verificando...' : 'Verificar código',
                 onTap: _verifyCode,
@@ -260,7 +249,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Back to login ─────────────────────────────────
               Divider(color: outline),
               const SizedBox(height: 16),
               GestureDetector(

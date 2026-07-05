@@ -16,7 +16,6 @@ public class RpcCallHelper {
 
     private static final String BASE_RPC = "/rest/v1/rpc/";
 
-    /** Llamada RPC asíncrona — OkHttp gestiona su propio pool de threads. */
     public static void callAsync(String function, JSONObject body, CallbackCB cb) {
         HttpClientManager.getInstance().post(BASE_RPC + function, body.toString(), new Callback() {
             @Override
@@ -30,9 +29,6 @@ public class RpcCallHelper {
                 if (response.isSuccessful()) {
                     cb.onSuccess(resBody);
                 } else {
-                    // PostgREST devuelve {"code","message","details","hint"}. Extraemos
-                    // un mensaje legible y detectamos el duplicado (SQLSTATE 23505)
-                    // para no mostrarle JSON crudo al usuario.
                     String code = ErrorCode.ERROR_API;
                     String msg = resBody;
                     try {
@@ -44,7 +40,6 @@ public class RpcCallHelper {
                             code = ErrorCode.DUPLICADO;
                         }
                     } catch (Exception ignore) {
-                        // No era JSON → dejamos el body crudo como mensaje.
                     }
                     cb.onError(code, msg, null);
                 }
@@ -52,7 +47,6 @@ public class RpcCallHelper {
         });
     }
 
-    /** Llamada RPC síncrona — debe ejecutarse desde un thread no-UI. */
     public static String callSync(String function, JSONObject body) throws Exception {
         okhttp3.OkHttpClient client = HttpClientManager.getInstance().getRawClient();
         okhttp3.Request request = HttpClientManager.getInstance()
@@ -65,7 +59,6 @@ public class RpcCallHelper {
         }
     }
 
-    /** Devuelve el primer objeto del array JSON de respuesta, o null si está vacío. */
     public static JSONObject firstOrNull(String response) {
         try {
             JSONArray array = new JSONArray(response);
@@ -75,10 +68,6 @@ public class RpcCallHelper {
         }
     }
 
-    /**
-     * Convierte el formato bytea de Postgres (\xHEX...) a Base64.
-     * Permite que Flutter use base64Decode() directamente, sin lógica de DB en el frontend.
-     */
     public static String byteaToBase64(String bytea) {
         if (bytea == null || bytea.isEmpty()) return null;
         try {

@@ -6,8 +6,6 @@ import '../theme/Notifier.dart';
 import '../widgets/AuthDetails.dart';
 import 'Feed.dart';
 
-/// Paso 2 del alta con Google: completa los datos que Google no provee
-/// (nación, género, fecha de nacimiento) y recién ahí crea el usuario.
 class CompleteGoogleProfileScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
   final GooglePerfil perfil;
@@ -45,7 +43,6 @@ class _CompleteGoogleProfileScreenState
     try {
       final naciones = await UsuarioService.getNaciones();
       final generos = await UsuarioService.getGeneros();
-      // Orden alfabético de países (la BD no garantiza orden).
       naciones.sort((a, b) => (a['nombre'] ?? '')
           .toString()
           .toLowerCase()
@@ -213,7 +210,6 @@ class _CompleteGoogleProfileScreenState
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Fecha de nacimiento ──────────────────────────
                     const AuthFieldLabel('Fecha de nacimiento'),
                     const SizedBox(height: 8),
                     GestureDetector(
@@ -228,7 +224,6 @@ class _CompleteGoogleProfileScreenState
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Nación ───────────────────────────────────────
                     const AuthFieldLabel('Nación'),
                     const SizedBox(height: 8),
                     AuthDropdown(
@@ -240,7 +235,6 @@ class _CompleteGoogleProfileScreenState
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Género ───────────────────────────────────────
                     const AuthFieldLabel('Género'),
                     const SizedBox(height: 8),
                     AuthDropdown(

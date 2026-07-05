@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 public class Mapper {
 
-    // RECIBE DATOS de Supa
     public static Usuario jsonToUsuario(JSONObject json) throws JSONException {
         Usuario u = new Usuario();
 
@@ -23,7 +22,7 @@ public class Mapper {
         u.setUsuario(json.optString("usuario", ""));
         u.setContrasena(json.optString("contrasena", ""));
 
-        u.setFecha_Nacimiento(json.optString("fecha_nacimiento", null)); // ISO crudo (String)
+        u.setFecha_Nacimiento(json.optString("fecha_nacimiento", null));
         u.setFecha_Creacion(parseTimestampSupabase(json.optString("fecha_creacion", null)));
         u.setFecha_Acceso(parseTimestampSupabase(json.optString("fecha_acceso", null)));
 
@@ -36,7 +35,6 @@ public class Mapper {
         return u;
     }
 
-    // ENVIAMOS DATOS a Supa
     public static JSONObject usuarioToJson(Usuario u) throws JSONException {
         JSONObject data = new JSONObject();
 
@@ -52,22 +50,18 @@ public class Mapper {
         return data;
     }
 
-    // ENVIAMOS al cliente Flutter — solo lo que la UI necesita, SIN contrasena.
     public static JSONObject usuarioToClientJson(Usuario u) throws JSONException {
         JSONObject json = new JSONObject();
 
         json.put("id", u.getId());
         json.put("id_cuenta", Integer.parseInt(u.getCuenta()));
         json.put("usuario", u.getUsuario());
-        // Mismas claves que espera usuario_Logged.fromJson (foto/banner = URL o null).
         json.put("foto",   u.getFoto()   != null ? u.getFoto()   : JSONObject.NULL);
         json.put("banner", u.getBanner() != null ? u.getBanner() : JSONObject.NULL);
 
         return json;
     }
 
-    // ENVIAMOS al cliente los campos EDITABLES del propio perfil (incluye correo).
-    // Separado de usuarioToClientJson para NO filtrar el correo al ver perfiles ajenos.
     public static JSONObject usuarioToEditJson(Usuario u) throws JSONException {
         JSONObject json = new JSONObject();
         json.put("usuario", u.getUsuario());
@@ -76,7 +70,7 @@ public class Mapper {
         json.put("visibilidad", u.isVisibilidad());
         return json;
     }
-    
+
     public static Receta jsonToReceta(JSONObject json) throws JSONException {
         Receta r = new Receta();
 
@@ -99,8 +93,6 @@ public class Mapper {
     }
 
 
-     // Convierte un timestamp ISO de Supabase (ej: "2024-01-15T10:30:00.123Z")
-     // a java.sql.Timestamp. Devuelve null si el texto es vacío o no parsea,
     private static Timestamp parseTimestampSupabase(String raw) {
         if (raw == null || raw.isEmpty()) return null;
         try {
@@ -114,7 +106,6 @@ public class Mapper {
         }
     }
 
-    // ENVIAMOS a Supabase
     public static JSONObject recetaToJson(Receta r) throws JSONException {
         JSONObject json = new JSONObject();
 

@@ -11,11 +11,11 @@ public class AccountChannel {
 
     private static final String CHANNEL = "com.example.bocado/account";
     private final Activity activity;
-    private final CuentaDAO cuentaDAO; // Instancia directa aquí
+    private final CuentaDAO cuentaDAO;
 
     public AccountChannel(Activity activity, BinaryMessenger messenger) {
         this.activity = activity;
-        this.cuentaDAO = new CuentaDAO(); // Se instancia localmente, sin tocar otros Managers
+        this.cuentaDAO = new CuentaDAO();
 
         new MethodChannel(messenger, CHANNEL)
                 .setMethodCallHandler(this::handleCall);

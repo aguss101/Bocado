@@ -3,9 +3,6 @@ import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import 'Common.dart';
 
-/// Scaffold base para todas las pantallas de autenticación.
-/// Incluye header con logo "Bocado", botón de toggle de tema,
-/// y footer con links legales.
 class AuthScaffold extends StatelessWidget {
   final Widget child;
   final ThemeNotifier themeNotifier;
@@ -27,7 +24,6 @@ class AuthScaffold extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          // ── Header ──────────────────────────────────────────────
           _AuthHeader(
             themeNotifier: themeNotifier,
             isDark: isDark,
@@ -35,7 +31,6 @@ class AuthScaffold extends StatelessWidget {
             trailing: headerTrailing,
           ),
 
-          // ── Content ─────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -43,7 +38,6 @@ class AuthScaffold extends StatelessWidget {
             ),
           ),
 
-          // ── Footer ──────────────────────────────────────────────
           _AuthFooter(secondary: secondary, outline: outline, isDark: isDark),
         ],
       ),
@@ -75,7 +69,6 @@ class _AuthHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Logo
             Text(
               'Bocado',
               style: TextStyle(
@@ -85,11 +78,9 @@ class _AuthHeader extends StatelessWidget {
                 letterSpacing: -0.5,
               ),
             ),
-            // Actions
             Row(
               children: [
                 if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
-                // Theme toggle
                 ThemeToggleButton(themeNotifier: themeNotifier, tooltip: true),
               ],
             ),
@@ -138,7 +129,6 @@ class _AuthFooter extends StatelessWidget {
   }
 }
 
-// ── Shared form widgets ────────────────────────────────────────────────────────
 
 class AuthCard extends StatelessWidget {
   final Widget child;
@@ -283,7 +273,6 @@ class AuthPrimaryButton extends StatelessWidget {
   }
 }
 
-/// Banner de error rojo para formularios de auth.
 class AuthErrorBox extends StatelessWidget {
   final String message;
   const AuthErrorBox(this.message, {super.key});
@@ -313,7 +302,6 @@ class AuthErrorBox extends StatelessWidget {
   }
 }
 
-/// Encabezado de marca "PLATAFORMA GOURMET" (ícono + label) de LogIn/Register.
 class AuthBrandHeader extends StatelessWidget {
   const AuthBrandHeader({super.key});
 
@@ -342,7 +330,6 @@ class AuthBrandHeader extends StatelessWidget {
   }
 }
 
-/// Dropdown de catálogo (nación/género) con el estilo de las pantallas de auth.
 class AuthDropdown extends StatelessWidget {
   final int? value;
   final String hint;

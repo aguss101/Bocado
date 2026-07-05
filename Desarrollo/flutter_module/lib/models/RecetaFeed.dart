@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 class RecetaFeed {
-  ///Receta:
   final int idReceta;
   final String nombre;
   final double caloriasTotales;
@@ -13,19 +12,16 @@ class RecetaFeed {
   final bool activo;
   final bool visibilidad;
 
-  ///Usuario:
   final int usuarioTarget;
   final String apellidoNombre;
   final String nombreUsuario;
   final String? fotoUsuario;
 
-  ///Comentarios, Calificacion y Favs:
   final int cantidadComentarios;
   final double promedioCalificacion;
   final int cantidadFavoritos;
   final List<Map<String, dynamic>> interacciones;
 
-  ///Nutrientes:
   final double proteinasTotales;
   final double carbohidratosTotales;
   final double grasasTotales;
@@ -55,7 +51,6 @@ class RecetaFeed {
   });
 
   factory RecetaFeed.fromJson(Map<String, dynamic> json) {
-    // Función auxiliar para decodificar si es String o usar si es List
     List<dynamic> decodeList(dynamic val) {
       if (val == null) return [];
       if (val is String) {
@@ -71,7 +66,6 @@ class RecetaFeed {
       porciones: (json['porciones'] as num?)?.toInt() ?? 0,
       foto: json['foto'],
       precioPorcion: (json['precio_porcion'] as num?)?.toDouble() ?? 0.0,
-      // Aquí forzamos la conversión a List<String>
       etiquetas: List<String>.from(decodeList(json['lista_etiquetas'])),
       precio: (json['precio'] as num?)?.toDouble() ?? 0.0,
       activo: json['activo'] ?? true,
@@ -86,7 +80,6 @@ class RecetaFeed {
       promedioCalificacion: (json['promedio_calificacion'] as num?)?.toDouble() ?? 0.0,
       cantidadFavoritos: (json['cant_favoritos'] as num?)?.toInt() ?? 0,
 
-      // Aquí decodificamos la lista de mapas
       interacciones: decodeList(json['lista_interacciones'])
           .map((item) => Map<String, dynamic>.from(item))
           .toList(),

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/App.dart';
 import '../services/Update.dart';
 
-/// Cartel en primer plano que avisa que hay una versión nueva de la app.
-/// Se muestra una sola vez por versión (ver UpdateService.avisoYaVisto).
 Future<void> mostrarAvisoActualizacion(
   BuildContext context,
   String versionName,

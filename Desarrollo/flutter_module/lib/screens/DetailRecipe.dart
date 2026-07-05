@@ -58,7 +58,6 @@ class RecipeDetailData {
       titulo: json['nombre'] ?? '',
       categoria: 'General',
 
-      ///Usar etiquetas???
       imageUrl: json['foto'] ?? '',
       calorias: (json['calorias_totales'] ?? 0).toDouble(),
       proteina: _prot.toStringAsFixed(1),
@@ -66,29 +65,23 @@ class RecipeDetailData {
       grasas: _gras.toStringAsFixed(1),
       duracion: _formatDuracion(json['tiempo_coccion']),
 
-      /// Que hacemos con esto? lo sacamos directamente de las instrucciones y hacemos que lo puedan elegir desde las pantallas de crearReceta?
       porciones: '${json['porciones'] ?? 0} porciones',
       ingredientes: (json['recetas_alimentos'] as List? ?? [])
           .map((item) => IngredientItem.fromJson(item))
           .toList(),
       pasos: PreparationStep.parsearInstrucciones(json['instrucciones'] ?? ''),
-      // obtenerDetalle embebe el autor anidado (usuarios!UR(usuario,foto)),
-      // no como campos planos "usuario"/"foto_perfil" (eso es de otro endpoint).
-      // Usamos el nombre de usuario (@handle), igual que el Feed — no el nombre real.
       nombreAutor: (json['usuarios'] as Map<String, dynamic>?)?['usuario'] ?? 'Usuario',
       fotoAutor: (json['usuarios'] as Map<String, dynamic>?)?['foto'],
       precioPorcion: _calcularPrecioPorcion(json),
     );
   }
 
-  /// `tiempo_coccion` (minutos, int) → texto para el detalle. Null/0 → 'N/A'.
   static String _formatDuracion(dynamic raw) {
     final min = (raw as num?)?.toInt() ?? 0;
     if (min <= 0) return 'N/A';
     return '$min min';
   }
 
-  /// Igual que `precio_porcion` en la vista `vistas_recetas_macros`: precio / porciones.
   static double? _calcularPrecioPorcion(Map<String, dynamic> json) {
     final precio = (json['precio'] as num?)?.toDouble();
     final porciones = (json['porciones'] as num?)?.toInt() ?? 0;
@@ -200,7 +193,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool get _esPropia =>
       widget.idAutor != null && widget.idAutor == widget.user.id;
 
-  /// Navega al perfil del usuario que creó la receta.
   void _irAlPerfilAutor() {
     if (widget.idAutor == null) return;
     Navigator.push(
@@ -279,8 +271,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
-  /// Abre el editor con la receta actual (formato getRecetaID) y, al volver,
-  /// recarga el detalle para reflejar los cambios.
   Future<void> _abrirEditor() async {
     if (_abriendoEditor) return;
     setState(() => _abriendoEditor = true);
@@ -608,16 +598,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 1. EL CARRUSEL (En el fondo de todo)
                   listaImagenes.isNotEmpty
                       ? PageView(
                     controller: _pageController,
                     children: listaImagenes.map((item) {
                       if (item is Uint8List) {
-                        // Foto local del editor (bytes)
                         return Image.memory(item, fit: BoxFit.cover);
                       } else if (item is String && item.startsWith('http')) {
-                        // Foto ya subida (URL)
                         return BocadoNetworkImage(
                           url: item.trim(),
                           errorWidget: Container(
@@ -638,7 +625,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
                   ),
 
-                  // 2. EL DEGRADADO OSCURO (Con IgnorePointer para que no bloquee los clicks)
                   const IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -651,7 +637,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
 
-                  // 3. TEXTOS Y BADGE DE CATEGORÍA
                   Positioned(
                     bottom: 16,
                     left: 16,
@@ -729,7 +714,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
 
                   if(!widget.isPreview)
-                  // 4. BOTÓN DE FAVORITOS (Corazón)
                     Positioned(
                       bottom: 16,
                       right: 16,
@@ -753,7 +737,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ),
 
-                  // 5. BOTÓN FLECHA ATRÁS (Al frente de todo)
                   if (listaImagenes.length > 1)
                     Positioned(
                       left: 8,
@@ -782,7 +765,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ),
 
-                  // 6. BOTÓN FLECHA SIGUIENTE (Al frente de todo)
                   if (listaImagenes.length > 1)
                     Positioned(
                       right: 8,
@@ -931,7 +913,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   }),
                   const SizedBox(height: 40),
                   if(!widget.isPreview) ...[
-                    // ---Seccion de comentarios---
                     const SizedBox(height: 16),
                     const Divider(height: 32),
                     Row(

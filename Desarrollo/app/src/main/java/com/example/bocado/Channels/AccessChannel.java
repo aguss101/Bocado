@@ -53,12 +53,6 @@ public class AccessChannel {
         }
     }
 
-    /** Paso 1 del login social: ¿ya existe una cuenta con ese correo?
-     * Vía RPC SECURITY DEFINER: con RLS/Fase 1, `anon` perdió el SELECT sobre
-     * `correo` — y en Postgres eso bloquea también FILTRAR por esa columna
-     * (`WHERE correo = ...`), no solo devolverla. El REST directo daba 42501
-     * y rompía el login/registro con Google por completo. La RPC corre como
-     * `postgres` y puede filtrar por correo sin exponerlo en la respuesta. */
     private void handleLoginGoogle(MethodCall call, MethodChannel.Result result) {
         String email = call.argument("email");
         if (email == null || email.trim().isEmpty()) {
@@ -87,7 +81,6 @@ public class AccessChannel {
                 });
     }
 
-    // Crear usuario con Google
     private void handleRegisterGoogle(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject data = new JSONObject();
@@ -143,7 +136,6 @@ public class AccessChannel {
         u.setCorreo(call.argument("email"));
         u.setUsuario(call.argument("usuario"));
         u.setContrasena(call.argument("password"));
-        // valor Int primero para forzar String.valueOf(Object):
         Integer idNacion = call.argument("nacion");
         Integer idGenero = call.argument("genero");
         u.setNacion(String.valueOf((Object) idNacion));
@@ -245,11 +237,6 @@ public class AccessChannel {
         });
     }
 
-    /**
-     * De una lista de ids de usuario, cuáles ya sigue id_seguidor. Un solo pedido
-     * (filtro in.()) en vez de un estasSiguiendo por cada fila de la lista.
-     * Devuelve un array plano de ids seguidos, p.ej. [1,2].
-     */
     private void handleEstasSiguiendoVarios(MethodCall call, MethodChannel.Result result) {
         Integer idSeguidor = call.argument("id_seguidor");
         java.util.List<Integer> ids = call.argument("ids_seguido");
@@ -285,12 +272,6 @@ public class AccessChannel {
         });
     }
 
-    /**
-     * Lista de quién sigue a id_usuario (lo inverso a vista_mis_seguidos, que trae
-     * a quién sigue id_usuario). No existe vista para esto: se arma con un embed de
-     * PostgREST sobre seguidos_usuario (un solo JOIN) y se reacomoda al mismo formato
-     * plano que ya devuelve vista_mis_seguidos, para reusar UserProfile en Flutter.
-     */
     private void handleGetSeguidoresDe(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         Integer limit = call.argument("limit");
@@ -329,7 +310,6 @@ public class AccessChannel {
         });
     }
 
-    // Revalida que la cuenta exista y siga activa (para auto-login al arrancar)
     private void handleValidarSesion(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&activo=eq.true&select=id", new okhttp3.Callback() {
@@ -345,9 +325,6 @@ public class AccessChannel {
 
     private void handleGetPerfilUsuario(MethodCall call, MethodChannel.Result result){
         Integer idUsuario = call.argument("id_usuario");
-        // select explícito (NO *): con RLS/Fase 1, `anon` perdió el SELECT sobre
-        // contrasena/correo, y un `select=*` sobre usuarios devuelve 42501. El
-        // perfil de un tercero no necesita esas columnas de todas formas.
         String cols = "id,id_cuenta,id_nacion,id_genero,nombre,apellido,usuario,"
                 + "fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner";
         HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=" + cols, new okhttp3.Callback() {
@@ -370,7 +347,6 @@ public class AccessChannel {
         });
     }
 
-    /** Lee el contador de seguidores (O(1), mantenido por trigger en estadisticas_usuario). */
     private void handleContarSeguidores(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_seguidores&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
@@ -390,7 +366,6 @@ public class AccessChannel {
         });
     }
 
-    /** Lee el contador de seguidos (O(1), mantenido por trigger en estadisticas_usuario). */
     private void handleContarSiguiendo(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_siguiendo&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
@@ -410,7 +385,6 @@ public class AccessChannel {
         });
     }
 
-    /** Comprueba si id_seguidor ya sigue a id_seguido (true/false). */
     private void handleEstasSiguiendo(MethodCall call, MethodChannel.Result result) {
         Integer idSeguidor = call.argument("id_seguidor");
         Integer idSeguido  = call.argument("id_seguido");
@@ -433,10 +407,6 @@ public class AccessChannel {
         );
     }
 
-    /** Trae los campos editables del PROPIO perfil (usuario, correo, id_genero, visibilidad).
-     * Vía RPC SECURITY DEFINER: con RLS/Fase 1, `anon` perdió el SELECT sobre
-     * `correo`, así que un GET REST con `select=...,correo,...` devuelve 42501.
-     * La RPC corre como `postgres` y puede leer el correo del propio usuario. */
     private void handleGetPerfilEditable(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         JSONObject body = new JSONObject();
@@ -468,9 +438,7 @@ public class AccessChannel {
         });
     }
 
-    // ── Restablecer contraseña (OTP por correo) ───────────────────────────────
 
-    /** Paso 1: pide a la Edge Function "enviar-otp" que genere y mande el código. */
     private void handleSolicitarOtp(MethodCall call, MethodChannel.Result result) {
         String correo = call.argument("correo");
         if (correo == null || correo.trim().isEmpty()) {
@@ -484,8 +452,6 @@ public class AccessChannel {
             result.error("ERROR_JSON", e.getMessage(), null);
             return;
         }
-        // La anon key viaja como apikey + Authorization Bearer (headers de HttpClientManager),
-        // lo que satisface el "Verify JWT" de la Edge Function.
         HttpClientManager.getInstance().post("/functions/v1/enviar-otp", body.toString(), new okhttp3.Callback() {
             @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
@@ -502,7 +468,6 @@ public class AccessChannel {
         });
     }
 
-    /** Paso 2: valida el código contra la BD (RPC verificar_otp → boolean). */
     private void handleVerificarOtp(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject body = new JSONObject();
@@ -522,7 +487,6 @@ public class AccessChannel {
         }
     }
 
-    /** Paso 3: re-verifica el OTP y cambia la contraseña (RPC reset_pass → boolean). */
     private void handleResetPass(MethodCall call, MethodChannel.Result result) {
         try {
             JSONObject body = new JSONObject();
@@ -546,7 +510,6 @@ public class AccessChannel {
         }
     }
 
-    /** Aplica cambios de perfil tras re-verificar el OTP (RPC actualizar_perfil_otp, atómico). */
     private void handleActualizarPerfilOtp(MethodCall call, MethodChannel.Result result) {
         try {
             Integer id = call.argument("id");
@@ -579,12 +542,6 @@ public class AccessChannel {
         }
     }
 
-    /**
-     * Mapea una fila cruda de la tabla usuarios a JSON limpio para el cliente
-     * (vía Mapper, SIN contrasena) y la devuelve por el channel en el hilo de UI.
-     * El mapeo vive en Java, no en Flutter. Reutilizado por login, registro,
-     * registro Google y getPerfilUsuario.
-     */
     private void responderUsuarioLimpio(String filaUsuarioJson, MethodChannel.Result result) {
         try {
             Usuario u = Mapper.jsonToUsuario(new JSONObject(filaUsuarioJson));

@@ -5,10 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 
-/// Imagen de red con caché en disco + memoria (cached_network_image).
-/// Reemplaza a `Image.network`: evita redescargas en cada scroll/navegación.
-/// `memCacheWidth` limita la resolución decodificada en RAM (pasar el ancho
-/// aprox. en px del display para miniaturas; omitir para imágenes grandes).
 class BocadoNetworkImage extends StatelessWidget {
   final String url;
   final BoxFit fit;
@@ -49,14 +45,9 @@ class BocadoNetworkImage extends StatelessWidget {
   }
 }
 
-/// `ImageProvider` con caché, para usos que requieren un provider en vez de un
-/// widget (`CircleAvatar.backgroundImage`, `DecorationImage.image`).
 ImageProvider bocadoImageProvider(String url) =>
     CachedNetworkImageProvider(url);
 
-/// Bottom sheet unificado para elegir el origen de una imagen (cámara o galería).
-/// Devuelve el [ImageSource] elegido, o null si el usuario lo descarta.
-/// Quien lo llama decide qué hacer con la fuente (single o multi-imagen).
 Future<ImageSource?> showImageSourceSheet(BuildContext context) {
   final c = BocadoColors.of(context);
   return showModalBottomSheet<ImageSource>(
@@ -96,8 +87,6 @@ Future<ImageSource?> showImageSourceSheet(BuildContext context) {
   );
 }
 
-/// Botón de toggle de tema (sol/luna). Reemplaza el ValueListenableBuilder
-/// repetido en cada AppBar/topbar.
 class ThemeToggleButton extends StatelessWidget {
   final ThemeNotifier themeNotifier;
   final bool tooltip;
@@ -127,7 +116,6 @@ class ThemeToggleButton extends StatelessWidget {
   }
 }
 
-/// Estado vacío genérico: ícono atenuado + mensaje centrado.
 class BocadoEmptyState extends StatelessWidget {
   final IconData icon;
   final String message;
@@ -165,8 +153,6 @@ class BocadoEmptyState extends StatelessWidget {
   }
 }
 
-/// Avatar cuadrado redondeado con foto (URL o bytes) o, en su defecto,
-/// la inicial del usuario. Usado en perfil y edición de perfil.
 class BocadoAvatar extends StatelessWidget {
   final String? fotoUrl;
   final Uint8List? fotoBytes;

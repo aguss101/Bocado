@@ -34,7 +34,6 @@ class SharedDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // ── CABECERA DEL MENÚ ──
             Padding(
               padding: const EdgeInsets.all(BocadoSpacing.xl),
               child: Row(
@@ -61,7 +60,6 @@ class SharedDrawer extends StatelessWidget {
             ),
             Divider(color: c.border),
 
-            // ── LISTA DE OPCIONES ──
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: BocadoSpacing.md),
@@ -93,7 +91,6 @@ class SharedDrawer extends StatelessWidget {
                       }
                   ),
 
-                  // Botón Crear Receta
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: BocadoSpacing.sm, horizontal: BocadoSpacing.sm),
                     decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(BocadoRadius.sm)),
@@ -101,19 +98,19 @@ class SharedDrawer extends StatelessWidget {
                       leading: const Icon(Icons.add_circle, color: Colors.white),
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       onTap: () {
-                        Navigator.pop(context); // Cerramos el menú
+                        Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(themeNotifier: themeNotifier, user: user)));
                       },
                     ),
                   ),
                   _buildMenuItem(
                       context: context,
-                      icon: Icons.workspace_premium, // Icono de corona o premium
+                      icon: Icons.workspace_premium,
                       title: 'Premium',
                       isActive: rutaActual == 'premium',
                       onTap: () {
                         if (rutaActual != 'premium') {
-                          Navigator.pop(context); // Cerramos el drawer primero
+                          Navigator.pop(context);
                           Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => PremiumStoreScreen(themeNotifier: themeNotifier, user: user))
@@ -143,7 +140,6 @@ class SharedDrawer extends StatelessWidget {
             ),
 
 
-            // ── ACTUALIZAR (solo si hay versión nueva) ──
             if (UpdateService.cached?.disponible == true)
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -172,7 +168,6 @@ class SharedDrawer extends StatelessWidget {
                 ),
               ),
 
-            // ── CERRAR SESIÓN ──
             Padding(
               padding: const EdgeInsets.all(BocadoSpacing.lg),
               child: ListTile(
@@ -200,7 +195,6 @@ class SharedDrawer extends StatelessWidget {
     );
   }
 
-  // ── WIDGET DE BOTÓN INDIVIDUAL ──
   Widget _buildMenuItem({
     required BuildContext context, required IconData icon, required String title,
     required bool isActive, required VoidCallback onTap

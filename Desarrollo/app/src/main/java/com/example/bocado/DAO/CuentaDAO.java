@@ -10,7 +10,7 @@ public class CuentaDAO {
         try {
             JSONObject json = new JSONObject();
             json.put("p_id_usuario", idUsuario);
-            json.put("p_id_cuenta", idCuenta); // Enviamos el valor 1 o 2
+            json.put("p_id_cuenta", idCuenta);
 
             RpcCallHelper.callAsync("actualizar_id_cuenta", json, new CallbackCB() {
                 @Override public void onSuccess(String response) {

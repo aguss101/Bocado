@@ -38,12 +38,10 @@ class _FeedScreenState extends State<FeedScreen> {
   final ScrollController _scrollController = ScrollController();
   static const int _pageSize = 10;
 
-  /// Seed por sesión de feed: fija el orden pseudoaleatorio para que la
-  /// paginación sea consistente. Se regenera en cada entrada a la pantalla.
   late final String _seed;
   int _offset = 0;
-  bool _estaCargando = true; // primera página
-  bool _cargandoMas = false; // páginas siguientes
+  bool _estaCargando = true;
+  bool _cargandoMas = false;
   bool _hayMas = true;
   static const bool _isDebugMode = false;
 
@@ -56,13 +54,10 @@ class _FeedScreenState extends State<FeedScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _chequearActualizacion());
   }
 
-  /// Chequea si hay versión nueva. Si la hay y nunca se mostró el cartel para
-  /// esa versión, lo muestra una sola vez. El botón en la barra de navegación
-  /// queda visible siempre que haya update (lee UpdateService.cached).
   Future<void> _chequearActualizacion() async {
     final info = await UpdateService.verificar();
     if (info == null || !info.disponible || !mounted) return;
-    setState(() {}); // refresca para que el botón del drawer aparezca
+    setState(() {});
     final yaVisto = await UpdateService.avisoYaVisto(info.versionName);
     if (yaVisto || !mounted) return;
     await UpdateService.marcarAvisoVisto(info.versionName);
@@ -70,7 +65,6 @@ class _FeedScreenState extends State<FeedScreen> {
     await mostrarAvisoActualizacion(context, info.versionName);
   }
 
-  /// Tap en el logo/"Bocado" del AppBar: vuelve al principio del feed.
   void _volverAlInicio() {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
@@ -269,7 +263,6 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 }
 
-// ── 4. COMPONENTE PRIVADO: Tarjeta de la Receta ──
 class _FeedArticleCard extends StatefulWidget {
   final RecetaFeed receta;
   final usuario_Logged user;
@@ -313,9 +306,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     super.dispose();
   }
 
-  /// Al volver al Feed desde el detalle, re-sincroniza like/save contra la BD para
-  /// reflejar cambios hechos allá. GET liviano (PK), ajusta el contador local si el
-  /// like cambió. Mantiene el flujo Detalle → Feed consistente.
   @override
   void didPopNext() {
     _resincronizarInteracciones();
@@ -340,13 +330,9 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
         _isSaved = nuevoSave;
       });
     } catch (_) {
-      // si falla, se mantiene el estado actual
     }
   }
 
-  /// Al volver del detalle, recuenta los comentarios de la receta para reflejar
-  /// los que se hayan agregado allá. La vista `cant_comentarios` == cantidad de
-  /// filas planas que devuelve `fetchComentarios`, así que alcanza con contarlas.
   Future<void> _resincronizarComentarios() async {
     try {
       final jsonString = await InteraccionesService.fetchComentarios(
@@ -356,7 +342,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       if (!mounted || lista.length == _comentariosLocales) return;
       setState(() => _comentariosLocales = lista.length);
     } catch (_) {
-      // si falla, se mantiene el contador actual
     }
   }
 
@@ -433,7 +418,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IMAGEN Y BADGES
           Stack(
             children: [
               imageHeader,
@@ -442,7 +426,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                 left: 12,
                 child: Row(
                   children: [
-                    // PRECIO DINÁMICO
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -531,13 +514,11 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
             ],
           ),
 
-          // CONTENIDO
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // CABECERA NOMBRE Y PERFIL
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -558,7 +539,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         ],
                       ),
                     ),
-                    // FOTO DE PERFIL DEL USUARIO CREADOR
                     GestureDetector(
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget)));
@@ -574,7 +554,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                 ),
                 const SizedBox(height: 16),
 
-                // GRILLA NUTRICIONAL CON VARIABLES DE LA BD
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -597,7 +576,6 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                 ),
                 const SizedBox(height: 16),
 
-                // BOTONES DE ACCIÓN SOCIALES
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -605,14 +583,14 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                       children: [
                         _buildActionButton(
                           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                          label: '$_likesLocales', // Dinámico
+                          label: '$_likesLocales',
                           color: _isLiked ? AppTheme.primary : c.muted,
                           onTap: _handleLike,
                         ),
                         const SizedBox(width: 20),
                         _buildActionButton(
                           icon: Icons.chat_bubble_outline,
-                          label: '$_comentariosLocales', // Dinámico
+                          label: '$_comentariosLocales',
                           color: c.muted,
                           onTap: () {},
                         ),
