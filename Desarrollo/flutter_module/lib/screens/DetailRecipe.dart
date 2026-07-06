@@ -3,6 +3,7 @@ import 'dart:core';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/services/Instructions.dart';
@@ -11,6 +12,7 @@ import '../utils/IdCodec.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
+import '../route_observer.dart';
 import 'EditRecipe.dart';
 import 'Profile.dart';
 import '../models/RecipeComment.dart';
@@ -184,6 +186,8 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isFavorite = false;
   bool _likeEnCurso = false;
+  bool _isSaved = false;
+  bool _saveEnCurso = false;
   bool _isLoading = true;
   bool _abriendoEditor = false;
   RecipeDetailData? _data;
@@ -195,14 +199,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   void _irAlPerfilAutor() {
     if (widget.idAutor == null) return;
-    Navigator.push(
+    pushOrReuse(
       context,
-      MaterialPageRoute(
-        builder: (_) => ProfileScreen(
-          user: widget.user,
-          themeNotifier: widget.themeNotifier,
-          idUsuarioTarget: widget.idAutor,
-        ),
+      'perfil/${widget.idAutor}',
+      (_) => ProfileScreen(
+        user: widget.user,
+        themeNotifier: widget.themeNotifier,
+        idUsuarioTarget: widget.idAutor,
       ),
     );
   }
@@ -227,9 +230,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         widget.user.id,
         widget.idReceta,
       );
-      if (mounted && !_likeEnCurso) {
-        setState(() => _isFavorite = tipos.contains('like'));
-      }
+      if (!mounted) return;
+      setState(() {
+        if (!_likeEnCurso) _isFavorite = tipos.contains('like');
+        if (!_saveEnCurso) _isSaved = tipos.contains('save');
+      });
     } catch (_) {
     }
   }
@@ -268,6 +273,35 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       }
     } finally {
       if (mounted) setState(() => _likeEnCurso = false);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (_saveEnCurso) return;
+    final nuevoEstado = !_isSaved;
+    setState(() {
+      _isSaved = nuevoEstado;
+      _saveEnCurso = true;
+    });
+    try {
+      await InteraccionesService.toggleInteraction({
+        'id_usuario': widget.user.id,
+        'id_receta': widget.idReceta,
+        'tipo': 'save',
+        'is_adding': nuevoEstado,
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = !nuevoEstado);
+        final esLimite = e is PlatformException && e.code == 'LIMITE_ALCANZADO';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(esLimite
+              ? 'Llegaste al límite de 10 guardados. Hazte Premium para guardar sin límite.'
+              : 'Error al guardar la receta. Revisa tu conexión.'),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saveEnCurso = false);
     }
   }
 
@@ -342,6 +376,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           comentariosRaiz.add(c);
         } else {
           mapaComentarios[c.idComentarioPadre]?.respuestas.add(c);
+        }
+      }
+
+      final premium = comentariosRaiz.where((c) => c.esPremium).toList();
+      final normales = comentariosRaiz.where((c) => !c.esPremium).toList();
+      comentariosRaiz = [...premium, ...normales];
+
+      final yaResaltados = <int>{};
+      for (final c in comentariosRaiz) {
+        if (c.esPremium && yaResaltados.add(c.idUsuario)) {
+          c.resaltar = true;
         }
       }
 
@@ -587,6 +632,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   )
                       : const Icon(Icons.edit_outlined, color: Colors.white),
                 ),
+              if (_esPropia)
+                IconButton(
+                  tooltip: 'Eliminar receta',
+                  onPressed: () async {
+                    final ok = await mostrarDialogoEliminarReceta(
+                      context,
+                      idReceta: widget.idReceta,
+                      idUsuario: widget.user.id,
+                    );
+                    if (ok && mounted) Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.white),
+                ),
               IconButton(
                 tooltip: 'Compartir receta',
                 onPressed: _compartirReceta,
@@ -603,13 +661,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     controller: _pageController,
                     children: listaImagenes.map((item) {
                       if (item is Uint8List) {
-                        return Image.memory(item, fit: BoxFit.cover);
+                        return GestureDetector(
+                          onLongPress: () => showFullscreenImage(context, bytes: item),
+                          child: Image.memory(item, fit: BoxFit.cover),
+                        );
                       } else if (item is String && item.startsWith('http')) {
-                        return BocadoNetworkImage(
-                          url: item.trim(),
-                          errorWidget: Container(
-                            color: c.surfaceContainer,
-                            child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                        return GestureDetector(
+                          onLongPress: () => showFullscreenImage(context, url: item.trim()),
+                          child: BocadoNetworkImage(
+                            url: item.trim(),
+                            errorWidget: Container(
+                              color: c.surfaceContainer,
+                              child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                            ),
                           ),
                         );
                       } else {
@@ -717,23 +781,47 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     Positioned(
                       bottom: 16,
                       right: 16,
-                      child: GestureDetector(
-                        onTap: _handleLike,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: _handleLike,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Icon(
+                                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: _isFavorite ? Colors.red : Colors.white,
+                                size: 24,
+                              ),
                             ),
                           ),
-                          child: Icon(
-                            _isFavorite ? Icons.favorite : Icons.favorite_border,
-                            color: _isFavorite ? Colors.red : Colors.white,
-                            size: 24,
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: _handleSave,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Icon(
+                                _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                color: _isSaved ? AppTheme.primary : Colors.white,
+                                size: 24,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
 
@@ -867,34 +955,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 28),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const _SectionTitle('Ingredientes'),
-                      TextButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.shopping_cart_outlined,
-                          size: 14,
-                          color: AppTheme.primary,
-                        ),
-                        label: const Text(
-                          'AÑADIR TODO',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const _SectionTitle('Ingredientes'),
                   const SizedBox(height: 12),
                   ..._data!.ingredientes.map(
                         (i) => _IngredientRow(item: i, outline: outline),
@@ -1374,11 +1435,18 @@ class _CommentCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isReply
                 ? Colors.transparent
-                : surface.withValues(alpha: 0.4),
+                : (comment.resaltar
+                    ? Colors.amber.withValues(alpha: 0.08)
+                    : surface.withValues(alpha: 0.4)),
             borderRadius: BorderRadius.circular(16),
             border: isReply
                 ? null
-                : Border.all(color: outline.withValues(alpha: 0.3)),
+                : Border.all(
+                    color: comment.resaltar
+                        ? Colors.amber
+                        : outline.withValues(alpha: 0.3),
+                    width: comment.resaltar ? 1.5 : 1,
+                  ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1401,11 +1469,27 @@ class _CommentCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          comment.nombreUsuario,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: isReply ? 13 : 14,
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  comment.nombreUsuario,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: isReply ? 13 : 14,
+                                  ),
+                                ),
+                              ),
+                              if (comment.esPremium) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.star,
+                                    color: Colors.amber, size: 13),
+                              ],
+                            ],
                           ),
                         ),
                         if (comment.fechaComentario != null)

@@ -568,12 +568,17 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                       final url = _primeraFoto(receta);
                       const fallback =
                           'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=300&auto=format&fit=crop';
-                      return BocadoNetworkImage(
-                        url: url ?? fallback,
-                        memCacheWidth: 300,
-                        errorWidget: const BocadoNetworkImage(
-                          url: fallback,
+                      return GestureDetector(
+                        onLongPress: url != null
+                            ? () => showFullscreenImage(context, url: url)
+                            : null,
+                        child: BocadoNetworkImage(
+                          url: url ?? fallback,
                           memCacheWidth: 300,
+                          errorWidget: const BocadoNetworkImage(
+                            url: fallback,
+                            memCacheWidth: 300,
+                          ),
                         ),
                       );
                     },
@@ -633,6 +638,21 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                             letterSpacing: 0.5,
                           ),
                         ),
+                      ),
+                    ),
+                  if (receta.usuarioTarget == widget.user.id)
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: bocadoDeleteBadge(
+                        onTap: () async {
+                          final ok = await mostrarDialogoEliminarReceta(
+                            context,
+                            idReceta: receta.idReceta,
+                            idUsuario: widget.user.id,
+                          );
+                          if (ok && mounted) _cargarRecetas();
+                        },
                       ),
                     ),
                 ],

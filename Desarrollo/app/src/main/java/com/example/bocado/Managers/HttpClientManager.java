@@ -89,4 +89,14 @@ public class HttpClientManager {
     public String storagePublicUrl(String bucket, String path) {
         return baseUrl() + "/storage/v1/object/public/" + bucket + "/" + path;
     }
+
+    public void deleteStorageObject(String objectPath, Callback callback) {
+        Request request = new Request.Builder()
+                .url(baseUrl() + "/storage/v1/object/" + objectPath)
+                .addHeader("apikey", supaKey)
+                .addHeader("Authorization", "Bearer " + supaKey)
+                .delete()
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
 }

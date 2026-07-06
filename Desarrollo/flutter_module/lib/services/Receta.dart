@@ -15,11 +15,13 @@ class RecetaService {
     required String seed,
     required int limit,
     required int offset,
+    required int viewerId,
   }) =>
       _fetchRecetas('getRecetas', {
         'seed': seed,
         'limit': limit,
         'offset': offset,
+        'viewerId': viewerId,
       });
 
 
@@ -90,11 +92,11 @@ class RecetaService {
     return jsonDecode(result as String) as Map<String, dynamic>;
   }
 
-  static Future<void> cambiarEstadoReceta(int idReceta, {bool nuevoEstado = false}) async {
-    await _channel.invokeMethod('cambiarEstadoReceta',
+  static Future<void> eliminarReceta(int idReceta, int idUsuario) async {
+    await _channel.invokeMethod('eliminarReceta',
       {
         'id_receta': idReceta,
-        'nuevo_estado': nuevoEstado,
+        'id_usuario': idUsuario,
       },
     );
   }

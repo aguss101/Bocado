@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'package:flutter_module/screens/Profile.dart';
 import '../theme/Notifier.dart';
@@ -93,6 +94,7 @@ class _FeedScreenState extends State<FeedScreen> {
         seed: _seed,
         limit: _pageSize,
         offset: 0,
+        viewerId: widget.user.id,
       );
       if (!mounted) return;
       setState(() {
@@ -116,6 +118,7 @@ class _FeedScreenState extends State<FeedScreen> {
         seed: _seed,
         limit: _pageSize,
         offset: _offset,
+        viewerId: widget.user.id,
       );
       if (!mounted) return;
       setState(() {
@@ -232,19 +235,18 @@ class _FeedScreenState extends State<FeedScreen> {
 
                 return GestureDetector(
                   onTap: () {
-                    Navigator.push(
+                    pushOrReuse(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => RecipeDetailScreen(
-                          themeNotifier: widget.themeNotifier,
-                          user: widget.user,
-                          idReceta: recetaActual.idReceta,
-                          protFeed: recetaActual.proteinasTotales,
-                          carbFeed: recetaActual.carbohidratosTotales,
-                          grasFeed: recetaActual.grasasTotales,
-                          idAutor: recetaActual.usuarioTarget,
-                          isLikedInicial: recetaActual.isLikedBy(widget.user.id),
-                        ),
+                      'receta/${recetaActual.idReceta}',
+                      (context) => RecipeDetailScreen(
+                        themeNotifier: widget.themeNotifier,
+                        user: widget.user,
+                        idReceta: recetaActual.idReceta,
+                        protFeed: recetaActual.proteinasTotales,
+                        carbFeed: recetaActual.carbohidratosTotales,
+                        grasFeed: recetaActual.grasasTotales,
+                        idAutor: recetaActual.usuarioTarget,
+                        isLikedInicial: recetaActual.isLikedBy(widget.user.id),
                       ),
                     );
                   },
@@ -283,6 +285,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   late bool _isSaved;
   late int _likesLocales;
   late int _comentariosLocales;
+  bool _eliminada = false;
 
   @override
   void initState(){
@@ -381,7 +384,12 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     } catch(e){
       if(mounted){
         setState(()=> _isSaved = !_isSaved);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar la receta. Revisa tu conexión.')));
+        final esLimite = e is PlatformException && e.code == 'LIMITE_ALCANZADO';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(esLimite
+              ? 'Llegaste al límite de 10 guardados. Hazte Premium para guardar sin límite.'
+              : 'Error al guardar la receta. Revisa tu conexión.'),
+        ));
       }
     }
   }
@@ -395,15 +403,21 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    if (_eliminada) return const SizedBox.shrink();
     final c = BocadoColors.of(context);
     final String fotoRaw = widget.receta.foto ?? '';
     final String fotoUrl = fotoRaw.isNotEmpty ? fotoRaw.split('|')[0] : '';
-    final Widget imageHeader = AspectRatio(
-      aspectRatio: 16 / 9,
-      child: BocadoNetworkImage(
-        url: fotoUrl.startsWith('http')
-            ? fotoUrl
-            : 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
+    final Widget imageHeader = GestureDetector(
+      onLongPress: fotoUrl.startsWith('http')
+          ? () => showFullscreenImage(context, url: fotoUrl)
+          : null,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: BocadoNetworkImage(
+          url: fotoUrl.startsWith('http')
+              ? fotoUrl
+              : 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?q=80&w=600&auto=format&fit=crop',
+        ),
       ),
     );
 
@@ -465,50 +479,15 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('¿Seguro que querés eliminar esta receta?'),
-                          duration: const Duration(seconds: 5),
-                          behavior: SnackBarBehavior.floating,
-                          action: SnackBarAction(
-                            label: 'ELIMINAR',
-                            textColor: Colors.redAccent,
-                            onPressed: () async {
-                              try {
-                                await RecetaService.cambiarEstadoReceta(widget.receta.idReceta);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Receta eliminada correctamente')),
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Error al eliminar la receta. Revisa tu conexión.')),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ),
+                  child: bocadoDeleteBadge(
+                    onTap: () async {
+                      final ok = await mostrarDialogoEliminarReceta(
+                        context,
+                        idReceta: widget.receta.idReceta,
+                        idUsuario: widget.user.id,
                       );
+                      if (ok && mounted) setState(() => _eliminada = true);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
-                      ),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.redAccent,
-                        size: 18,
-                      ),
-                    ),
                   ),
                 ),
             ],
@@ -541,7 +520,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget)));
+                        pushOrReuse(context, 'perfil/${widget.receta.usuarioTarget}', (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget));
                       },
                       child: CircleAvatar(
                         radius: 18,

@@ -7,6 +7,7 @@ import '../widgets/AuthDetails.dart';
 import 'Feed.dart';
 import 'LogIn.dart';
 import 'OnboardingGoogle.dart';
+import 'VerifyEmail.dart';
 import '../utils/validations.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -61,59 +62,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _errorMessage = null);
 
-    try {
-      final user = await UsuarioService.registrar(
-        nacion: nacion!,
-        genero: genero!,
-        nombre: nombre,
-        apellido: apellido,
-        email: email,
-        usuario: usuario,
-        password: password,
-        fechaNacimiento: fechaNacimiento!.toIso8601String(),
-      );
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FeedScreen(themeNotifier: widget.themeNotifier, user: user),
-          ),
-        );
-      }
-    } on PlatformException catch (e) {
-      setState(() {
-        switch (e.code) {
-          case 'DUPLICADO':
-            _errorMessage = e.message ?? 'Ese correo o usuario ya está registrado.';
-            break;
-          case 'NEGOCIO':
-            _errorMessage = e.message ?? 'Revisá los datos ingresados.';
-            break;
-          case 'NETWORK_ERROR':
-            _errorMessage = 'Sin conexión con el servidor. Revisá tu internet.';
-            break;
-          case 'ERROR_JSON':
-            _errorMessage = 'Hubo un problema al preparar los datos. Intentá de nuevo.';
-            break;
-          case 'ERROR_API':
-          case 'ERROR_REGISTRO':
-            _errorMessage = e.message ?? 'El servidor rechazó el registro. Intentá de nuevo.';
-            break;
-          default:
-            _errorMessage = e.message ?? 'No se pudo completar el registro (${e.code}).';
-        }
-      });
-    } catch (e) {
-      setState(() => _errorMessage = 'No se pudo procesar la respuesta del servidor.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VerifyEmailScreen(
+          themeNotifier: widget.themeNotifier,
+          nacion: nacion!,
+          genero: genero!,
+          nombre: nombre,
+          apellido: apellido,
+          email: email,
+          usuario: usuario,
+          password: password,
+          fechaNacimiento: fechaNacimiento!.toIso8601String(),
+        ),
+      ),
+    );
   }
   Future<void> _registrarConGoogle() async {
     if (_isLoading) return;
@@ -127,11 +93,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (outcome.existente != null) {
         if (mounted) {
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (_) => FeedScreen(themeNotifier: widget.themeNotifier, user: outcome.existente!),
             ),
+            (route) => false,
           );
         }
       } else {

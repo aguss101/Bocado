@@ -33,14 +33,16 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="bocado" android:host="perfil" />
                 <data android:scheme="bocado" android:host="receta" />
+                <data android:scheme="bocado" android:host="verificar-correo" />
             </intent-filter>
-            <!-- App Links: https://links.bocado.tech/{perfil|receta}/{slug} (autoVerify con assetlinks.json) -->
+            <!-- App Links: https://links.bocado.tech/{perfil|receta|verificar-correo}/{slug} (autoVerify con assetlinks.json) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/perfil" />
                 <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/receta" />
+                <data android:scheme="https" android:host="links.bocado.tech" android:pathPrefix="/verificar-correo" />
             </intent-filter>
         </activity>
     </application>

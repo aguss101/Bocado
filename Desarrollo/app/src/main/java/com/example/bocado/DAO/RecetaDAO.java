@@ -20,12 +20,13 @@ public class RecetaDAO {
 
     private static final String VISTA = "/rest/v1/vistas_recetas_macros";
 
-    public void feedAleatorio(String seed, int limit, int offset, CallbackCB cb) {
+    public void feedAleatorio(String seed, int limit, int offset, Integer viewerId, CallbackCB cb) {
         try {
             JSONObject body = new JSONObject();
             body.put("p_seed", seed != null ? seed : "0");
             body.put("p_limit", limit);
             body.put("p_offset", offset);
+            body.put("p_viewer_id", viewerId != null ? viewerId : JSONObject.NULL);
             HttpClientManager.getInstance().post("/rest/v1/rpc/feed_aleatorio", body.toString(), restCallback(cb));
         } catch (Exception e) {
             cb.onError(ErrorCode.ERROR_JSON, "Error armando el feed: " + e.getMessage(), null);
@@ -253,17 +254,17 @@ public class RecetaDAO {
         }
     }
 
-    public void cambiarEstado(int idReceta, boolean nuevoEstado, CallbackCB cb) {
+    public void eliminarReceta(int idReceta, int idUsuario, CallbackCB cb) {
         org.json.JSONObject payload = new org.json.JSONObject();
         try {
             payload.put("p_id_receta", idReceta);
-            payload.put("p_nuevo_estado", nuevoEstado);
+            payload.put("p_id_usuario", idUsuario);
         } catch (org.json.JSONException e) {
             cb.onError("JSON_ERROR", "Error al construir los datos: " + e.getMessage(), null);
             return;
         }
 
-        HttpClientManager.getInstance().post("/rest/v1/rpc/cambiar_estado_receta", payload.toString(), new okhttp3.Callback() {
+        HttpClientManager.getInstance().post("/rest/v1/rpc/eliminar_receta_fisico", payload.toString(), new okhttp3.Callback() {
             @Override
             public void onFailure(okhttp3.Call call, java.io.IOException e) {
                 cb.onError("NETWORK_ERROR", e.getMessage(), null);
@@ -271,11 +272,11 @@ public class RecetaDAO {
 
             @Override
             public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                String body = response.body() != null ? response.body().string() : "";
                 if (!response.isSuccessful()) {
-                    String errorBody = response.body() != null ? response.body().string() : "Error HTTP: " + response.code();
-                    cb.onError("DB_ERROR", errorBody, null);
+                    cb.onError("DB_ERROR", body.isEmpty() ? "Error HTTP: " + response.code() : body, null);
                 } else {
-                    cb.onSuccess(null);
+                    cb.onSuccess(body);
                 }
             }
         });

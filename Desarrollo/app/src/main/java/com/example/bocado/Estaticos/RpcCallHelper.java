@@ -38,6 +38,8 @@ public class RpcCallHelper {
                         }
                         if ("23505".equals(err.optString("code"))) {
                             code = ErrorCode.DUPLICADO;
+                        } else if (msg != null && msg.startsWith("LIMITE_ALCANZADO")) {
+                            code = ErrorCode.LIMITE_ALCANZADO;
                         }
                     } catch (Exception ignore) {
                     }

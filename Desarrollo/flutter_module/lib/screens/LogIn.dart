@@ -49,7 +49,7 @@ try {
   if (_rememberMe) await SessionService.saveSession(user);
 
   if (mounted) {
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => FeedScreen(
@@ -57,6 +57,7 @@ try {
           user: user,
         ),
       ),
+      (route) => false,
     );
   }
 
@@ -102,7 +103,7 @@ if (outcome.existente != null) {
 final user = outcome.existente!;
 if (_rememberMe) await SessionService.saveSession(user);
 if (mounted) {
-Navigator.pushReplacement(
+Navigator.pushAndRemoveUntil(
 context,
 MaterialPageRoute(
 builder: (_) => FeedScreen(
@@ -110,6 +111,7 @@ themeNotifier: widget.themeNotifier,
 user: user,
 ),
 ),
+(route) => false,
 );
 }
 } else {

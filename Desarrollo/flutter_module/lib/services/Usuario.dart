@@ -230,6 +230,25 @@ class UsuarioService {
       'nueva': nueva,
     });
   }
+
+  static Future<void> solicitarVerificacionCorreo(String correo) async {
+    await _channel.invokeMethod('solicitarVerificacionCorreo', {'correo': correo});
+  }
+
+  static Future<bool> verificarCodigoRegistro(String correo, String codigo) async {
+    final bool ok = await _channel.invokeMethod('verificarCodigoRegistro', {
+      'correo': correo,
+      'codigo': codigo,
+    });
+    return ok;
+  }
+
+  static Future<bool> verificarLinkRegistro(String token) async {
+    final bool ok = await _channel.invokeMethod('verificarLinkRegistro', {
+      'token': token,
+    });
+    return ok;
+  }
 }
 
 class GoogleAuth {

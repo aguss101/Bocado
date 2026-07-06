@@ -27,8 +27,10 @@ public class AlimentoDAO {
         return lista;
     }
 
-    public static List<Map<String, Object>> listarParaFlutter() throws Exception {
-        String response = RpcCallHelper.callSync("listar_alimentos", new JSONObject());
+    public static List<Map<String, Object>> listarParaFlutter(int idUsuario) throws Exception {
+        JSONObject json = new JSONObject();
+        json.put("p_id_usuario", idUsuario);
+        String response = RpcCallHelper.callSync("listar_mis_alimentos", json);
         return parseLista(response);
     }
 

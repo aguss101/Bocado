@@ -584,8 +584,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _bioCtrl,
-                  maxLines: 4, // Permitir más espacio para la bio
-                  maxLength: 160, // Recomendado para bios cortas
+                  maxLines: 4,
+                  maxLength: 160,
                   style: TextStyle(color: text, fontSize: 14),
                   decoration: _inputDecoration(
                     hint: 'Contá un poco sobre vos...',

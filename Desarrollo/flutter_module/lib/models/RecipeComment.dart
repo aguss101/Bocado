@@ -7,6 +7,8 @@ class RecipeComment {
   final double? calificacion;
   final String nombreUsuario;
   final String avatarUrl;
+  final int idCuenta;
+  bool resaltar;
   List<RecipeComment> respuestas;
 
   RecipeComment({
@@ -18,8 +20,12 @@ class RecipeComment {
     this.calificacion,
     required this.nombreUsuario,
     this.avatarUrl = '',
+    this.idCuenta = 1,
+    this.resaltar = false,
     this.respuestas = const [],
   });
+
+  bool get esPremium => idCuenta == 2;
 
   factory RecipeComment.fromJson(Map<String, dynamic> json){
     return RecipeComment(
@@ -31,6 +37,7 @@ class RecipeComment {
       calificacion: (json["calificacion"] as num?)?.toDouble(),
       nombreUsuario: json["usuario"] ?? 'Usuario',
       avatarUrl: json["foto"] ?? '',
+      idCuenta: (json["id_cuenta_autor"] as num?)?.toInt() ?? 1,
       respuestas: json["respuestas"] != null
           ? (json["respuestas"] as List).map((r) => RecipeComment.fromJson(r)).toList()
           : [],

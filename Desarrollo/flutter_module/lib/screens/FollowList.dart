@@ -6,6 +6,7 @@ import '../services/Instructions.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
+import '../route_observer.dart';
 import 'Profile.dart';
 
 Future<void> mostrarSeguidoresDialog(
@@ -207,14 +208,13 @@ class _FollowListTabState extends State<_FollowListTab> {
           idOtro: otroId,
           onTap: () {
             Navigator.pop(context);
-            Navigator.push(
+            pushOrReuse(
               context,
-              MaterialPageRoute(
-                builder: (_) => ProfileScreen(
-                  user: widget.user,
-                  themeNotifier: widget.themeNotifier,
-                  idUsuarioTarget: otroId,
-                ),
+              'perfil/$otroId',
+              (_) => ProfileScreen(
+                user: widget.user,
+                themeNotifier: widget.themeNotifier,
+                idUsuarioTarget: otroId,
               ),
             );
           },

@@ -111,12 +111,13 @@ class _CompleteGoogleProfileScreenState
       );
 
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (_) =>
                 FeedScreen(themeNotifier: widget.themeNotifier, user: user),
           ),
+          (route) => false,
         );
       }
     } on PlatformException catch (e) {

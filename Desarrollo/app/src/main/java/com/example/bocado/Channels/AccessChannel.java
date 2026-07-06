@@ -49,6 +49,9 @@ public class AccessChannel {
             case "verificarOtp"     -> handleVerificarOtp(call, result);
             case "resetearPassword" -> handleResetPass(call, result);
             case "actualizarPerfilOtp" -> handleActualizarPerfilOtp(call, result);
+            case "solicitarVerificacionCorreo" -> handleSolicitarVerificacionCorreo(call, result);
+            case "verificarCodigoRegistro" -> handleVerificarCodigoRegistro(call, result);
+            case "verificarLinkRegistro" -> handleVerificarLinkRegistro(call, result);
             default -> result.notImplemented();
         }
     }
@@ -536,6 +539,73 @@ public class AccessChannel {
                     } catch (org.json.JSONException e) {
                         activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                     }
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+        }
+    }
+
+
+    private void handleSolicitarVerificacionCorreo(MethodCall call, MethodChannel.Result result) {
+        String correo = call.argument("correo");
+        if (correo == null || correo.trim().isEmpty()) {
+            result.error("NEGOCIO", "Falta el correo.", null);
+            return;
+        }
+        JSONObject body = new JSONObject();
+        try {
+            body.put("correo", correo.trim());
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+            return;
+        }
+        HttpClientManager.getInstance().post("/functions/v1/enviar-verificacion", body.toString(), new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
+            }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                if (response.isSuccessful()) {
+                    activity.runOnUiThread(() -> result.success(true));
+                } else {
+                    int code = response.code();
+                    String b = response.body() != null ? response.body().string() : "";
+                    activity.runOnUiThread(() -> result.error("VERIF_ERROR", "enviar-verificacion respondió " + code + ": " + b, null));
+                }
+            }
+        });
+    }
+
+    private void handleVerificarCodigoRegistro(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_correo", (String) call.argument("correo"));
+            body.put("p_codigo", (String) call.argument("codigo"));
+            RpcCallHelper.callAsync("verificar_codigo_registro", body, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    boolean ok = Boolean.parseBoolean(response.trim());
+                    activity.runOnUiThread(() -> result.success(ok));
+                }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            });
+        } catch (org.json.JSONException e) {
+            result.error("ERROR_JSON", e.getMessage(), null);
+        }
+    }
+
+    private void handleVerificarLinkRegistro(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("p_token", (String) call.argument("token"));
+            RpcCallHelper.callAsync("verificar_link_registro", body, new CallbackCB() {
+                @Override public void onSuccess(String response) {
+                    boolean ok = Boolean.parseBoolean(response.trim());
+                    activity.runOnUiThread(() -> result.success(ok));
                 }
                 @Override public void onError(String code, String message, Object details) {
                     activity.runOnUiThread(() -> result.error(code, message, details));

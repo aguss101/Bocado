@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import '../utils/IdCodec.dart';
 
-enum DeepLinkTipo { perfil, receta }
+enum DeepLinkTipo { perfil, receta, verificarCorreo }
 
 class DeepLinkTarget {
   final DeepLinkTipo tipo;
   final int id;
-  const DeepLinkTarget(this.tipo, this.id);
+  final String? token;
+  const DeepLinkTarget(this.tipo, this.id, {this.token});
 }
 
 class NavigationService {
@@ -59,6 +60,9 @@ class NavigationService {
     if (seccion == 'receta') {
       final id = IdCodec.decodeReceta(slug);
       return id != null ? DeepLinkTarget(DeepLinkTipo.receta, id) : null;
+    }
+    if (seccion == 'verificar-correo') {
+      return DeepLinkTarget(DeepLinkTipo.verificarCorreo, 0, token: slug);
     }
     return null;
   }

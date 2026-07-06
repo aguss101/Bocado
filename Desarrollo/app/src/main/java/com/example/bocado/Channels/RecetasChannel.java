@@ -32,7 +32,7 @@ public class RecetasChannel {
 
     private void handleCall(MethodCall call, MethodChannel.Result result) {
         switch (call.method) {
-            case "getAlimentos"    -> handleGetAlimento(result);
+            case "getAlimentos"    -> handleGetAlimento(call, result);
             case "addAlimento"     -> handleAddAlimento(call, result);
             case "saveReceta"      -> handleSaveReceta(call, result);
             case "getRecetas"      -> handleGetRecetas(call, result);
@@ -44,7 +44,7 @@ public class RecetasChannel {
             case "getEtiquetas" -> handleGetEtiquetas(call, result);
             case "getRecetaID" -> handleGetRecetaID(call, result);
             case "updateReceta" -> handleUpdateReceta(call, result);
-            case "cambiarEstadoReceta" -> handleCambiarEstadoReceta(call, result);
+            case "eliminarReceta" -> handleEliminarReceta(call, result);
             default                -> result.notImplemented();
         }
     }
@@ -88,10 +88,15 @@ public class RecetasChannel {
         }).start();
     }
 
-    private void handleGetAlimento(MethodChannel.Result result) {
+    private void handleGetAlimento(MethodCall call, MethodChannel.Result result) {
+        Integer idUsuario = call.argument("id_usuario");
+        if (idUsuario == null) {
+            result.error("INVALID_ARGS", "Se requiere el id del usuario", null);
+            return;
+        }
         new Thread(() -> {
             try {
-                List<Map<String, Object>> lista = AlimentoDAO.listarParaFlutter();
+                List<Map<String, Object>> lista = AlimentoDAO.listarParaFlutter(idUsuario);
                 activity.runOnUiThread(() -> result.success(lista));
             } catch (Exception e) {
                 activity.runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
@@ -185,6 +190,7 @@ public class RecetasChannel {
                 call.argument("seed"),
                 call.argument("limit"),
                 call.argument("offset"),
+                call.argument("viewerId"),
                 bridgeData(result));
     }
 
@@ -204,10 +210,10 @@ public class RecetasChannel {
             }
         };
     }
-    private void handleCambiarEstadoReceta(MethodCall call, MethodChannel.Result result) {
-        RecetaManager.getInstance().cambiarEstado(
+    private void handleEliminarReceta(MethodCall call, MethodChannel.Result result) {
+        RecetaManager.getInstance().eliminarReceta(
                 call.argument("id_receta"),
-                call.argument("nuevo_estado"),
+                call.argument("id_usuario"),
                 bridgeData(result)
         );
     }

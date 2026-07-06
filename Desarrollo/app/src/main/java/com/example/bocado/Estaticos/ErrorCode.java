@@ -13,4 +13,5 @@ public class ErrorCode {
     public static final String PARSE_ERROR    = "PARSE_ERROR";
     public static final String NEGOCIO        = "NEGOCIO";
     public static final String DUPLICADO      = "DUPLICADO";
+    public static final String LIMITE_ALCANZADO = "LIMITE_ALCANZADO";
 }

@@ -67,6 +67,7 @@ class _BocadoAppState extends State<BocadoApp> {
   }
 
   void _onDeepLink(DeepLinkTarget target) {
+    if (target.tipo == DeepLinkTipo.verificarCorreo) return;
     final user = widget.savedUser;
     if (user == null) return;
     final nav = _navigatorKey.currentState;
@@ -85,8 +86,17 @@ class _BocadoAppState extends State<BocadoApp> {
           carbFeed: 0,
           grasFeed: 0,
         ),
+      DeepLinkTipo.verificarCorreo => const SizedBox.shrink(),
     };
-    nav.push(MaterialPageRoute(builder: (_) => pantalla));
+    final String routeName = switch (target.tipo) {
+      DeepLinkTipo.perfil => 'perfil/${target.id}',
+      DeepLinkTipo.receta => 'receta/${target.id}',
+      DeepLinkTipo.verificarCorreo => '',
+    };
+    nav.push(MaterialPageRoute(
+      settings: RouteSettings(name: routeName),
+      builder: (_) => pantalla,
+    ));
   }
 
   @override
@@ -141,7 +151,7 @@ class _BocadoAppState extends State<BocadoApp> {
             Locale('en'),
           ],
           navigatorKey: _navigatorKey,
-          navigatorObservers: [routeObserver],
+          navigatorObservers: [routeObserver, bocadoRouteTracker],
           home: _resolveHome(),
         );
       },
@@ -167,22 +177,32 @@ class _DeepLinkLauncherState extends State<_DeepLinkLauncher> {
   }
 
   void _abrir() {
-    final destino = switch (widget.target.tipo) {
-      DeepLinkTipo.perfil => ProfileScreen(
-          themeNotifier: widget.themeNotifier,
-          user: widget.user,
-          idUsuarioTarget: widget.target.id,
-        ),
-      DeepLinkTipo.receta => RecipeDetailScreen(
-          themeNotifier: widget.themeNotifier,
-          user: widget.user,
-          idReceta: widget.target.id,
-          protFeed: 0,
-          carbFeed: 0,
-          grasFeed: 0,
-        ),
+    if (widget.target.tipo == DeepLinkTipo.verificarCorreo) return;
+    final String routeName = switch (widget.target.tipo) {
+      DeepLinkTipo.perfil => 'perfil/${widget.target.id}',
+      DeepLinkTipo.receta => 'receta/${widget.target.id}',
+      DeepLinkTipo.verificarCorreo => '',
     };
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destino));
+    pushOrReuse(
+      context,
+      routeName,
+      (_) => switch (widget.target.tipo) {
+        DeepLinkTipo.perfil => ProfileScreen(
+            themeNotifier: widget.themeNotifier,
+            user: widget.user,
+            idUsuarioTarget: widget.target.id,
+          ),
+        DeepLinkTipo.receta => RecipeDetailScreen(
+            themeNotifier: widget.themeNotifier,
+            user: widget.user,
+            idReceta: widget.target.id,
+            protFeed: 0,
+            carbFeed: 0,
+            grasFeed: 0,
+          ),
+        DeepLinkTipo.verificarCorreo => const SizedBox.shrink(),
+      },
+    );
   }
 
   @override

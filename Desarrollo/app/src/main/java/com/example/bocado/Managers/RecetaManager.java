@@ -98,11 +98,12 @@ public class RecetaManager implements IReceta {
         }
     }
 
-    public void feed(String seed, Integer limit, Integer offset, CallbackCB cb) {
+    public void feed(String seed, Integer limit, Integer offset, Integer viewerId, CallbackCB cb) {
         recetaDAO.feedAleatorio(
                 seed,
                 limit != null ? limit : 10,
                 offset != null ? offset : 0,
+                viewerId,
                 cb);
     }
 
@@ -138,13 +139,55 @@ public class RecetaManager implements IReceta {
         recetaDAO.obtenerDetalle(idReceta, cb);
     }
 
-    public void cambiarEstado(Integer idReceta, Boolean nuevoEstado, CallbackCB cb) {
-        if (idReceta == null || nuevoEstado == null) {
-            cb.onError("INVALID_ARGS", "Faltan parámetros (id_receta o nuevo_estado)", null);
+    public void eliminarReceta(Integer idReceta, Integer idUsuario, CallbackCB cb) {
+        if (idReceta == null || idUsuario == null) {
+            cb.onError("INVALID_ARGS", "Faltan parámetros (id_receta o id_usuario)", null);
             return;
         }
 
-        recetaDAO.cambiarEstado(idReceta, nuevoEstado, cb);
+        recetaDAO.eliminarReceta(idReceta, idUsuario, new CallbackCB() {
+            @Override
+            public void onSuccess(String data) {
+                try {
+                    org.json.JSONObject obj = new org.json.JSONObject(data);
+                    if (!obj.optBoolean("ok", false)) {
+                        cb.onError(ErrorCode.NEGOCIO, obj.optString("mensaje", "No se pudo eliminar la receta"), null);
+                        return;
+                    }
+                    String foto = obj.isNull("foto") ? null : obj.optString("foto", null);
+                    if (foto != null && !foto.isEmpty()) {
+                        limpiarStorage(foto);
+                    }
+                    cb.onSuccess(data);
+                } catch (Exception e) {
+                    cb.onError(ErrorCode.PARSE_ERROR, e.getMessage(), null);
+                }
+            }
+
+            @Override
+            public void onError(String code, String msg, Object details) {
+                cb.onError(code, msg, details);
+            }
+        });
+    }
+
+    private void limpiarStorage(String fotoConcatenada) {
+        okhttp3.Callback noop = new okhttp3.Callback() {
+            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) { }
+            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                if (response.body() != null) response.body().close();
+            }
+        };
+        final String marcador = "/storage/v1/object/public/";
+        for (String url : fotoConcatenada.split("\\|")) {
+            if (url == null || !url.contains(marcador)) continue;
+            String objectPath = url.substring(url.indexOf(marcador) + marcador.length());
+            int q = objectPath.indexOf('?');
+            if (q >= 0) objectPath = objectPath.substring(0, q);
+            if (!objectPath.isEmpty()) {
+                HttpClientManager.getInstance().deleteStorageObject(objectPath, noop);
+            }
+        }
     }
 
 }

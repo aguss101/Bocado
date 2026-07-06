@@ -35,6 +35,7 @@ class _Ingredient {
   double priceBase;
   int idMedida;
   final int? idUsuario;
+  final TextEditingController quantityController;
 
   _Ingredient({
     required this.idAlimento,
@@ -45,7 +46,8 @@ class _Ingredient {
     required this.priceBase,
     required this.idMedida,
     this.idUsuario,
-  });
+  }) : quantityController =
+           TextEditingController(text: quantity == "0" ? "" : quantity);
 
   double get subtotal {
     final qty = double.tryParse(quantity) ?? 0.0;
@@ -365,12 +367,16 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     _caloriasCtrl.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
+    for (final ing in _ingredients) {
+      ing.quantityController.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _cargarAlimentosDesdeDB() async {
     try {
-      final List<dynamic>? res = await _channel.invokeMethod('getAlimentos');
+      final List<dynamic>? res = await _channel
+          .invokeMethod('getAlimentos', {'id_usuario': widget.user.id});
       if (res != null) {
         setState(() {
           _dbAlimentosMaster = res.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -577,6 +583,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ),
           const Spacer(),
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
+          if (_esEdicion && _idRecetaActual != null)
+            IconButton(
+              tooltip: 'Eliminar receta',
+              onPressed: () async {
+                final ok = await mostrarDialogoEliminarReceta(
+                  context,
+                  idReceta: _idRecetaActual!,
+                  idUsuario: widget.user.id,
+                );
+                if (ok && mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.delete_outline, color: _error),
+            ),
 
     _pillButton(
     icon: Icons.visibility_outlined,
@@ -1025,7 +1044,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => setState(() => _ingredients.removeAt(index)),
+                    onTap: () {
+                      final removed = _ingredients.removeAt(index);
+                      removed.quantityController.dispose();
+                      setState(() {});
+                    },
                     child: Icon(Icons.delete_outline, color: _error.withValues(alpha: 0.6), size: 18),
                   ),
                 ],
@@ -1043,8 +1066,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   SizedBox(
                     width: 50, height: 26,
                     child: TextFormField(
-                      controller: TextEditingController(text: ing.quantity == "0" ? "" : ing.quantity),
-
+                      controller: ing.quantityController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),

@@ -4,6 +4,68 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
+import '../services/Receta.dart';
+
+Future<bool> mostrarDialogoEliminarReceta(
+  BuildContext context, {
+  required int idReceta,
+  required int idUsuario,
+}) async {
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        '¿Eliminar receta permanentemente?',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      content: const Text(
+        'Esta acción no se puede deshacer. También se eliminarán los '
+        'comentarios, calificaciones y guardados de esta receta.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmar != true) return false;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await RecetaService.eliminarReceta(idReceta, idUsuario);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Receta eliminada correctamente')),
+    );
+    return true;
+  } catch (_) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Error al eliminar la receta. Revisa tu conexión.')),
+    );
+    return false;
+  }
+}
+
+Widget bocadoDeleteBadge({required VoidCallback onTap}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+      ),
+      child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+    ),
+  );
+}
 
 class BocadoNetworkImage extends StatelessWidget {
   final String url;
@@ -47,6 +109,61 @@ class BocadoNetworkImage extends StatelessWidget {
 
 ImageProvider bocadoImageProvider(String url) =>
     CachedNetworkImageProvider(url);
+
+Future<void> showFullscreenImage(
+  BuildContext context, {
+  String? url,
+  Uint8List? bytes,
+}) {
+  if ((url == null || url.isEmpty) && bytes == null) return Future.value();
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _FullscreenImageViewer(url: url, bytes: bytes),
+    ),
+  );
+}
+
+class _FullscreenImageViewer extends StatelessWidget {
+  final String? url;
+  final Uint8List? bytes;
+
+  const _FullscreenImageViewer({this.url, this.bytes});
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget imagen = url != null && url!.isNotEmpty
+        ? CachedNetworkImage(imageUrl: url!, fit: BoxFit.contain)
+        : Image.memory(bytes!, fit: BoxFit.contain);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: SizedBox.expand(
+                child: InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(child: imagen),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 Future<ImageSource?> showImageSourceSheet(BuildContext context) {
   final c = BocadoColors.of(context);

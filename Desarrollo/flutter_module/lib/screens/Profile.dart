@@ -216,7 +216,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   void didPopNext() {
     _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
     if (!_isMiPerfil) _cargarEstadoSeguimiento(widget.idUsuarioTarget!);
-    if (_isMiPerfil) _refrescarMisRecetas();
+    if (_isMiPerfil) {
+      _refrescarMisRecetas();
+      _refrescarGuardados();
+    }
   }
 
   Future<void> _refrescarMisRecetas() async {
@@ -232,6 +235,24 @@ class _ProfileScreenState extends State<ProfileScreen>
         _plRecetas.cargando = false;
       });
     } catch (_) {}
+  }
+
+  Future<void> _refrescarGuardados() async {
+    final pl = _plGuardados;
+    if (pl == null) return;
+    await pl.cargarPrimera();
+    if (mounted) setState(() {});
+  }
+
+  void _onRecetaEliminada() {
+    if (!mounted) return;
+    if (_isMiPerfil) {
+      _refrescarMisRecetas();
+      _refrescarGuardados();
+    } else {
+      _cargarPrimera(_plRecetas);
+    }
+    _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
   }
 
   Future<void> _cargarPrimera(_PagedList pl) async {
@@ -522,7 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               if (_user.id_Cuenta == 2) ...[
                 const SizedBox(width: 6),
                 const Icon(
-                  Icons.emoji_events, // Icono de corona
+                  Icons.star,
                   color: Colors.amber,
                   size: 20,
                 ),
@@ -762,6 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             context: context,
             themeNotifier: widget.themeNotifier,
             user: widget.user,
+            onEliminada: _onRecetaEliminada,
           );
         },
       ),
@@ -799,6 +821,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           context: context,
           themeNotifier: widget.themeNotifier,
           user: widget.user,
+          onEliminada: _onRecetaEliminada,
         );
       },
     );
@@ -860,6 +883,7 @@ Widget _recipeCard({
   required BuildContext context,
   required ThemeNotifier themeNotifier,
   required usuario_Logged user,
+  VoidCallback? onEliminada,
 }) {
   final stringEtiqueta = receta.etiquetas.isNotEmpty
       ? receta.etiquetas.first
@@ -867,19 +891,18 @@ Widget _recipeCard({
 
   return GestureDetector(
     onTap: () {
-      Navigator.push(
+      pushOrReuse(
         context,
-        MaterialPageRoute(
-          builder: (context) => RecipeDetailScreen(
-            themeNotifier: themeNotifier,
-            user: user,
-            idReceta: receta.idReceta,
-            protFeed: receta.proteinasTotales,
-            carbFeed: receta.carbohidratosTotales,
-            grasFeed: receta.grasasTotales,
-            idAutor: receta.usuarioTarget,
-            isLikedInicial: receta.isLikedBy(user.id),
-          ),
+        'receta/${receta.idReceta}',
+        (context) => RecipeDetailScreen(
+          themeNotifier: themeNotifier,
+          user: user,
+          idReceta: receta.idReceta,
+          protFeed: receta.proteinasTotales,
+          carbFeed: receta.carbohidratosTotales,
+          grasFeed: receta.grasasTotales,
+          idAutor: receta.usuarioTarget,
+          isLikedInicial: receta.isLikedBy(user.id),
         ),
       );
     },
@@ -898,9 +921,15 @@ Widget _recipeCard({
               fit: StackFit.expand,
               children: [
                 (receta.foto != null && receta.foto!.isNotEmpty)
-                    ? BocadoNetworkImage(
-                  url: receta.foto!.split('|')[0],
-                  memCacheWidth: 600,
+                    ? GestureDetector(
+                  onLongPress: () => showFullscreenImage(
+                    context,
+                    url: receta.foto!.split('|')[0],
+                  ),
+                  child: BocadoNetworkImage(
+                    url: receta.foto!.split('|')[0],
+                    memCacheWidth: 600,
+                  ),
                 )
                     : Container(
                   color: AppTheme.primary.withValues(alpha: 0.08),
@@ -932,6 +961,21 @@ Widget _recipeCard({
                     ),
                   ),
                 ),
+                if (receta.usuarioTarget == user.id)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: bocadoDeleteBadge(
+                      onTap: () async {
+                        final ok = await mostrarDialogoEliminarReceta(
+                          context,
+                          idReceta: receta.idReceta,
+                          idUsuario: user.id,
+                        );
+                        if (ok) onEliminada?.call();
+                      },
+                    ),
+                  ),
               ],
             ),
           ),
