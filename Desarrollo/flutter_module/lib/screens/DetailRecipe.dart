@@ -32,6 +32,7 @@ class RecipeDetailData {
   final String nombreAutor;
   final String? fotoAutor;
   final double? precioPorcion;
+  final double calificacionPromedio;
 
   const RecipeDetailData({
     required this.titulo,
@@ -48,6 +49,7 @@ class RecipeDetailData {
     this.nombreAutor = '',
     this.fotoAutor,
     this.precioPorcion,
+    this.calificacionPromedio = 0.0,
   });
 
   factory RecipeDetailData.fromJson(
@@ -56,17 +58,22 @@ class RecipeDetailData {
       double _carb,
       double _gras,
       ) {
+    double promedioExtraido = 0.0;
+    if (json['estadisticas_receta'] != null && json['estadisticas_receta'] is Map) {
+      promedioExtraido = (json['estadisticas_receta']['promedio_calificacion'] as num?)?.toDouble() ?? 0.0;
+    } else if (json['promedio_calificacion'] != null) {
+      promedioExtraido = (json['promedio_calificacion'] as num?)?.toDouble() ?? 0.0;
+    }
+
     return RecipeDetailData(
       titulo: json['nombre'] ?? '',
       categoria: 'General',
-
       imageUrl: json['foto'] ?? '',
       calorias: (json['calorias_totales'] ?? 0).toDouble(),
       proteina: _prot.toStringAsFixed(1),
       carbos: _carb.toStringAsFixed(1),
       grasas: _gras.toStringAsFixed(1),
       duracion: _formatDuracion(json['tiempo_coccion']),
-
       porciones: '${json['porciones'] ?? 0} porciones',
       ingredientes: (json['recetas_alimentos'] as List? ?? [])
           .map((item) => IngredientItem.fromJson(item))
@@ -75,6 +82,7 @@ class RecipeDetailData {
       nombreAutor: (json['usuarios'] as Map<String, dynamic>?)?['usuario'] ?? 'Usuario',
       fotoAutor: (json['usuarios'] as Map<String, dynamic>?)?['foto'],
       precioPorcion: _calcularPrecioPorcion(json),
+      calificacionPromedio: promedioExtraido,
     );
   }
 
@@ -192,7 +200,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _abriendoEditor = false;
   RecipeDetailData? _data;
   final PageController _pageController = PageController();
-  List<RecipeComment> _comentarios = [];
+  final ValueNotifier<List<RecipeComment>> _comentariosNotifier = ValueNotifier([]);
+  final ValueNotifier<double> _ratingNotifier = ValueNotifier(0.0);
+
+  @override
+  void dispose() {
+    _comentariosNotifier.dispose();
+    _ratingNotifier.dispose();
+    super.dispose();
+  }
 
   bool get _esPropia =>
       widget.idAutor != null && widget.idAutor == widget.user.id;
@@ -202,7 +218,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     pushOrReuse(
       context,
       'perfil/${widget.idAutor}',
-      (_) => ProfileScreen(
+          (_) => ProfileScreen(
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         idUsuarioTarget: widget.idAutor,
@@ -347,6 +363,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             widget.carbFeed,
             widget.grasFeed,
           );
+          _ratingNotifier.value = _data!.calificacionPromedio;
           _isLoading = false;
         });
       }
@@ -383,17 +400,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       final normales = comentariosRaiz.where((c) => !c.esPremium).toList();
       comentariosRaiz = [...premium, ...normales];
 
-      final yaResaltados = <int>{};
       for (final c in comentariosRaiz) {
-        if (c.esPremium && yaResaltados.add(c.idUsuario)) {
+        if (c.esPremium) {
           c.resaltar = true;
         }
       }
 
       if (mounted) {
-        setState(() {
-          _comentarios = comentariosRaiz;
-        });
+        _comentariosNotifier.value = comentariosRaiz;
       }
     } catch (e) {
       print("Error cargando comentarios: $e");
@@ -405,61 +419,101 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         int? idPadre,
       }) async {
     final TextEditingController _controlador = TextEditingController();
+    double _calificacion = 0;
+    final yaComento = _comentariosNotifier.value.any((c) => c.idUsuario == widget.user.id && c.idComentarioPadre == null);
+    final bool mostrarEstrellas = idPadre == null && !yaComento;
 
     return showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            idPadre == null ? 'Dejar un comentario' : 'Responder comentario',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          content: TextField(
-            controller: _controlador,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: idPadre == null
-                  ? '¿Qué te pareció la receta?'
-                  : 'Escribe tu respuesta...',
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final texto = _controlador.text.trim();
-                if (texto.isNotEmpty) {
-                  Navigator.pop(context);
-                  await _enviarComentarioADB(texto, idPadre: idPadre);
-                }
-              },
-              child: const Text('Enviar'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                idPadre == null ? 'Dejar un comentario' : 'Responder comentario',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (mostrarEstrellas) ...[
+                    const Text('Califica esta receta:'),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            index < _calificacion ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _calificacion = index + 1.0;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  TextField(
+                    controller: _controlador,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: idPadre == null
+                          ? '¿Qué te pareció la receta?'
+                          : 'Escribe tu respuesta...',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final texto = _controlador.text.trim();
+                    if (texto.isNotEmpty || (mostrarEstrellas && _calificacion > 0)) {
+                      Navigator.pop(context);
+                      await _enviarComentarioADB(
+                        texto,
+                        idPadre: idPadre,
+                        calificacion: _calificacion > 0 ? _calificacion : null,
+                      );
+                    }
+                  },
+                  child: const Text('Enviar'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _enviarComentarioADB(String texto, {int? idPadre}) async {
+  Future<void> _enviarComentarioADB(String texto, {int? idPadre, double? calificacion}) async {
     try {
       final Map<String, dynamic> datos = {
         'id_receta': widget.idReceta,
         'id_usuario': widget.user.id,
-        'comentario': texto,
+        'comentario': texto.isEmpty ? null : texto,
         'id_comentario_padre': idPadre,
+        'calificacion': calificacion,
       };
 
       await InteraccionesService.enviarComentario(datos);
-
       await cargarComentarios(widget.idReceta);
+      await _traerDetalleDeLaReceta();
     } catch (e) {
       print("Error publicando: $e");
       if (mounted) {
@@ -518,15 +572,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: ListView.builder(
-                      controller: controller,
-                      itemCount: _comentarios.length,
-                      itemBuilder: (context, index) {
-                        return _CommentCard(
-                          comment: _comentarios[index],
-                          surface: surface,
-                          outline: outline,
-                          onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                    child: ValueListenableBuilder<List<RecipeComment>>(
+                      valueListenable: _comentariosNotifier,
+                      builder: (context, comentarios, child) {
+                        return ListView.builder(
+                          controller: controller,
+                          itemCount: comentarios.length,
+                          itemBuilder: (context, index) {
+                            return _CommentCard(
+                              comment: comentarios[index],
+                              surface: surface,
+                              outline: outline,
+                              onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                            );
+                          },
                         );
                       },
                     ),
@@ -540,6 +599,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final c = BocadoColors.of(context);
@@ -903,6 +963,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         icon: Icons.restaurant_outlined,
                         label: _data!.porciones,
                       ),
+                      ValueListenableBuilder<double>(
+                        valueListenable: _ratingNotifier,
+                        builder: (context, promedio, child) {
+                          if (promedio == 0) return const SizedBox.shrink();
+                          return _QuickInfo(
+                            icon: Icons.star,
+                            label: promedio.toStringAsFixed(1),
+                            iconColor: Colors.amber,
+                            textColor: Colors.amber,
+                          );
+                        },
+                      ),
                       if (_data!.precioPorcion != null)
                         _QuickInfo(
                           icon: Icons.attach_money,
@@ -1000,22 +1072,30 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  if (_comentarios.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text('Sé el primero en dejar un comentario.'),
-                    )
-                  else
-                    ..._comentarios
-                        .take(2)
-                        .map(
-                          (c) => _CommentCard(
-                        comment: c,
-                        surface: surface,
-                        outline: outline,
-                        onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
-                      ),
-                    ),
+                  ValueListenableBuilder<List<RecipeComment>>(
+                    valueListenable: _comentariosNotifier,
+                    builder: (context, comentarios, child) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (comentarios.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text('Sé el primero en dejar un comentario.'),
+                            )
+                          else
+                            ...comentarios.take(2).map(
+                                  (c) => _CommentCard(
+                                comment: c,
+                                surface: surface,
+                                outline: outline,
+                                onReply: (idPadre) => _mostrarDialogoComentario(context, idPadre: idPadre),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -1436,17 +1516,17 @@ class _CommentCard extends StatelessWidget {
             color: isReply
                 ? Colors.transparent
                 : (comment.resaltar
-                    ? Colors.amber.withValues(alpha: 0.08)
-                    : surface.withValues(alpha: 0.4)),
+                ? Colors.amber.withValues(alpha: 0.08)
+                : surface.withValues(alpha: 0.4)),
             borderRadius: BorderRadius.circular(16),
             border: isReply
                 ? null
                 : Border.all(
-                    color: comment.resaltar
-                        ? Colors.amber
-                        : outline.withValues(alpha: 0.3),
-                    width: comment.resaltar ? 1.5 : 1,
-                  ),
+              color: comment.resaltar
+                  ? Colors.amber
+                  : outline.withValues(alpha: 0.3),
+              width: comment.resaltar ? 1.5 : 1,
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

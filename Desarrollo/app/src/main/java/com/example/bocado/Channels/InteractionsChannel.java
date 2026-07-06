@@ -69,6 +69,7 @@ public class InteractionsChannel {
                 call.argument("id_usuario"),
                 call.argument("comentario"),
                 call.argument("id_comentario_padre"),
+                call.argument("calificacion"),
                 bridgeOk(result));
     }
 

@@ -101,4 +101,9 @@ class RecetaService {
     );
   }
 
+  static Future<List<RecetaFeed>> buscarRecetas(String query) =>
+      _fetchRecetas('buscarReceta', {
+        'query': query,
+      });
+
 }

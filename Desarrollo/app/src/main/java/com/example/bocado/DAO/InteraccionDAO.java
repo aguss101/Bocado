@@ -47,14 +47,14 @@ public class InteraccionDAO implements IInteraccion {
     }
 
     @Override
-    public void enviarComentario(int idReceta, int idUsuario, String comentario, Integer idPadre, CallbackCB cb) {
+    public void enviarComentario(int idReceta, int idUsuario, String comentario, Integer idPadre, Double calificacion, CallbackCB cb) {
         try {
             JSONObject json = new JSONObject();
             json.put("p_id_receta", idReceta);
             json.put("p_id_usuario", idUsuario);
             json.put("p_comentario", comentario);
             json.put("p_id_comentario_padre", idPadre == null ? JSONObject.NULL : idPadre);
-            json.put("p_calificacion", JSONObject.NULL);
+            json.put("p_calificacion", calificacion == null ? JSONObject.NULL : calificacion);
             RpcCallHelper.callAsync("agregar_comentario", json, cb);
         } catch (Exception e) {
             cb.onError(ErrorCode.ERROR_JSON, "Error armando el comentario: " + e.getMessage(), null);

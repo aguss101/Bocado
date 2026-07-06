@@ -17,12 +17,14 @@ class SharedDrawer extends StatelessWidget {
   final usuario_Logged user;
   final ThemeNotifier themeNotifier;
   final String rutaActual;
+  final VoidCallback? onRefresh;
 
   const SharedDrawer({
     super.key,
     required this.user,
     required this.themeNotifier,
     required this.rutaActual,
+    this.onRefresh,
   });
 
   @override
@@ -97,9 +99,10 @@ class SharedDrawer extends StatelessWidget {
                     child: ListTile(
                       leading: const Icon(Icons.add_circle, color: Colors.white),
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      onTap: () {
+                      onTap: () async {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(themeNotifier: themeNotifier, user: user)));
+                        final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => RecipeEditorScreen(themeNotifier: themeNotifier, user: user)));
+                        if(result == true && onRefresh != null)onRefresh!();
                       },
                     ),
                   ),

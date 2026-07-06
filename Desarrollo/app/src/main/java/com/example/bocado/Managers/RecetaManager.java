@@ -1,5 +1,6 @@
 package com.example.bocado.Managers;
 
+import android.telecom.Call;
 import com.example.bocado.DAO.Interfaces.IReceta;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Estaticos.ErrorCode;
@@ -188,6 +189,14 @@ public class RecetaManager implements IReceta {
                 HttpClientManager.getInstance().deleteStorageObject(objectPath, noop);
             }
         }
+    }
+
+    public void buscarReceta(String query, CallbackCB cb){
+        if(query == null || query.trim().isEmpty()){
+            cb.onError(ErrorCode.NEGOCIO, "Falta el término de búsqueda.", null);
+            return;
+        }
+        recetaDAO.buscarReceta(query, cb);
     }
 
 }

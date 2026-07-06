@@ -45,6 +45,7 @@ public class RecetasChannel {
             case "getRecetaID" -> handleGetRecetaID(call, result);
             case "updateReceta" -> handleUpdateReceta(call, result);
             case "eliminarReceta" -> handleEliminarReceta(call, result);
+            case "buscarReceta" -> handleBuscarReceta(call, result);
             default                -> result.notImplemented();
         }
     }
@@ -214,6 +215,13 @@ public class RecetasChannel {
         RecetaManager.getInstance().eliminarReceta(
                 call.argument("id_receta"),
                 call.argument("id_usuario"),
+                bridgeData(result)
+        );
+    }
+
+    private void handleBuscarReceta(MethodCall call, MethodChannel.Result result){
+        RecetaManager.getInstance().buscarReceta(
+                call.argument("query"),
                 bridgeData(result)
         );
     }

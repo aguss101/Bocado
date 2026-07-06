@@ -656,6 +656,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       Container(height: 36, width: 1, color: border);
 
   Widget _buildBioCard(Color surface, Color border, Color text, Color muted) {
+    final String bioText = (_user.bio == 'null') ? "Sin biografía" : _user.bio!;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(20),
@@ -670,7 +672,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           Text('Bio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primary, letterSpacing: 1)),
           const SizedBox(height: 8),
           Text(
-            _user.bio ?? "Sin biografía",
+            bioText,
             style: TextStyle(fontSize: 13, color: muted, height: 1.5),
           ),
         ],

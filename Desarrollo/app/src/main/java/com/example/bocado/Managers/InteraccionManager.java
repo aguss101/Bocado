@@ -39,11 +39,11 @@ public class InteraccionManager {
         interaccionDAO.fetchComentarios(idReceta, cb);
     }
 
-    public void enviarComentario(Integer idReceta, Integer idUsuario, String comentario, Integer idPadre, CallbackCB cb) {
+    public void enviarComentario(Integer idReceta, Integer idUsuario, String comentario, Integer idPadre, Double calificacion, CallbackCB cb) {
         if (idReceta == null || idUsuario == null || comentario == null || comentario.trim().isEmpty()) {
             cb.onError(ErrorCode.NEGOCIO, "Faltan datos obligatorios del comentario.", null);
             return;
         }
-        interaccionDAO.enviarComentario(idReceta, idUsuario, comentario, idPadre, cb);
+        interaccionDAO.enviarComentario(idReceta, idUsuario, comentario, idPadre, calificacion, cb);
     }
 }

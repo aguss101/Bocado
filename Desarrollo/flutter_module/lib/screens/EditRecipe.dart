@@ -508,7 +508,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       }
 
       _snack(esBorrador ? 'Borrador guardado' : 'Receta publicada con éxito');
-      Navigator.pop(context);
+      Navigator.pop(context, true);
 
     } catch (e) {
       _snack('Error al guardar: $e');

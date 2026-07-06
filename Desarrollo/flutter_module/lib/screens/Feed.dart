@@ -15,9 +15,8 @@ import '../route_observer.dart';
 import 'DetailRecipe.dart';
 import 'BarraNavegacion.dart';
 import 'package:share_plus/share_plus.dart';
-
+import 'SearchScreen.dart';
 import 'EditRecipe.dart';
-
 
 
 class FeedScreen extends StatefulWidget {
@@ -39,7 +38,7 @@ class _FeedScreenState extends State<FeedScreen> {
   final ScrollController _scrollController = ScrollController();
   static const int _pageSize = 10;
 
-  late final String _seed;
+  late String _seed;
   int _offset = 0;
   bool _estaCargando = true;
   bool _cargandoMas = false;
@@ -49,10 +48,14 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void initState() {
     super.initState();
-    _seed = DateTime.now().millisecondsSinceEpoch.toString();
+    _seed = DateTime
+        .now()
+        .millisecondsSinceEpoch
+        .toString();
     _scrollController.addListener(_onScroll);
     _traerRecetas();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _chequearActualizacion());
+    WidgetsBinding.instance.addPostFrameCallback((_) =>
+        _chequearActualizacion());
   }
 
   Future<void> _chequearActualizacion() async {
@@ -133,7 +136,6 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
 
-
   @override
   Widget build(BuildContext context) {
     final c = BocadoColors.of(context);
@@ -144,6 +146,17 @@ class _FeedScreenState extends State<FeedScreen> {
         user: widget.user,
         themeNotifier: widget.themeNotifier,
         rutaActual: 'inicio',
+        onRefresh: () {
+          setState(() {
+            _estaCargando = true;
+            _offset = 0;
+            _seed = DateTime
+                .now()
+                .millisecondsSinceEpoch
+                .toString();
+          });
+          _traerRecetas();
+        },
       ),
       appBar: AppBar(
         backgroundColor: c.bg,
@@ -158,7 +171,8 @@ class _FeedScreenState extends State<FeedScreen> {
                   color: AppTheme.primary,
                   borderRadius: BorderRadius.circular(BocadoRadius.sm),
                 ),
-                child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
+                child: const Icon(
+                    Icons.restaurant_menu, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 8),
               Text('Bocado',
@@ -176,17 +190,19 @@ class _FeedScreenState extends State<FeedScreen> {
               icon: const Icon(Icons.bug_report, color: Colors.blue),
               onPressed: () async {
                 try {
-                  final recetaData = await RecetaService.getRecetaParaEditar(32);
+                  final recetaData = await RecetaService.getRecetaParaEditar(
+                      32);
 
                   if (mounted) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RecipeEditorScreen(
-                          themeNotifier: widget.themeNotifier,
-                          user: widget.user,
-                          recetaExistente: recetaData,
-                        ),
+                        builder: (context) =>
+                            RecipeEditorScreen(
+                              themeNotifier: widget.themeNotifier,
+                              user: widget.user,
+                              recetaExistente: recetaData,
+                            ),
                       ),
                     );
                   }
@@ -197,21 +213,37 @@ class _FeedScreenState extends State<FeedScreen> {
                 }
               },
             ),
+          IconButton(
+            icon: Icon(Icons.search, color: c.text),
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => SearchScreen(
+                          themeNotifier: widget.themeNotifier,
+                          user: widget.user,
+                      ),
+                  ),
+              );
+            },
+          ),
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
           Builder(
-            builder: (context) => GestureDetector(
-              onTap: () => Scaffold.of(context).openEndDrawer(),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                  backgroundImage: bocadoImageProvider(
-                      widget.user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+            builder: (context) =>
+                GestureDetector(
+                  onTap: () => Scaffold.of(context).openEndDrawer(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                      backgroundImage: bocadoImageProvider(
+                          widget.user.fotoUrl ??
+                              'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
           ),
         ],
       ),
@@ -238,23 +270,25 @@ class _FeedScreenState extends State<FeedScreen> {
                     pushOrReuse(
                       context,
                       'receta/${recetaActual.idReceta}',
-                      (context) => RecipeDetailScreen(
-                        themeNotifier: widget.themeNotifier,
-                        user: widget.user,
-                        idReceta: recetaActual.idReceta,
-                        protFeed: recetaActual.proteinasTotales,
-                        carbFeed: recetaActual.carbohidratosTotales,
-                        grasFeed: recetaActual.grasasTotales,
-                        idAutor: recetaActual.usuarioTarget,
-                        isLikedInicial: recetaActual.isLikedBy(widget.user.id),
-                      ),
+                          (context) =>
+                          RecipeDetailScreen(
+                            themeNotifier: widget.themeNotifier,
+                            user: widget.user,
+                            idReceta: recetaActual.idReceta,
+                            protFeed: recetaActual.proteinasTotales,
+                            carbFeed: recetaActual.carbohidratosTotales,
+                            grasFeed: recetaActual.grasasTotales,
+                            idAutor: recetaActual.usuarioTarget,
+                            isLikedInicial: recetaActual.isLikedBy(
+                                widget.user.id),
+                          ),
                     );
                   },
                   child: _FeedArticleCard(
-                  receta: recetaActual,
-                  user: widget.user,
-                  themeNotifier: widget.themeNotifier,
-                ),
+                    receta: recetaActual,
+                    user: widget.user,
+                    themeNotifier: widget.themeNotifier,
+                  ),
                 );
               },
             ),
@@ -288,10 +322,10 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   bool _eliminada = false;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    _isLiked=widget.receta.isLikedBy(widget.user.id);
-    _isSaved=widget.receta.isSavedBy(widget.user.id);
+    _isLiked = widget.receta.isLikedBy(widget.user.id);
+    _isSaved = widget.receta.isSavedBy(widget.user.id);
     _likesLocales = widget.receta.cantidadFavoritos;
     _comentariosLocales = widget.receta.cantidadComentarios;
   }
@@ -332,8 +366,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
         }
         _isSaved = nuevoSave;
       });
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _resincronizarComentarios() async {
@@ -344,8 +377,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       final List<dynamic> lista = jsonDecode(jsonString);
       if (!mounted || lista.length == _comentariosLocales) return;
       setState(() => _comentariosLocales = lista.length);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleLike() async {
@@ -354,36 +386,38 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       _isLiked ? _likesLocales++ : _likesLocales--;
     });
 
-    try{
+    try {
       await InteraccionesService.toggleInteraction({
         'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'like',
         'is_adding': _isLiked,
       });
-    } catch(e){
-      if(mounted){
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _isLiked = !_isLiked;
           _isLiked ? _likesLocales++ : _likesLocales--;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar el Like. Revisa tu conexión.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Error al guardar el Like. Revisa tu conexión.')));
       }
     }
   }
-  Future<void> _handleSave() async{
-    setState(()=> _isSaved = !_isSaved);
 
-    try{
+  Future<void> _handleSave() async {
+    setState(() => _isSaved = !_isSaved);
+
+    try {
       await InteraccionesService.toggleInteraction({
         'id_usuario': widget.user.id,
         'id_receta': widget.receta.idReceta,
         'tipo': 'save',
         'is_adding': _isSaved,
       });
-    } catch(e){
-      if(mounted){
-        setState(()=> _isSaved = !_isSaved);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = !_isSaved);
         final esLimite = e is PlatformException && e.code == 'LIMITE_ALCANZADO';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(esLimite
@@ -393,10 +427,12 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
       }
     }
   }
+
   void _handleShare() {
     final String textoCompartir =
         '¡Mirá esta receta de ${widget.receta.nombre} en Bocado! 👨‍🍳\n\n'
-        'Rinde ${widget.receta.porciones} porciones y tiene ${widget.receta.caloriasTotales.toInt()} calorías.\n'
+        'Rinde ${widget.receta.porciones} porciones y tiene ${widget.receta
+        .caloriasTotales.toInt()} calorías.\n'
         '¡Descargá la app para ver los ingredientes y prepararla!';
     SharePlus.instance.share(ShareParams(text: textoCompartir));
   }
@@ -441,34 +477,70 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(BocadoRadius.sm),
-                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.attach_money, color: AppTheme.primary, size: 14),
+                          const Icon(
+                              Icons.attach_money, color: AppTheme.primary,
+                              size: 14),
                           Text(
-                              '${widget.receta.precioPorcion.toStringAsFixed(2)} / porción',
-                              style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)
+                              '${widget.receta.precioPorcion.toStringAsFixed(
+                                  2)} / porción',
+                              style: const TextStyle(color: AppTheme.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold)
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
 
+                    if(widget.receta.promedioCalificacion > 0) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(BocadoRadius.sm),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                                Icons.star, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.receta.promedioCalificacion
+                                  .toStringAsFixed(1),
+                              style: const TextStyle(color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+
                     if (widget.receta.etiquetas.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppTheme.primary,
                           borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Text(
                             widget.receta.etiquetas.first,
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                            style: const TextStyle(color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)
                         ),
                       ),
                   ],
@@ -507,7 +579,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         children: [
                           Text(
                             widget.receta.nombre,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 18,
+                                fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -520,12 +593,18 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                     ),
                     GestureDetector(
                       onTap: () {
-                        pushOrReuse(context, 'perfil/${widget.receta.usuarioTarget}', (_) => ProfileScreen(user: widget.user, themeNotifier: widget.themeNotifier, idUsuarioTarget: widget.receta.usuarioTarget));
+                        pushOrReuse(
+                            context, 'perfil/${widget.receta.usuarioTarget}', (
+                            _) =>
+                            ProfileScreen(user: widget.user,
+                                themeNotifier: widget.themeNotifier,
+                                idUsuarioTarget: widget.receta.usuarioTarget));
                       },
                       child: CircleAvatar(
                         radius: 18,
                         backgroundImage: bocadoImageProvider(
-                            widget.receta.fotoUsuario ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+                            widget.receta.fotoUsuario ??
+                                'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                         ),
                       ),
                     ),
@@ -543,13 +622,19 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildNutriCol('CALORÍAS', '${widget.receta.caloriasTotales.toInt()}', c.muted),
+                      _buildNutriCol('CALORÍAS',
+                          '${widget.receta.caloriasTotales.toInt()}', c.muted),
                       _buildDivider(c.border),
-                      _buildNutriCol('PROTEÍNAS', '${widget.receta.proteinasTotales}g', c.muted, valueColor: AppTheme.primary),
+                      _buildNutriCol(
+                          'PROTEÍNAS', '${widget.receta.proteinasTotales}g',
+                          c.muted, valueColor: AppTheme.primary),
                       _buildDivider(c.border),
-                      _buildNutriCol('CARBOS', '${widget.receta.carbohidratosTotales}g', c.muted),
+                      _buildNutriCol(
+                          'CARBOS', '${widget.receta.carbohidratosTotales}g',
+                          c.muted),
                       _buildDivider(c.border),
-                      _buildNutriCol('GRASAS', '${widget.receta.grasasTotales}g', c.muted),
+                      _buildNutriCol(
+                          'GRASAS', '${widget.receta.grasasTotales}g', c.muted),
                     ],
                   ),
                 ),
@@ -561,7 +646,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                     Row(
                       children: [
                         _buildActionButton(
-                          icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+                          icon: _isLiked ? Icons.favorite : Icons
+                              .favorite_border,
                           label: '$_likesLocales',
                           color: _isLiked ? AppTheme.primary : c.muted,
                           onTap: _handleLike,
@@ -585,9 +671,11 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                     GestureDetector(
                       onTap: _handleSave,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _isSaved ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.1),
+                          color: _isSaved ? AppTheme.primary : AppTheme.primary
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Row(
@@ -601,7 +689,8 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                             Text(
                               'Guardar',
                               style: TextStyle(
-                                color: _isSaved ? Colors.white : AppTheme.primary,
+                                color: _isSaved ? Colors.white : AppTheme
+                                    .primary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -620,12 +709,17 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     );
   }
 
-  Widget _buildNutriCol(String label, String value, Color secondary, {Color? valueColor}) {
+  Widget _buildNutriCol(String label, String value, Color secondary,
+      {Color? valueColor}) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: secondary, letterSpacing: 1)),
+        Text(label, style: TextStyle(fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: secondary,
+            letterSpacing: 1)),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
+        Text(value, style: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
       ],
     );
   }
@@ -634,14 +728,16 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     return Container(height: 30, width: 1, color: color);
   }
 
-  Widget _buildActionButton({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+  Widget _buildActionButton(
+      {required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
