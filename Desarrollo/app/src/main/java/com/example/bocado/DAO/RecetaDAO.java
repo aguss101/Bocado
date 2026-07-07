@@ -281,7 +281,6 @@ public class RecetaDAO {
             }
         });
     }
-
     public void buscarReceta(String query, CallbackCB cb){
         String url = VISTA + "?nombre_receta=ilike.*" + query + "*&limit=20";
         HttpClientManager.getInstance().get(url, restCallback(cb));

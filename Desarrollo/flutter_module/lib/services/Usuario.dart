@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../models/UsuarioBusqueda.dart';
 import '../models/UsuarioLogged.dart';
 import '../models/UserProfile.dart';
 
@@ -249,7 +250,16 @@ class UsuarioService {
     });
     return ok;
   }
+
+  static Future<List<UsuarioBusqueda>> buscarUsuarios(String query) async {
+    final String json = await _channel.invokeMethod('buscarUsuario', {
+      'query': query,
+    });
+    final List<dynamic> lista = jsonDecode(json);
+    return lista.map((e) => UsuarioBusqueda.fromJson(e)).toList();
+  }
 }
+
 
 class GoogleAuth {
   final usuario_Logged? existente;

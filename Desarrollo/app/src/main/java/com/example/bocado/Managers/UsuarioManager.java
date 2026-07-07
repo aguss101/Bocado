@@ -3,6 +3,7 @@ package com.example.bocado.Managers;
 import com.example.bocado.DAO.Interfaces.IUsuario;
 import com.example.bocado.DAO.Interfaces.CallbackCB;
 import com.example.bocado.Entidades.Usuario;
+import com.example.bocado.Estaticos.ErrorCode;
 import org.json.JSONObject;
 
 public class UsuarioManager {
@@ -80,5 +81,12 @@ public class UsuarioManager {
         } else {
             usuarioDAO.followUser(idUsuarioSeguidor,idUsuarioSeguido,cb);
         }
+    }
+    public void buscarUsuario(String query, CallbackCB cb){
+        if(query == null || query.trim().isEmpty()){
+            cb.onError(ErrorCode.NEGOCIO, "Falta el término de búsqueda.", null);
+            return;
+        }
+        usuarioDAO.buscarUsuario(query, cb);
     }
 }

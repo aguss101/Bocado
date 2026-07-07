@@ -52,6 +52,7 @@ public class AccessChannel {
             case "solicitarVerificacionCorreo" -> handleSolicitarVerificacionCorreo(call, result);
             case "verificarCodigoRegistro" -> handleVerificarCodigoRegistro(call, result);
             case "verificarLinkRegistro" -> handleVerificarLinkRegistro(call, result);
+            case "buscarUsuario" -> handleBuscarUsuario(call, result);
             default -> result.notImplemented();
         }
     }
@@ -624,5 +625,23 @@ public class AccessChannel {
         } catch (org.json.JSONException e) {
             activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
         }
+    }
+    private void handleBuscarUsuario(MethodCall call, MethodChannel.Result result){
+        usuarioManager.buscarUsuario(
+                call.argument("query"),
+                bridgeData(result)
+        );
+    }
+    private CallbackCB bridgeData(MethodChannel.Result result) {
+        return new CallbackCB() {
+            @Override
+            public void onSuccess(String data) {
+                activity.runOnUiThread(() -> result.success(data));
+            }
+            @Override
+            public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        };
     }
 }

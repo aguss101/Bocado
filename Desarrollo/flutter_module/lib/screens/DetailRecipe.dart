@@ -768,24 +768,54 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _data!.categoria.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.5,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _data!.categoria.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
                             ),
-                          ),
+                            if (_data!.calificacionPromedio > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star, color: Colors.white, size: 12),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _data!.calificacionPromedio.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1502,7 +1532,8 @@ class _CommentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int estrellas = (comment.calificacion ?? 0).floor();
+    final double valorCalificacion = comment.calificacion ?? 0.0;
+    final int estrellasEnteras = valorCalificacion.floor();
 
     return Column(
       children: [
@@ -1587,14 +1618,21 @@ class _CommentCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (comment.calificacion != null && !isReply)
                       Row(
-                        children: List.generate(
-                          5,
-                              (index) => Icon(
-                            index < estrellas ? Icons.star : Icons.star_border,
+                        children: List.generate(5, (index) {
+                          IconData icono;
+                          if (index < estrellasEnteras) {
+                            icono = Icons.star;
+                          } else if (index == estrellasEnteras && (valorCalificacion - estrellasEnteras) >= 0.5) {
+                            icono = Icons.star_half;
+                          } else {
+                            icono = Icons.star_border;
+                          }
+                          return Icon(
+                            icono,
                             size: 14,
                             color: AppTheme.primary,
-                          ),
-                        ),
+                          );
+                        }),
                       ),
                     const SizedBox(height: 8),
                     Text(

@@ -11,5 +11,5 @@ public interface IUsuario {
     void delete(int idUsuario, CallbackCB cb);
     void followUser(int idSeguidor, int idSeguido, CallbackCB cb);
     void stopFollow(int idSeguidor, int idSeguido, CallbackCB cb);
-
+    void buscarUsuario(String query, CallbackCB cb);
 }

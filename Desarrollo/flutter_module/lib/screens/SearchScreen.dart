@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_module/services/Usuario.dart';
+import '../models/UsuarioBusqueda.dart';
+import '../route_observer.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../models/UsuarioLogged.dart';
 import '../models/RecetaFeed.dart';
 import '../widgets/Common.dart';
 import '../services/Receta.dart';
+import 'DetailRecipe.dart';
+import 'Profile.dart';
 
 class SearchScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
@@ -28,7 +33,8 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? _debounce;
   bool _estaCargando = false;
   String _query = '';
-  List<RecetaFeed> _resultados = [];
+  List<RecetaFeed> _resultadosRecetas = [];
+  List<UsuarioBusqueda> _resultadosPerfiles = [];
 
   @override
   void initState() {
@@ -55,7 +61,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (query.trim().isEmpty) {
       setState(() {
-        _resultados.clear();
+        _resultadosRecetas.clear();
+        _resultadosPerfiles.clear();
         _estaCargando = false;
       });
       return;
@@ -70,21 +77,23 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _estaCargando = true);
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
-      final resultadosAPI = await RecetaService.buscarRecetas(query);
+      final resultados = await Future.wait([
+        RecetaService.buscarRecetas(query),
+        UsuarioService.buscarUsuarios(query),
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _resultados = resultadosAPI;
+        _resultadosRecetas = resultados[0] as List<RecetaFeed>;
+        _resultadosPerfiles = resultados[1] as List<UsuarioBusqueda>;
         _estaCargando = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _estaCargando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al realizar la búsqueda.')),
+        SnackBar(content: Text('Error al realizar la búsqueda: $e')),
       );
-      print(e.toString());
     }
   }
 
@@ -92,69 +101,99 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final c = BocadoColors.of(context);
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      appBar: AppBar(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
         backgroundColor: c.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: c.text),
-          onPressed: () => Navigator.pop(context),
+        appBar: AppBar(
+          backgroundColor: c.bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: c.text),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Buscar',
+            style: TextStyle(color: c.text, fontWeight: FontWeight.bold),
+          ),
         ),
-        title: Text('Buscar', style: TextStyle(color: c.text, fontWeight: FontWeight.bold)),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: BorderRadius.circular(BocadoRadius.full ?? 30.0),
-                border: Border.all(color: c.border),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
               ),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _focusNode,
-                onChanged: _onSearchChanged,
-                style: TextStyle(color: c.text),
-                decoration: InputDecoration(
-                  hintText: 'Buscar recetas, ingredientes...',
-                  hintStyle: TextStyle(color: c.muted),
-                  prefixIcon: Icon(Icons.search, color: c.muted),
-                  suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                    icon: Icon(Icons.clear, color: c.muted),
-                    onPressed: () {
-                      _searchController.clear();
-                      _onSearchChanged('');
-                    },
-                  )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(BocadoRadius.full),
+                  border: Border.all(color: c.border),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _focusNode,
+                  onChanged: _onSearchChanged,
+                  style: TextStyle(color: c.text),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar recetas, ingredientes...',
+                    hintStyle: TextStyle(color: c.muted),
+                    prefixIcon: Icon(Icons.search, color: c.muted),
+                    suffixIcon: _query.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: c.muted),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: _buildContent(c),
-          ),
-        ],
+            TabBar(
+              indicatorColor: AppTheme.primary,
+              labelColor: AppTheme.primary,
+              unselectedLabelColor: c.muted,
+              tabs: const [
+                Tab(text: 'Recetas'),
+                Tab(text: 'Perfiles'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [_buildContentRecetas(c), _buildContentPerfiles(c)],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContent(dynamic c) {
-    if (_estaCargando) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _buildContentRecetas(dynamic c) {
+    if (_estaCargando) return const Center(child: CircularProgressIndicator());
 
     if (_query.isEmpty) {
-      return _buildEstadoInicial(c);
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 60, color: c.muted.withValues(alpha: 0.5)),
+            const SizedBox(height: 16),
+            Text(
+              'Buscá recetas, etiquetas o ingredientes',
+              style: TextStyle(color: c.muted, fontSize: 14),
+            ),
+          ],
+        ),
+      );
     }
 
-    if (_resultados.isEmpty) {
+    if (_resultadosRecetas.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -162,13 +201,8 @@ class _SearchScreenState extends State<SearchScreen> {
             Icon(Icons.search_off, size: 60, color: c.muted),
             const SizedBox(height: 16),
             Text(
-              'No encontramos resultados para "$_query"',
+              'No encontramos recetas para "$_query"',
               style: TextStyle(color: c.text, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Prueba con otros ingredientes o términos',
-              style: TextStyle(color: c.muted, fontSize: 14),
             ),
           ],
         ),
@@ -177,48 +211,90 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
-      itemCount: _resultados.length,
+      itemCount: _resultadosRecetas.length,
       itemBuilder: (context, index) {
-        final receta = _resultados[index];
-        return _ResultCard(receta: receta, c: c);
+        final receta = _resultadosRecetas[index];
+        return _ResultCard(
+          receta: receta,
+          c: c,
+          themeNotifier: widget.themeNotifier,
+          user: widget.user,
+        );
       },
     );
   }
 
-  Widget _buildEstadoInicial(dynamic c) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Sugerencias',
-            style: TextStyle(color: c.text, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
-            children: [
-              _buildSugerenciaChip('Pollo', c),
-              _buildSugerenciaChip('Desayunos', c),
-              _buildSugerenciaChip('Alto en proteína', c),
-              _buildSugerenciaChip('Sin TACC', c),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildContentPerfiles(dynamic c) {
+    if (_estaCargando) return const Center(child: CircularProgressIndicator());
 
-  Widget _buildSugerenciaChip(String texto, dynamic c) {
-    return ActionChip(
-      backgroundColor: AppTheme.primary.withOpacity(0.1),
-      side: BorderSide.none,
-      label: Text(texto, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-      onPressed: () {
-        _searchController.text = texto;
-        _onSearchChanged(texto);
+    if (_query.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 60,
+              color: c.muted.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Buscá a otros cocineros de la comunidad',
+              style: TextStyle(color: c.muted, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_resultadosPerfiles.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_off, size: 60, color: c.muted),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron usuarios',
+              style: TextStyle(color: c.text, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      itemCount: _resultadosPerfiles.length,
+      itemBuilder: (context, index) {
+        final usuario = _resultadosPerfiles[index];
+        final String fotoUrl = usuario.foto ?? '';
+
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+            backgroundImage: bocadoImageProvider(
+              fotoUrl.isNotEmpty
+                  ? fotoUrl
+                  : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+            ),
+          ),
+          title: Text(
+            usuario.usuario,
+            style: TextStyle(color: c.text, fontWeight: FontWeight.bold),
+          ),
+          onTap: () {
+            pushOrReuse(
+              context,
+              'perfil/${usuario.id}',
+              (context) => ProfileScreen(
+                user: widget.user,
+                themeNotifier: widget.themeNotifier,
+                idUsuarioTarget: usuario.id,
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -227,8 +303,15 @@ class _SearchScreenState extends State<SearchScreen> {
 class _ResultCard extends StatelessWidget {
   final RecetaFeed receta;
   final dynamic c;
+  final ThemeNotifier themeNotifier;
+  final usuario_Logged user;
 
-  const _ResultCard({required this.receta, required this.c});
+  const _ResultCard({
+    required this.receta,
+    required this.c,
+    required this.themeNotifier,
+    required this.user,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -255,11 +338,64 @@ class _ResultCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          '${receta.caloriasTotales.toInt()} kcal • ${receta.proteinasTotales}g prot',
-          style: TextStyle(color: c.muted, fontSize: 12),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Row(
+            children: [
+              if (receta.promedioCalificacion > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, color: Colors.white, size: 10),
+                      const SizedBox(width: 2),
+                      Text(
+                        receta.promedioCalificacion.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  '${receta.caloriasTotales.toInt()} kcal • ${receta.proteinasTotales}g prot',
+                  style: TextStyle(color: c.muted, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
-        onTap: () {},
+        onTap: () {
+          pushOrReuse(
+            context,
+            'receta/${receta.idReceta}',
+            (context) => RecipeDetailScreen(
+              themeNotifier: themeNotifier,
+              user: user,
+              idReceta: receta.idReceta,
+              protFeed: receta.proteinasTotales,
+              carbFeed: receta.carbohidratosTotales,
+              grasFeed: receta.grasasTotales,
+              idAutor: receta.usuarioTarget,
+              isLikedInicial: receta.isLikedBy(user.id),
+            ),
+          );
+        },
       ),
     );
   }
