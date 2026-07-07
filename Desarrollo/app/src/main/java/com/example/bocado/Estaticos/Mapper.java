@@ -11,7 +11,7 @@ public class Mapper {
     public static Usuario jsonToUsuario(JSONObject json) throws JSONException {
         Usuario u = new Usuario();
 
-        u.setId(json.optInt("id", 0));
+        u.setId(json.getInt("id"));
         u.setCuenta(String.valueOf(json.optInt("id_cuenta", 1)));
         u.setNacion(String.valueOf(json.optInt("id_nacion", 0)));
         u.setGenero(String.valueOf(json.optInt("id_genero", 0)));
@@ -79,8 +79,8 @@ public class Mapper {
     public static Receta jsonToReceta(JSONObject json) throws JSONException {
         Receta r = new Receta();
 
-        r.setId(json.optInt("id", 0));
-        r.setId_Usuario(json.optInt("id_usuario", 0));
+        r.setId(json.getInt("id"));
+        r.setId_Usuario(json.getInt("id_usuario"));
         r.setNombre(json.optString("nombre", ""));
         r.setInstrucciones(json.optString("instrucciones", ""));
         r.setPorciones(json.optInt("porciones", 1));

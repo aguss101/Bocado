@@ -71,17 +71,16 @@ public class AccessChannel {
             result.error("ERROR_JSON", e.getMessage(), null);
             return;
         }
-        HttpClientManager.getInstance().post(
-                "/rest/v1/rpc/buscar_usuario_por_correo_google", body.toString(),
-                new okhttp3.Callback() {
-                    @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                        activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                    }
-                    @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                        String respBody = response.body() != null ? response.body().string() : "[]";
-                        activity.runOnUiThread(() -> result.success(respBody));
-                    }
-                });
+        RpcCallHelper.callAsync("buscar_usuario_por_correo_google", body, new CallbackCB() {
+            @Override
+            public void onSuccess(String response) {
+                 activity.runOnUiThread(() -> result.success(response));
+           }
+            @Override
+            public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        });
     }
 
     private void handleRegisterGoogle(MethodCall call, MethodChannel.Result result) {
@@ -283,7 +282,8 @@ public class AccessChannel {
         Integer idUsuario = call.argument("id_usuario");
         Integer limit = call.argument("limit");
         Integer offset = call.argument("offset");
-        String url = "/rest/v1/seguidos_usuario?select=id_seguidor,usuarios!id_seguidor(id,usuario,foto)&id_seguido=eq." + idUsuario;
+        String url = "/rest/v1/seguidos_usuario?" +
+                "select=id_seguidor,usuarios!id_seguidor(id,usuario,foto)&id_seguido=eq." + idUsuario;
         if (limit != null) {
             url += "&order=fecha_seguido.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
         }

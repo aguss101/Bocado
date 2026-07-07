@@ -53,8 +53,7 @@ class UsuarioService {
   }
 
   static Future<usuario_Logged> login(String usuario, String contrasena) async {
-    final String response = await _channel.invokeMethod(
-      'loginJava',
+    final String response = await _channel.invokeMethod('loginJava',
       {'usuario': usuario, 'contrasena': contrasena},
     );
     final data = jsonDecode(response);
