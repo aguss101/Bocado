@@ -46,7 +46,7 @@ Nunca saltear capas. Channel no llama al DAO directamente.
 - **RPCs:** `RpcCallHelper.callAsync(rpcName, body, callback)` para todas las stored procedures.
 - **REST:** `HttpClientManager.getInstance().get/post/delete/patch()`.
 - **Mapeos:** siempre via `Mapper.java`. Nunca construir Maps a mano en el Channel ni en el DAO.
-- **Comentarios:** solo cuando el motivo es no obvio. No comentar qué hace el código, sino por qué.
+- **Comentarios:** PROHIBIDO. Regla absoluta y global — nunca escribir comentarios en el código (`//`, `/* */`, `///`), en ningún archivo Java o Dart, sin excepción.
 
 ## Comandos disponibles
 

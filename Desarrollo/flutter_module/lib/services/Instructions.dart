@@ -21,8 +21,11 @@ class InteraccionesService {
     final result = await _channel.invokeMethod('updateSeguido', datos);
     return result.toString();
   }
-  static Future<String> fetchComentarios(int idReceta) async{
-    final result = await _channel.invokeMethod('fetchComentarios', {'recetaId': idReceta});
+  static Future<String> fetchComentarios(int idReceta, int idUsuario) async{
+    final result = await _channel.invokeMethod('fetchComentarios', {
+      'recetaId': idReceta,
+      'idUsuario': idUsuario,
+    });
     return result.toString();
   }
   static Future<bool> enviarComentario(Map<String, dynamic> datos) async {

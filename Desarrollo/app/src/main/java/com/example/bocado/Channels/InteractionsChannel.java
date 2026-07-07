@@ -60,7 +60,10 @@ public class InteractionsChannel {
     }
 
     private void handleFetchComentarios(MethodCall call, MethodChannel.Result result) {
-        interaccionManager.fetchComentarios(call.argument("recetaId"), bridgeData(result));
+        interaccionManager.fetchComentarios(
+                call.argument("recetaId"),
+                call.argument("idUsuario"),
+                bridgeData(result));
     }
 
     private void handleEnviarComentario(MethodCall call, MethodChannel.Result result) {

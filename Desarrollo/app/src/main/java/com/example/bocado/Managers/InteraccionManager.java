@@ -31,12 +31,12 @@ public class InteraccionManager {
         interaccionDAO.fetchMisInteracciones(idUsuario, idReceta, cb);
     }
 
-    public void fetchComentarios(Integer idReceta, CallbackCB cb) {
-        if (idReceta == null) {
-            cb.onError(ErrorCode.NEGOCIO, "Falta el id de la receta.", null);
+    public void fetchComentarios(Integer idReceta, Integer idUsuario, CallbackCB cb) {
+        if (idReceta == null || idUsuario == null) {
+            cb.onError(ErrorCode.NEGOCIO, "Faltan el id de la receta o del usuario.", null);
             return;
         }
-        interaccionDAO.fetchComentarios(idReceta, cb);
+        interaccionDAO.fetchComentarios(idReceta, idUsuario, cb);
     }
 
     public void enviarComentario(Integer idReceta, Integer idUsuario, String comentario, Integer idPadre, Double calificacion, CallbackCB cb) {

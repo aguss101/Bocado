@@ -373,6 +373,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
     try {
       final jsonString = await InteraccionesService.fetchComentarios(
         widget.receta.idReceta,
+        widget.user.id,
       );
       final List<dynamic> lista = jsonDecode(jsonString);
       if (!mounted || lista.length == _comentariosLocales) return;

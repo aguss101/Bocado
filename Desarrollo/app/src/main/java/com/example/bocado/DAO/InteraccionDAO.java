@@ -17,7 +17,6 @@ import okhttp3.Response;
 public class InteraccionDAO implements IInteraccion {
 
     private static final String TABLA = "/rest/v1/interacciones_usuario";
-    private static final String VISTA_COMENTARIOS = "/rest/v1/vista_comentarios_recetas";
 
     @Override
     public void toggleInteraccion(int idUsuario, int idReceta, String tipo, boolean isAdding, CallbackCB cb) {
@@ -41,9 +40,15 @@ public class InteraccionDAO implements IInteraccion {
     }
 
     @Override
-    public void fetchComentarios(int idReceta, CallbackCB cb) {
-        HttpClientManager.getInstance().get(
-                VISTA_COMENTARIOS + "?id_receta=eq." + idReceta, restCallback(cb));
+    public void fetchComentarios(int idReceta, int idUsuario, CallbackCB cb) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("p_id_receta", idReceta);
+            json.put("p_id_usuario", idUsuario);
+            RpcCallHelper.callAsync("obtener_comentarios", json, cb);
+        } catch (Exception e) {
+            cb.onError(ErrorCode.ERROR_JSON, "Error armando la consulta: " + e.getMessage(), null);
+        }
     }
 
     @Override

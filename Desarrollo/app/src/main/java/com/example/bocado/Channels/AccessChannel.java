@@ -71,7 +71,6 @@ public class AccessChannel {
             result.error("ERROR_JSON", e.getMessage(), null);
             return;
         }
-
         HttpClientManager.getInstance().post(
                 "/rest/v1/rpc/buscar_usuario_por_correo_google", body.toString(),
                 new okhttp3.Callback() {

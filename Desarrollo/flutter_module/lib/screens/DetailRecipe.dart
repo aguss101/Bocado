@@ -374,7 +374,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   Future<void> cargarComentarios(int idReceta) async {
     try {
-      String jsonString = await InteraccionesService.fetchComentarios(idReceta);
+      String jsonString = await InteraccionesService.fetchComentarios(idReceta, widget.user.id);
       List<dynamic> jsonList = jsonDecode(jsonString);
 
       List<RecipeComment> comentariosPlanos = jsonList
@@ -389,10 +389,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       }
 
       for (var c in comentariosPlanos) {
-        if (c.idComentarioPadre == null) {
-          comentariosRaiz.add(c);
+        final padre = c.idComentarioPadre != null
+            ? mapaComentarios[c.idComentarioPadre]
+            : null;
+        if (padre != null) {
+          padre.respuestas.add(c);
         } else {
-          mapaComentarios[c.idComentarioPadre]?.respuestas.add(c);
+          // Raíz, o respuesta cuyo padre no vino en este lote (huérfana):
+          // se muestra igual en vez de perderse en silencio.
+          comentariosRaiz.add(c);
         }
       }
 
