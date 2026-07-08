@@ -1,17 +1,17 @@
 package com.example.bocado.Estaticos;
 
 import com.example.bocado.Entidades.Usuario;
-import com.example.bocado.Entidades.Receta;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.json.JSONException;
-import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 public class Mapper {
 
     public static Usuario jsonToUsuario(JSONObject json) throws JSONException {
         Usuario u = new Usuario();
 
-        u.setId(json.getInt("id"));
         u.setCuenta(String.valueOf(json.optInt("id_cuenta", 1)));
         u.setNacion(String.valueOf(json.optInt("id_nacion", 0)));
         u.setGenero(String.valueOf(json.optInt("id_genero", 0)));
@@ -76,28 +76,6 @@ public class Mapper {
         return json;
     }
 
-    public static Receta jsonToReceta(JSONObject json) throws JSONException {
-        Receta r = new Receta();
-
-        r.setId(json.getInt("id"));
-        r.setId_Usuario(json.getInt("id_usuario"));
-        r.setNombre(json.optString("nombre", ""));
-        r.setInstrucciones(json.optString("instrucciones", ""));
-        r.setPorciones(json.optInt("porciones", 1));
-
-        r.setCalorias_Totales(BigDecimal.valueOf(json.optDouble("calorias_totales", 0.0)));
-        r.setPorciones_Peso(BigDecimal.valueOf(json.optDouble("porciones_peso", 0.0)));
-        r.setPrecio(BigDecimal.valueOf(json.optDouble("precio", 0.0)));
-
-        r.setActivo(json.optBoolean("activo", true));
-        r.setVisibilidad(json.optBoolean("visibilidad", true));
-
-        r.setFecha_Creacion(parseTimestampSupabase(json.optString("fecha_creacion", null)));
-
-        return r;
-    }
-
-
     private static Timestamp parseTimestampSupabase(String raw) {
         if (raw == null || raw.isEmpty()) return null;
         try {
@@ -111,27 +89,39 @@ public class Mapper {
         }
     }
 
-    public static JSONObject recetaToJson(Receta r) throws JSONException {
-        JSONObject json = new JSONObject();
+    public static JSONObject recetaToJson(Map<String, Object> args) throws JSONException {
+        JSONObject recetaJson = new JSONObject();
+        recetaJson.put("id_usuario", args.get("id_usuario"));
+        recetaJson.put("nombre", args.get("nombre"));
+        recetaJson.put("calorias_totales", args.get("calorias_totales"));
+        recetaJson.put("porciones", args.get("porciones"));
+        recetaJson.put("porciones_peso", args.get("porciones_peso"));
+        recetaJson.put("id_dificultad", args.get("id_dificultad"));
+        recetaJson.put("precio", args.get("precio"));
+        recetaJson.put("visibilidad", args.get("visibilidad"));
+        recetaJson.put("es_borrador", args.get("es_borrador"));
+        recetaJson.put("tiempo_coccion", args.get("tiempo_coccion"));
+        recetaJson.put("breve_descripcion", args.get("breve_descripcion"));
 
-        json.put("id_usuario", r.getId_Usuario());
-        json.put("nombre", r.getNombre());
-        json.put("instrucciones", r.getInstrucciones());
-        json.put("porciones", r.getPorciones());
-
-        if (r.getCalorias_Totales() != null) {
-            json.put("calorias_totales", r.getCalorias_Totales().doubleValue());
+        if (args.containsKey("fotos")) {
+            List<String> listaFotos = (List<String>) args.get("fotos");
+            recetaJson.put("foto", String.join("|", listaFotos));
         }
-        if (r.getPorciones_Peso() != null) {
-            json.put("porciones_peso", r.getPorciones_Peso().doubleValue());
+        if (args.containsKey("instrucciones")) {
+            List<String> listaPasos = (List<String>) args.get("instrucciones");
+            recetaJson.put("instrucciones", String.join("|", listaPasos));
         }
-        if (r.getPrecio() != null) {
-            json.put("precio", r.getPrecio().doubleValue());
+        if (args.containsKey("tags_ids")) {
+            recetaJson.put("tags_ids", new JSONArray((List<?>) args.get("tags_ids")));
         }
-
-        json.put("activo", r.isActivo());
-        json.put("visibilidad", r.isVisibilidad());
-
-        return json;
+        if (args.containsKey("ingredientes")) {
+            Object ingredientesObj = args.get("ingredientes");
+            if (ingredientesObj instanceof List) {
+                recetaJson.put("ingredientes", new JSONArray((List<?>) ingredientesObj));
+            } else {
+                recetaJson.put("ingredientes", ingredientesObj);
+            }
+        }
+        return recetaJson;
     }
 }

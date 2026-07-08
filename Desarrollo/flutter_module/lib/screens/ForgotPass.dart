@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/AuthDetails.dart';
+import '../widgets/Common.dart';
 import '../services/Usuario.dart';
 import 'ResetPass.dart';
 
@@ -33,16 +34,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _snack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 
   String _fmt(int s) =>
       '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
@@ -67,7 +58,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _request({required bool isResend}) async {
     final correo = _emailController.text.trim();
     if (correo.isEmpty) {
-      _snack('Ingresá tu correo', isError: true);
+      showBocadoSnack(context,'Ingresá tu correo', isError: true);
       return;
     }
     setState(() => _sending = true);
@@ -76,11 +67,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
       setState(() => _codeSent = true);
       _startCooldown();
-      _snack(isResend
+      showBocadoSnack(context,isResend
           ? 'Te enviamos un nuevo código.'
           : 'Si el correo existe, te enviamos un código.');
     } catch (_) {
-      if (mounted) _snack('No se pudo enviar el código. Reintentá.', isError: true);
+      if (mounted) showBocadoSnack(context,'No se pudo enviar el código. Reintentá.', isError: true);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -93,7 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final correo = _emailController.text.trim();
     final codigo = _codeController.text.trim();
     if (correo.isEmpty || codigo.length < 6) {
-      _snack('Completá el correo y el código de 6 dígitos.', isError: true);
+      showBocadoSnack(context,'Completá el correo y el código de 6 dígitos.', isError: true);
       return;
     }
     setState(() => _verifying = true);
@@ -112,10 +103,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         );
       } else {
-        _snack('Código inválido o vencido.', isError: true);
+        showBocadoSnack(context,'Código inválido o vencido.', isError: true);
       }
     } catch (_) {
-      if (mounted) _snack('No se pudo verificar el código.', isError: true);
+      if (mounted) showBocadoSnack(context,'No se pudo verificar el código.', isError: true);
     } finally {
       if (mounted) setState(() => _verifying = false);
     }

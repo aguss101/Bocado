@@ -155,15 +155,8 @@ public class AccessChannel {
     }
 
     private void handleGetNaciones(MethodChannel.Result result) {
-        HttpClientManager.getInstance().get("/rest/v1/naciones?select=*", new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                activity.runOnUiThread(() -> result.success(body));
-            }
-        });
+        HttpClientManager.getInstance().get("/rest/v1/naciones?select=*",
+                HttpClientManager.simpleCallback(bridgeData(result), false));
     }
 
     private void handleActualizarPerfil(MethodCall call, MethodChannel.Result result) {
@@ -213,34 +206,18 @@ public class AccessChannel {
     }
 
     private void handleGetGeneros(MethodChannel.Result result) {
-        HttpClientManager.getInstance().get("/rest/v1/generos?select=*", new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                activity.runOnUiThread(() -> result.success(body));
-            }
-        });
+        HttpClientManager.getInstance().get("/rest/v1/generos?select=*",
+                HttpClientManager.simpleCallback(bridgeData(result), false));
     }
 
     private void handleGetSeguidores(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
         Integer limit = call.argument("limit");
         Integer offset = call.argument("offset");
-        String url = "/rest/v1/vista_mis_seguidos?select=*&id_seguidor=eq." + idUsuario;
-        if (limit != null) {
-            url += "&order=id_seguido.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
-        }
-        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                activity.runOnUiThread(() -> result.success(body));
-            }
-        });
+        String url = "/rest/v1/vista_mis_seguidos?select=*&id_seguidor=eq." + idUsuario
+                + HttpClientManager.paginar("id_seguido", limit, offset);
+        HttpClientManager.getInstance().get(url,
+                HttpClientManager.simpleCallback(bridgeData(result), false));
     }
 
     private void handleEstasSiguiendoVarios(MethodCall call, MethodChannel.Result result) {
@@ -257,12 +234,8 @@ public class AccessChannel {
         }
         String url = "/rest/v1/seguidos_usuario?select=id_seguido&id_seguidor=eq." + idSeguidor
                 + "&id_seguido=in.(" + lista + ")";
-        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
+        HttpClientManager.getInstance().get(url, HttpClientManager.simpleCallback(new CallbackCB() {
+            @Override public void onSuccess(String body) {
                 try {
                     org.json.JSONArray filas = new org.json.JSONArray(body);
                     org.json.JSONArray idsSeguidos = new org.json.JSONArray();
@@ -275,7 +248,10 @@ public class AccessChannel {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
             }
-        });
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        }, false));
     }
 
     private void handleGetSeguidoresDe(MethodCall call, MethodChannel.Result result) {
@@ -283,16 +259,10 @@ public class AccessChannel {
         Integer limit = call.argument("limit");
         Integer offset = call.argument("offset");
         String url = "/rest/v1/seguidos_usuario?" +
-                "select=id_seguidor,usuarios!id_seguidor(id,usuario,foto)&id_seguido=eq." + idUsuario;
-        if (limit != null) {
-            url += "&order=fecha_seguido.desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
-        }
-        HttpClientManager.getInstance().get(url, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
+                "select=id_seguidor,usuarios!id_seguidor(id,usuario,foto)&id_seguido=eq." + idUsuario
+                + HttpClientManager.paginar("fecha_seguido", limit, offset);
+        HttpClientManager.getInstance().get(url, HttpClientManager.simpleCallback(new CallbackCB() {
+            @Override public void onSuccess(String body) {
                 try {
                     org.json.JSONArray filas = new org.json.JSONArray(body);
                     org.json.JSONArray reacomodadas = new org.json.JSONArray();
@@ -314,54 +284,43 @@ public class AccessChannel {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
             }
-        });
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        }, false));
     }
 
     private void handleValidarSesion(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&activo=eq.true&select=id", new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                activity.runOnUiThread(() -> result.success(body));
-            }
-        });
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&activo=eq.true&select=id",
+                HttpClientManager.simpleCallback(bridgeData(result), false));
     }
 
     private void handleGetPerfilUsuario(MethodCall call, MethodChannel.Result result){
         Integer idUsuario = call.argument("id_usuario");
         String cols = "id,id_cuenta,id_nacion,id_genero,nombre,apellido,usuario,"
                 + "fecha_nacimiento,fecha_creacion,fecha_acceso,activo,visibilidad,foto,banner,bio";
-        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=" + cols, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                try {
-                    org.json.JSONArray filas = new org.json.JSONArray(body);
-                    if (filas.length() == 0) {
-                        activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
-                        return;
-                    }
-                    responderUsuarioLimpio(filas.getJSONObject(0).toString(), result);
-                } catch (org.json.JSONException e) {
-                    activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
+        HttpClientManager.getInstance().get("/rest/v1/usuarios?id=eq." + idUsuario + "&select=" + cols,
+                HttpClientManager.simpleCallback(new CallbackCB() {
+            @Override public void onSuccess(String body) {
+                JSONObject fila = RpcCallHelper.firstOrNull(body);
+                if (fila == null) {
+                    activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
+                    return;
                 }
+                responderUsuarioLimpio(fila.toString(), result);
             }
-        });
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        }, false));
     }
 
     private void handleContarSeguidores(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_seguidores&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
+        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_seguidores&id_usuario=eq." + idUsuario,
+                HttpClientManager.simpleCallback(new CallbackCB() {
+            @Override public void onSuccess(String body) {
                 try {
                     org.json.JSONArray filas = new org.json.JSONArray(body);
                     int total = filas.length() > 0 ? filas.getJSONObject(0).optInt("cant_seguidores", 0) : 0;
@@ -370,17 +329,17 @@ public class AccessChannel {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
             }
-        });
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        }, false));
     }
 
     private void handleContarSiguiendo(MethodCall call, MethodChannel.Result result) {
         Integer idUsuario = call.argument("id_usuario");
-        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_siguiendo&id_usuario=eq." + idUsuario, new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
+        HttpClientManager.getInstance().get("/rest/v1/estadisticas_usuario?select=cant_siguiendo&id_usuario=eq." + idUsuario,
+                HttpClientManager.simpleCallback(new CallbackCB() {
+            @Override public void onSuccess(String body) {
                 try {
                     org.json.JSONArray filas = new org.json.JSONArray(body);
                     int total = filas.length() > 0 ? filas.getJSONObject(0).optInt("cant_siguiendo", 0) : 0;
@@ -389,7 +348,10 @@ public class AccessChannel {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
             }
-        });
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
+            }
+        }, false));
     }
 
     private void handleEstasSiguiendo(MethodCall call, MethodChannel.Result result) {
@@ -397,12 +359,8 @@ public class AccessChannel {
         Integer idSeguido  = call.argument("id_seguido");
         HttpClientManager.getInstance().get(
             "/rest/v1/seguidos_usuario?select=id_seguidor&id_seguidor=eq." + idSeguidor + "&id_seguido=eq." + idSeguido,
-            new okhttp3.Callback() {
-                @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                    activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-                }
-                @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                    String body = response.body() != null ? response.body().string() : "[]";
+            HttpClientManager.simpleCallback(new CallbackCB() {
+                @Override public void onSuccess(String body) {
                     try {
                         boolean siguiendo = new org.json.JSONArray(body).length() > 0;
                         activity.runOnUiThread(() -> result.success(siguiendo));
@@ -410,7 +368,10 @@ public class AccessChannel {
                         activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                     }
                 }
-            }
+                @Override public void onError(String code, String message, Object details) {
+                    activity.runOnUiThread(() -> result.error(code, message, details));
+                }
+            }, false)
         );
     }
 
@@ -423,24 +384,23 @@ public class AccessChannel {
             result.error("ERROR_JSON", e.getMessage(), null);
             return;
         }
-        HttpClientManager.getInstance().post("/rest/v1/rpc/obtener_perfil_editable", body.toString(), new okhttp3.Callback() {
-            @Override public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                activity.runOnUiThread(() -> result.error("NETWORK_ERROR", e.getMessage(), null));
-            }
-            @Override public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String respBody = response.body() != null ? response.body().string() : "[]";
+        RpcCallHelper.callAsync("obtener_perfil_editable", body, new CallbackCB() {
+            @Override public void onSuccess(String response) {
+                JSONObject fila = RpcCallHelper.firstOrNull(response);
+                if (fila == null) {
+                    activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
+                    return;
+                }
                 try {
-                    org.json.JSONArray filas = new org.json.JSONArray(respBody);
-                    if (filas.length() == 0) {
-                        activity.runOnUiThread(() -> result.error("NOT_FOUND", "Usuario no encontrado", null));
-                        return;
-                    }
-                    Usuario u = Mapper.jsonToUsuario(filas.getJSONObject(0));
+                    Usuario u = Mapper.jsonToUsuario(fila);
                     String json = Mapper.usuarioToEditJson(u).toString();
                     activity.runOnUiThread(() -> result.success(json));
                 } catch (org.json.JSONException e) {
                     activity.runOnUiThread(() -> result.error("ERROR_JSON", e.getMessage(), null));
                 }
+            }
+            @Override public void onError(String code, String message, Object details) {
+                activity.runOnUiThread(() -> result.error(code, message, details));
             }
         });
     }
@@ -618,7 +578,9 @@ public class AccessChannel {
 
     private void responderUsuarioLimpio(String filaUsuarioJson, MethodChannel.Result result) {
         try {
-            Usuario u = Mapper.jsonToUsuario(new JSONObject(filaUsuarioJson));
+            JSONObject fila = new JSONObject(filaUsuarioJson);
+            Usuario u = Mapper.jsonToUsuario(fila);
+            u.setId(fila.getInt("id"));
             String limpio = Mapper.usuarioToClientJson(u).toString();
             activity.runOnUiThread(() -> result.success(limpio));
         } catch (org.json.JSONException e) {

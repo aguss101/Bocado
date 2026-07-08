@@ -101,20 +101,22 @@ class UsuarioService {
     final String json = await _channel.invokeMethod('getGeneros');
     return jsonDecode(json);
   }
-  static Future<List<UserProfile>> getSeguidores(int idUsuario, {int? limit, int? offset}) async{
-    try{
-      final String jsonString = await _channel.invokeMethod('getSeguidores', {
-        'id_usuario': idUsuario,
-        if (limit != null) 'limit': limit,
-        if (offset != null) 'offset': offset,
-      });
+  static Future<List<UserProfile>> _fetchUserProfiles(String method, Map<String, dynamic> args) async {
+    try {
+      final String jsonString = await _channel.invokeMethod(method, args);
       final List<dynamic> jsonList = jsonDecode(jsonString);
-
       return jsonList.map((json) => UserProfile.fromJson(json)).toList();
     } catch (e) {
       return [];
     }
   }
+
+  static Future<List<UserProfile>> getSeguidores(int idUsuario, {int? limit, int? offset}) =>
+      _fetchUserProfiles('getSeguidores', {
+        'id_usuario': idUsuario,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+      });
 
   static Future<void> actualizarPerfil({
     required int id,
@@ -162,19 +164,12 @@ class UsuarioService {
     return result as bool;
   }
 
-  static Future<List<UserProfile>> getSeguidoresDe(int idUsuario, {int? limit, int? offset}) async {
-    try {
-      final String jsonString = await _channel.invokeMethod('getSeguidoresDe', {
+  static Future<List<UserProfile>> getSeguidoresDe(int idUsuario, {int? limit, int? offset}) =>
+      _fetchUserProfiles('getSeguidoresDe', {
         'id_usuario': idUsuario,
         if (limit != null) 'limit': limit,
         if (offset != null) 'offset': offset,
       });
-      final List<dynamic> jsonList = jsonDecode(jsonString);
-      return jsonList.map((json) => UserProfile.fromJson(json)).toList();
-    } catch (e) {
-      return [];
-    }
-  }
 
   static Future<Set<int>> estasSiguiendoVarios(int idSeguidor, List<int> idsSeguido) async {
     if (idsSeguido.isEmpty) return {};

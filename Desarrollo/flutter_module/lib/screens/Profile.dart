@@ -12,6 +12,7 @@ import 'EditProfile.dart';
 import '../services/Usuario.dart';
 import '../services/Instructions.dart';
 import '../models/RecetaFeed.dart';
+import '../utils/PagedList.dart';
 import '../screens/EditRecipe.dart';
 import '../screens/DetailRecipe.dart';
 import '../route_observer.dart';
@@ -47,8 +48,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _estaCargandoStats = true;
 
   static const int _pageGrid = 12;
-  late _PagedList<RecetaFeed> _plRecetas;
-  _PagedList<RecetaFeed>? _plGuardados;
+  late PagedList<RecetaFeed> _plRecetas;
+  PagedList<RecetaFeed>? _plGuardados;
 
   @override
   void initState() {
@@ -67,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       _cargarPerfilTercero(widget.idUsuarioTarget!);
     }
 
-    _plRecetas = _PagedList(
+    _plRecetas = PagedList(
       _isMiPerfil
           ? (off, lim) => RecetaService.getMisRecetas(idTarget)
           : (off, lim) => RecetaService.getRecetasUsuario(idTarget, limit: lim, offset: off),
@@ -76,7 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _cargarPrimera(_plRecetas);
 
     if (_isMiPerfil) {
-      _plGuardados = _PagedList(
+      _plGuardados = PagedList(
             (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
         pageSize: _pageGrid,
       );
@@ -99,13 +100,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             _isMiPerfil = true;
             _tabController.dispose();
             _tabController = TabController(length: 2, vsync: this);
-            _plGuardados = _PagedList(
+            _plGuardados = PagedList(
                   (off, lim) => RecetaService.getGuardadosUsuario(widget.user.id, limit: lim, offset: off),
               pageSize: _pageGrid,
             );
             _cargarPrimera(_plGuardados!);
 
-            _plRecetas = _PagedList(
+            _plRecetas = PagedList(
                   (off, lim) => RecetaService.getMisRecetas(widget.user.id),
               pageSize: _pageGrid,
             );
@@ -255,12 +256,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     _cargarStats(widget.idUsuarioTarget ?? widget.user.id);
   }
 
-  Future<void> _cargarPrimera(_PagedList pl) async {
+  Future<void> _cargarPrimera(PagedList pl) async {
     await pl.cargarPrimera();
     if (mounted) setState(() {});
   }
 
-  Future<void> _cargarMas(_PagedList pl) async {
+  Future<void> _cargarMas(PagedList pl) async {
     if (pl.cargando || pl.cargandoMas || !pl.hayMas) return;
     await pl.cargarMas();
     if (mounted) setState(() {});
@@ -746,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _gridRecetasPaginado({
-    required _PagedList<RecetaFeed> pl,
+    required PagedList<RecetaFeed> pl,
     required bool conCrear,
     required Color surface,
     required Color border,
@@ -1095,42 +1096,3 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
           oldDelegate.border != border;
 }
 
-class _PagedList<T> {
-  final Future<List<T>> Function(int offset, int limit) fetch;
-  final int pageSize;
-  final List<T> items = [];
-  int _offset = 0;
-  bool cargando = true;
-  bool cargandoMas = false;
-  bool hayMas = true;
-
-  _PagedList(this.fetch, {this.pageSize = 12});
-
-  Future<void> cargarPrimera() async {
-    cargando = true;
-    items.clear();
-    _offset = 0;
-    hayMas = true;
-    try {
-      final lista = await fetch(0, pageSize);
-      items.addAll(lista);
-      _offset = lista.length;
-      hayMas = lista.length == pageSize;
-    } finally {
-      cargando = false;
-    }
-  }
-
-  Future<void> cargarMas() async {
-    if (cargandoMas || !hayMas || cargando) return;
-    cargandoMas = true;
-    try {
-      final lista = await fetch(_offset, pageSize);
-      items.addAll(lista);
-      _offset += lista.length;
-      hayMas = lista.length == pageSize;
-    } finally {
-      cargandoMas = false;
-    }
-  }
-}

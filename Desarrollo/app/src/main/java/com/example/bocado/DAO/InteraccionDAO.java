@@ -8,12 +8,6 @@ import com.example.bocado.Managers.HttpClientManager;
 
 import org.json.JSONObject;
 
-import java.io.IOException;
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
-
 public class InteraccionDAO implements IInteraccion {
 
     private static final String TABLA = "/rest/v1/interacciones_usuario";
@@ -36,7 +30,7 @@ public class InteraccionDAO implements IInteraccion {
     public void fetchMisInteracciones(int idUsuario, int idReceta, CallbackCB cb) {
         HttpClientManager.getInstance().get(
                 TABLA + "?select=tipo_interaccion&id_usuario=eq." + idUsuario + "&id_receta=eq." + idReceta,
-                restCallback(cb));
+                HttpClientManager.simpleCallback(cb));
     }
 
     @Override
@@ -64,25 +58,6 @@ public class InteraccionDAO implements IInteraccion {
         } catch (Exception e) {
             cb.onError(ErrorCode.ERROR_JSON, "Error armando el comentario: " + e.getMessage(), null);
         }
-    }
-
-    private Callback restCallback(CallbackCB cb) {
-        return new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                cb.onError(ErrorCode.NETWORK_ERROR, e.getMessage(), null);
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String body = response.body() != null ? response.body().string() : "";
-                if (response.isSuccessful()) {
-                    cb.onSuccess(body);
-                } else {
-                    cb.onError(ErrorCode.ERROR_API, "Error " + response.code() + ": " + body, null);
-                }
-            }
-        };
     }
 
 }

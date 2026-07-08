@@ -181,27 +181,9 @@ public class UsuarioDAO implements IUsuario {
             }
         };
     }
-    private okhttp3.Callback restCallback(CallbackCB cb) {
-        return new okhttp3.Callback() {
-            @Override
-            public void onFailure(okhttp3.Call call, java.io.IOException e) {
-                cb.onError("NETWORK_ERROR", e.getMessage(), null);
-            }
-
-            @Override
-            public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
-                String body = response.body() != null ? response.body().string() : "[]";
-                if (response.isSuccessful()) {
-                    cb.onSuccess(body);
-                } else {
-                    cb.onError("ERROR_API", "Error " + response.code() + ": " + body, null);
-                }
-            }
-        };
-    }
     public void buscarUsuario(String query, CallbackCB cb){
         String url = "/rest/v1/usuarios?select=id,usuario,foto&usuario=ilike.*" + query + "*&limit=20";
-        HttpClientManager.getInstance().get(url, restCallback(cb));
+        HttpClientManager.getInstance().get(url, HttpClientManager.simpleCallback(cb));
     }
 
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/AuthDetails.dart';
+import '../widgets/Common.dart';
 import '../services/Usuario.dart';
 import '../utils/validations.dart';
 
@@ -43,25 +44,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _snack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 
   Future<void> _submit() async {
     final errPass = Validaciones.contrasena(_newPasswordController.text);
     if (errPass != null) {
-      _snack(errPass, isError: true);
+      showBocadoSnack(context,errPass, isError: true);
       return;
     }
     if (!_passwordsMatch) {
-      _snack('Las contraseñas no coinciden', isError: true);
+      showBocadoSnack(context,'Las contraseñas no coinciden', isError: true);
       return;
     }
     setState(() => _saving = true);
@@ -72,11 +63,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _newPasswordController.text,
       );
       if (!mounted) return;
-      _snack('¡Contraseña restablecida con éxito!');
+      showBocadoSnack(context,'¡Contraseña restablecida con éxito!');
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (_) {
       if (mounted) {
-        _snack('No se pudo restablecer. El código pudo vencer o ya se usó.', isError: true);
+        showBocadoSnack(context,'No se pudo restablecer. El código pudo vencer o ya se usó.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

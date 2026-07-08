@@ -1,6 +1,8 @@
 package com.example.bocado.Managers;
 
 import com.example.bocado.BuildConfig;
+import com.example.bocado.DAO.Interfaces.CallbackCB;
+import com.example.bocado.Estaticos.ErrorCode;
 import okhttp3.*;
 import java.io.IOException;
 
@@ -98,5 +100,33 @@ public class HttpClientManager {
                 .delete()
                 .build();
         client.newCall(request).enqueue(callback);
+    }
+
+    public static String paginar(String columnaOrden, Integer limit, Integer offset) {
+        if (limit == null) return "";
+        return "&order=" + columnaOrden + ".desc&limit=" + limit + "&offset=" + (offset != null ? offset : 0);
+    }
+
+    public static Callback simpleCallback(CallbackCB cb) {
+        return simpleCallback(cb, true);
+    }
+
+    public static Callback simpleCallback(CallbackCB cb, boolean validarEstado) {
+        return new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onError(ErrorCode.NETWORK_ERROR, e.getMessage(), null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() != null ? response.body().string() : "[]";
+                if (validarEstado && !response.isSuccessful()) {
+                    cb.onError(ErrorCode.ERROR_API, "Error " + response.code() + ": " + body, null);
+                } else {
+                    cb.onSuccess(body);
+                }
+            }
+        };
     }
 }

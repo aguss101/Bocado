@@ -7,6 +7,7 @@ import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
+import '../utils/PagedList.dart';
 import '../services/Receta.dart';
 import '../services/Instructions.dart';
 import '../services/Update.dart';
@@ -34,15 +35,10 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final List<RecetaFeed> recipesFeed = [];
   final ScrollController _scrollController = ScrollController();
-  static const int _pageSize = 10;
 
   late String _seed;
-  int _offset = 0;
-  bool _estaCargando = true;
-  bool _cargandoMas = false;
-  bool _hayMas = true;
+  late final PagedList<RecetaFeed> _pl;
   static const bool _isDebugMode = false;
 
   @override
@@ -52,6 +48,15 @@ class _FeedScreenState extends State<FeedScreen> {
         .now()
         .millisecondsSinceEpoch
         .toString();
+    _pl = PagedList<RecetaFeed>(
+      (offset, limit) => RecetaService.getRecetas(
+        seed: _seed,
+        limit: limit,
+        offset: offset,
+        viewerId: widget.user.id,
+      ),
+      pageSize: 10,
+    );
     _scrollController.addListener(_onScroll);
     _traerRecetas();
     WidgetsBinding.instance.addPostFrameCallback((_) =>
@@ -93,46 +98,17 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Future<void> _traerRecetas() async {
     try {
-      final lista = await RecetaService.getRecetas(
-        seed: _seed,
-        limit: _pageSize,
-        offset: 0,
-        viewerId: widget.user.id,
-      );
-      if (!mounted) return;
-      setState(() {
-        recipesFeed
-          ..clear()
-          ..addAll(lista);
-        _offset = lista.length;
-        _hayMas = lista.length == _pageSize;
-        _estaCargando = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _estaCargando = false);
-    }
+      await _pl.cargarPrimera();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
   Future<void> _traerMas() async {
-    if (_cargandoMas || !_hayMas) return;
-    setState(() => _cargandoMas = true);
+    if (_pl.cargandoMas || !_pl.hayMas) return;
     try {
-      final lista = await RecetaService.getRecetas(
-        seed: _seed,
-        limit: _pageSize,
-        offset: _offset,
-        viewerId: widget.user.id,
-      );
-      if (!mounted) return;
-      setState(() {
-        recipesFeed.addAll(lista);
-        _offset += lista.length;
-        _hayMas = lista.length == _pageSize;
-        _cargandoMas = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _cargandoMas = false);
-    }
+      await _pl.cargarMas();
+    } catch (_) {}
+    if (mounted) setState(() {});
   }
 
 
@@ -148,8 +124,7 @@ class _FeedScreenState extends State<FeedScreen> {
         rutaActual: 'inicio',
         onRefresh: () {
           setState(() {
-            _estaCargando = true;
-            _offset = 0;
+            _pl.cargando = true;
             _seed = DateTime
                 .now()
                 .millisecondsSinceEpoch
@@ -250,20 +225,20 @@ class _FeedScreenState extends State<FeedScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _estaCargando
+            child: _pl.cargando
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(top: 8, bottom: 20),
-              itemCount: recipesFeed.length + (_hayMas ? 1 : 0),
+              itemCount: _pl.items.length + (_pl.hayMas ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index >= recipesFeed.length) {
+                if (index >= _pl.items.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                final recetaActual = recipesFeed[index];
+                final recetaActual = _pl.items[index];
 
                 return GestureDetector(
                   onTap: () {

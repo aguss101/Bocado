@@ -7,6 +7,7 @@ import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/Common.dart';
 import '../route_observer.dart';
+import '../utils/PagedList.dart';
 import 'Profile.dart';
 
 Future<void> mostrarSeguidoresDialog(
@@ -342,43 +343,19 @@ class _FollowTileState extends State<_FollowTile> {
 }
 
 class _PagedFollowList {
-  final Future<List<UserProfile>> Function(int offset, int limit) fetch;
+  final PagedList<UserProfile> _paged;
   final int Function(UserProfile) otroId;
-  final int pageSize;
-  final List<UserProfile> items = [];
   final Set<int> siguiendoActual = {};
-  int _offset = 0;
-  bool cargando = true;
-  bool cargandoMas = false;
-  bool hayMas = true;
 
-  _PagedFollowList(this.fetch, {required this.otroId, this.pageSize = 20});
+  _PagedFollowList(Future<List<UserProfile>> Function(int, int) fetch,
+      {required this.otroId, int pageSize = 20})
+      : _paged = PagedList(fetch, pageSize: pageSize);
 
-  Future<void> cargarPrimera() async {
-    cargando = true;
-    items.clear();
-    _offset = 0;
-    hayMas = true;
-    try {
-      final lista = await fetch(0, pageSize);
-      items.addAll(lista);
-      _offset = lista.length;
-      hayMas = lista.length == pageSize;
-    } finally {
-      cargando = false;
-    }
-  }
+  List<UserProfile> get items => _paged.items;
+  bool get cargando => _paged.cargando;
+  bool get cargandoMas => _paged.cargandoMas;
+  bool get hayMas => _paged.hayMas;
 
-  Future<void> cargarMas() async {
-    if (cargandoMas || !hayMas || cargando) return;
-    cargandoMas = true;
-    try {
-      final lista = await fetch(_offset, pageSize);
-      items.addAll(lista);
-      _offset += lista.length;
-      hayMas = lista.length == pageSize;
-    } finally {
-      cargandoMas = false;
-    }
-  }
+  Future<void> cargarPrimera() => _paged.cargarPrimera();
+  Future<void> cargarMas() => _paged.cargarMas();
 }

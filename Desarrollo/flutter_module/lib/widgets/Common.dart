@@ -6,6 +6,17 @@ import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../services/Receta.dart';
 
+void showBocadoSnack(BuildContext context, String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
+
 Future<bool> mostrarDialogoEliminarReceta(
   BuildContext context, {
   required int idReceta,

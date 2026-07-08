@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../widgets/AuthDetails.dart';
+import '../widgets/Common.dart';
 import '../services/Usuario.dart';
 
 class ConfirmEditScreen extends StatefulWidget {
@@ -45,17 +46,6 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
     super.dispose();
   }
 
-  void _snack(String msg, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 
   String _fmt(int s) =>
       '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
@@ -83,9 +73,9 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
       await UsuarioService.solicitarOtp(widget.correo);
       if (!mounted) return;
       _startCooldown();
-      _snack(isResend ? 'Te enviamos un nuevo código.' : 'Te enviamos un código a tu correo.');
+      showBocadoSnack(context,isResend ? 'Te enviamos un nuevo código.' : 'Te enviamos un código a tu correo.');
     } catch (_) {
-      if (mounted) _snack('No se pudo enviar el código. Reintentá.', isError: true);
+      if (mounted) showBocadoSnack(context,'No se pudo enviar el código. Reintentá.', isError: true);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -94,7 +84,7 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
   Future<void> _confirmar() async {
     final codigo = _codeController.text.trim();
     if (codigo.length < 6) {
-      _snack('Ingresá el código de 6 dígitos.', isError: true);
+      showBocadoSnack(context,'Ingresá el código de 6 dígitos.', isError: true);
       return;
     }
     setState(() => _saving = true);
@@ -107,7 +97,7 @@ class _ConfirmEditScreenState extends State<ConfirmEditScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (_) {
-      if (mounted) _snack('Código inválido o vencido. Probá de nuevo.', isError: true);
+      if (mounted) showBocadoSnack(context,'Código inválido o vencido. Probá de nuevo.', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
