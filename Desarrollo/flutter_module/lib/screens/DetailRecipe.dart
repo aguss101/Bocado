@@ -395,8 +395,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         if (padre != null) {
           padre.respuestas.add(c);
         } else {
-          // Raíz, o respuesta cuyo padre no vino en este lote (huérfana):
-          // se muestra igual en vez de perderse en silencio.
           comentariosRaiz.add(c);
         }
       }
@@ -917,34 +915,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-
-                  if (listaImagenes.length > 1)
-                    Positioned(
-                      left: 8,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.chevron_left,
-                              color: Colors.white,
-                              size: 30,
-                            ),
-                            onPressed: () {
-                              _pageController.previousPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            },
-                          ),
-                        ),
                       ),
                     ),
 
