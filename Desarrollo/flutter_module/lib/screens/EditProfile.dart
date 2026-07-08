@@ -344,6 +344,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
+            const SizedBox(height: 198, width: double.infinity),
             Container(
               width: double.infinity,
               height: 140,
@@ -457,7 +458,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 64),
+        const SizedBox(height: 6),
 
         Text(
           widget.user.usuario,

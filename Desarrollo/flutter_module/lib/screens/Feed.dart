@@ -8,6 +8,7 @@ import '../theme/App.dart';
 import '../widgets/Common.dart';
 import '../models/RecetaFeed.dart';
 import '../utils/PagedList.dart';
+import '../utils/IdCodec.dart';
 import '../services/Receta.dart';
 import '../services/Instructions.dart';
 import '../services/Update.dart';
@@ -405,11 +406,10 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
   }
 
   void _handleShare() {
+    final slug = IdCodec.encodeReceta(widget.receta.idReceta);
     final String textoCompartir =
-        '¡Mirá esta receta de ${widget.receta.nombre} en Bocado! 👨‍🍳\n\n'
-        'Rinde ${widget.receta.porciones} porciones y tiene ${widget.receta
-        .caloriasTotales.toInt()} calorías.\n'
-        '¡Descargá la app para ver los ingredientes y prepararla!';
+        '¡Mirá esta receta de ${widget.receta.nombre} en Bocado! 👨‍🍳\n'
+        'https://links.bocado.tech/receta/$slug';
     SharePlus.instance.share(ShareParams(text: textoCompartir));
   }
 
