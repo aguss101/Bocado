@@ -68,8 +68,8 @@ class RecetaFeed {
       precioPorcion: (json['precio_porcion'] as num?)?.toDouble() ?? 0.0,
       etiquetas: List<String>.from(decodeList(json['lista_etiquetas'])),
       precio: (json['precio'] as num?)?.toDouble() ?? 0.0,
-      activo: json['activo'] ?? true,
-      visibilidad: json['visibilidad'] ?? true,
+      activo: json['activo'] ?? false,
+      visibilidad: json['visibilidad'] ?? false,
 
       usuarioTarget: (json['id_usuario'] as num?)?.toInt() ?? 0,
       apellidoNombre: json['apellido_nombre'] ?? '',

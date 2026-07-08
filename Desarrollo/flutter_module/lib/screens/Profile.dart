@@ -691,6 +691,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (pl.cargando) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    print("valido que llego hasta aca!!");
+    for (var receta in pl.items) {
+      print('Receta: ${receta.nombre} | Activa: ${receta.activo} | Autor: ${receta.usuarioTarget}');
+    }
+
     if (_isMiPerfil) {
       final publicadas = pl.items.where((r) => r.activo).toList();
       return _gridRecetasSimple(

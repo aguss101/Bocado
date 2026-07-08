@@ -9,7 +9,7 @@ import 'BarraNavegacion.dart';
 import 'DetailRecipe.dart';
 import 'EditRecipe.dart';
 
-enum _RecetaTab { todas, publicadas, borradores, favoritos }
+enum _RecetaTab { todas, publicadas, borradores, guardados }
 
 enum _OrdenCampo { nombre, precio, calorias, rating }
 
@@ -80,10 +80,16 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   Future<void> _cargarRecetas() async {
     try {
-      final lista = await RecetaService.getMisRecetas(widget.user.id);
+      final lista = await Future.wait([
+        RecetaService.getMisRecetas(widget.user.id),
+        RecetaService.getGuardadosUsuario(widget.user.id),
+      ]);
       if (mounted) {
         setState(() {
-          _recetas = lista;
+          final Map<int, RecetaFeed> mapaUnico = {};
+          for (var r in lista[0]) mapaUnico[r.idReceta] = r;
+          for (var r in lista[1]) mapaUnico[r.idReceta] = r;
+          _recetas = mapaUnico.values.toList();
           _cargando = false;
         });
       }
@@ -92,9 +98,10 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     }
   }
 
-  bool _esFavorito(RecetaFeed r) => r.usuarioTarget != widget.user.id;
-  bool _esPublicada(RecetaFeed r) => r.activo == true;
-  bool _esBorrador(RecetaFeed r) => r.activo == false;
+  bool _esMia(RecetaFeed r) => r.usuarioTarget == widget.user.id;
+  bool _esGuardado(RecetaFeed r) => r.isSavedBy(widget.user.id) || !_esMia(r);
+  bool _esPublicada(RecetaFeed r) => r.activo == true && _esMia(r);
+  bool _esBorrador(RecetaFeed r) => r.activo == false && _esMia(r);
 
   String? _primeraFoto(RecetaFeed r) {
     final foto = r.foto;
@@ -105,10 +112,10 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   List<RecetaFeed> get _porTab {
     switch (_tabSeleccionada) {
-      case _RecetaTab.todas: return _recetas;
+      case _RecetaTab.todas: return _recetas.where(_esMia).toList();
       case _RecetaTab.publicadas: return _recetas.where(_esPublicada).toList();
       case _RecetaTab.borradores: return _recetas.where(_esBorrador).toList();
-      case _RecetaTab.favoritos: return _recetas.where(_esFavorito).toList();
+      case _RecetaTab.guardados: return _recetas.where(_esGuardado).toList();
     }
   }
 
@@ -195,7 +202,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       case _RecetaTab.todas: return _recetas.isNotEmpty;
       case _RecetaTab.publicadas: return _recetas.any(_esPublicada);
       case _RecetaTab.borradores: return _recetas.any(_esBorrador);
-      case _RecetaTab.favoritos: return _recetas.any(_esFavorito);
+      case _RecetaTab.guardados: return _recetas.any(_esGuardado);
     }
   }
 
@@ -383,7 +390,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       (_RecetaTab.todas, 'TODAS'),
       (_RecetaTab.publicadas, 'PUBLICADAS'),
       (_RecetaTab.borradores, 'BORRADORES'),
-      (_RecetaTab.favoritos, 'FAVORITOS'),
+      (_RecetaTab.guardados, 'GUARDADOS'),
     ];
 
     return SizedBox(
@@ -519,7 +526,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       _RecetaTab.todas => 'Todavía no tenés recetas',
       _RecetaTab.publicadas => 'No tenés recetas publicadas',
       _RecetaTab.borradores => 'No tenés borradores',
-      _RecetaTab.favoritos => 'No tenés recetas favoritas',
+      _RecetaTab.guardados => 'No tenés recetas guardadas',
     };
 
     final mensaje = hayFiltros

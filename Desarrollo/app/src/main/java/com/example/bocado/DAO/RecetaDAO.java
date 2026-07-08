@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class RecetaDAO {
 
-    private static final String VISTA = "/rest/v1/vistas_recetas_macros";
+    private static final String VISTA = "/rest/v1/vistas_recetas_feed";
 
     public void feedAleatorio(String seed, int limit, int offset, Integer viewerId, CallbackCB cb) {
         try {
@@ -28,7 +28,7 @@ public class RecetaDAO {
     }
 
     public void listarPorUsuario(int idUsuario, Integer limit, Integer offset, CallbackCB cb) {
-        String url = VISTA + "?select=*&id_usuario=eq." + idUsuario
+        String url = VISTA + "?select=*&id_usuario=eq." + idUsuario + "&activo=eq.true&visibilidad=eq.true"
                 + HttpClientManager.paginar("id_receta", limit, offset);
         HttpClientManager.getInstance().get(url, HttpClientManager.simpleCallback(cb));
     }
@@ -170,7 +170,7 @@ public class RecetaDAO {
         }
     }
     public void buscarReceta(String query, CallbackCB cb){
-        String url = VISTA + "?nombre_receta=ilike.*" + query + "*&limit=20";
+        String url = VISTA + "?or=(nombre_receta.ilike.*" + query + "*,etiquetas_texto.ilike.*" + query + "*)&activo=eq.true&visibilidad=eq.true&limit=20";
         HttpClientManager.getInstance().get(url, HttpClientManager.simpleCallback(cb));
     }
 
