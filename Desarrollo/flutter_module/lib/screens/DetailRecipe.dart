@@ -113,9 +113,12 @@ class IngredientItem {
 
   factory IngredientItem.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> alimento = json['alimentos'] ?? {};
+    final int idMedida = json['id_medida'] is int
+          ? json['id_medida'] as int
+          : int.tryParse(json['id_medida']?.toString() ?? '') ?? 1;
     return IngredientItem(
       nombre: alimento['nombre'] ?? 'Ingrediente desconocido',
-      cantidad: '${json['cantidad'] ?? 0}g',
+      cantidad: '${json['cantidad'] ?? 0}${unitForMedida(idMedida)}',
       resaltado: false,
     );
   }

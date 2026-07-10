@@ -34,6 +34,7 @@ public class RecetasChannel {
         switch (call.method) {
             case "getAlimentos"    -> handleGetAlimento(call, result);
             case "addAlimento"     -> handleAddAlimento(call, result);
+            case "actualizarPrecioAlimento" -> handleActualizarPrecioAlimento(call, result);
             case "saveReceta"      -> handleSaveReceta(call, result);
             case "getRecetas"      -> handleGetRecetas(call, result);
             case "getRecetasUsuario" -> handleGetRecetasUsuario(call, result);
@@ -108,13 +109,41 @@ public class RecetasChannel {
     private void handleAddAlimento(MethodCall call, MethodChannel.Result result) {
         String nombre     = call.argument("nombre");
         Integer idUsuario = call.argument("id_usuario");
+        Integer idMedida  = call.argument("id_medida");
+        Double precioBase = call.argument("precio_base");
+
+        if (idMedida == null || precioBase == null) {
+            result.error("INVALID_ARGS", "Se requiere id_medida y precio_base", null);
+            return;
+        }
 
         new Thread(() -> {
             try {
-                int nuevoId = AlimentoDAO.crearSimple(nombre, idUsuario);
+                int nuevoId = AlimentoDAO.crearSimple(nombre, idUsuario, idMedida, precioBase);
                 Map<String, Object> res = new HashMap<>();
                 res.put("id", nuevoId);
                 activity.runOnUiThread(() -> result.success(res));
+            } catch (Exception e) {
+                activity.runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
+            }
+        }).start();
+    }
+
+    private void handleActualizarPrecioAlimento(MethodCall call, MethodChannel.Result result) {
+        Integer idAlimento = call.argument("id_alimento");
+        Integer idUsuario  = call.argument("id_usuario");
+        Integer idMedida   = call.argument("id_medida");
+        Double precioBase  = call.argument("precio_base");
+
+        if (idAlimento == null || idUsuario == null || idMedida == null || precioBase == null) {
+            result.error("INVALID_ARGS", "Faltan parámetros para actualizar el precio del alimento", null);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                boolean ok = AlimentoDAO.actualizarPrecio(idAlimento, idUsuario, idMedida, precioBase);
+                activity.runOnUiThread(() -> result.success(ok));
             } catch (Exception e) {
                 activity.runOnUiThread(() -> result.error("DB_ERROR", e.getMessage(), null));
             }

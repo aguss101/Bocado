@@ -74,12 +74,40 @@ class RecetaService {
     );
   }
 
-  static Future<Map<String, dynamic>> addAlimento(String nombre, int idUsuario) async {
+  static Future<Map<String, dynamic>> addAlimento(
+    String nombre,
+    int idUsuario, {
+    required int idMedida,
+    required double precioBase,
+  }) async {
     final result = await _channel.invokeMethod(
       'addAlimento',
-      {'nombre': nombre, 'id_usuario': idUsuario},
+      {
+        'nombre': nombre,
+        'id_usuario': idUsuario,
+        'id_medida': idMedida,
+        'precio_base': precioBase,
+      },
     );
     return Map<String, dynamic>.from(result as Map);
+  }
+
+  static Future<bool> actualizarPrecioAlimento({
+    required int idAlimento,
+    required int idUsuario,
+    required int idMedida,
+    required double precioBase,
+  }) async {
+    final result = await _channel.invokeMethod(
+      'actualizarPrecioAlimento',
+      {
+        'id_alimento': idAlimento,
+        'id_usuario': idUsuario,
+        'id_medida': idMedida,
+        'precio_base': precioBase,
+      },
+    );
+    return result as bool;
   }
 
   static Future<Map<String, dynamic>> saveReceta(Map<String, dynamic> datos) async {

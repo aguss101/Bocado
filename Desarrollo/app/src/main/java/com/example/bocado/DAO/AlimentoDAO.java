@@ -18,6 +18,9 @@ public class AlimentoDAO {
             Map<String, Object> item = new HashMap<>();
             item.put("id", obj.getInt("id"));
             item.put("nombre", obj.getString("nombre"));
+            item.put("id_usuario", obj.getInt("id_usuario"));
+            item.put("id_medida", obj.getInt("id_medida"));
+            item.put("precio_base", obj.isNull("precio_base") ? null : obj.getDouble("precio_base"));
             item.put("proteinas", obj.optDouble("proteinas", 0));
             item.put("carbohidratos", obj.optDouble("carbohidratos", 0));
             item.put("grasas", obj.optDouble("grasas", 0));
@@ -34,12 +37,25 @@ public class AlimentoDAO {
         return parseLista(response);
     }
 
-    public static int crearSimple(String nombre, int idUsuario) throws Exception {
+    public static int crearSimple(String nombre, int idUsuario, int idMedida, double precioBase) throws Exception {
         JSONObject json = new JSONObject();
         json.put("p_nombre", nombre);
         json.put("p_id_usuario", idUsuario);
+        json.put("p_id_medida", idMedida);
+        json.put("p_precio_base", precioBase);
 
         String response = RpcCallHelper.callSync("crear_alimento_simple", json);
         return Integer.parseInt(response);
+    }
+
+    public static boolean actualizarPrecio(int idAlimento, int idUsuario, int idMedida, double precioBase) throws Exception {
+        JSONObject json = new JSONObject();
+        json.put("p_id_alimento", idAlimento);
+        json.put("p_id_usuario", idUsuario);
+        json.put("p_id_medida", idMedida);
+        json.put("p_precio_base", precioBase);
+
+        String response = RpcCallHelper.callSync("actualizar_precio_alimento", json);
+        return Boolean.parseBoolean(response.trim());
     }
 }

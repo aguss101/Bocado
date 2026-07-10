@@ -13,16 +13,20 @@ const _primary = AppTheme.primary;
 const _error = Color(0xFFB91C1C);
 
 const List<DropdownMenuItem<int>> _medidaDropdownItems = [
-  DropdownMenuItem(value: 1, child: Text('Peso (Base 100gr)')),
-  DropdownMenuItem(value: 2, child: Text('Volumen (Base 100ml)')),
-  DropdownMenuItem(value: 3, child: Text('Unidad (Base 1)')),
+  DropdownMenuItem(value: 1, child: Text('Gramos')),
+  DropdownMenuItem(value: 2, child: Text('Kilogramos')),
+  DropdownMenuItem(value: 3, child: Text('Mililitros')),
+  DropdownMenuItem(value: 4, child: Text('Litros')),
+  DropdownMenuItem(value: 5, child: Text('unidad')),
 ];
 
-String _unitForMedida(int medida) {
+String unitForMedida(int medida) {
   switch (medida) {
-    case 1: return 'gr';
-    case 2: return 'ml';
-    default: return 'unid';
+    case 1: return 'g';
+    case 2: return 'kg';
+    case 3: return 'ml';
+    case 4: return 'l';
+    default: return 'u';
   }
 }
 
@@ -35,6 +39,7 @@ class _Ingredient {
   double priceBase;
   int idMedida;
   final int? idUsuario;
+  final bool esGlobal;
   final TextEditingController quantityController;
 
   _Ingredient({
@@ -46,12 +51,13 @@ class _Ingredient {
     required this.priceBase,
     required this.idMedida,
     this.idUsuario,
+    this.esGlobal = false,
   }) : quantityController =
            TextEditingController(text: quantity == "0" ? "" : quantity);
 
   double get subtotal {
     final qty = double.tryParse(quantity) ?? 0.0;
-    if (idMedida == 1 || idMedida == 2) {
+    if (idMedida == 1 || idMedida == 3 ) {
       return (priceBase / 100.0) * qty;
     }
     return priceBase * qty;
@@ -285,10 +291,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         name: ing['nombre_alimento']?.toString() ?? 'Ingrediente',
         category: alimentoCatalogo['categoria']?.toString() ?? 'Añadido',
         quantity: _formatNumero(cantidad),
-        unit: _unitForMedida(idMedida),
+        unit: unitForMedida(idMedida),
         priceBase: precio,
         idMedida: idMedida,
         idUsuario: widget.user.id,
+        esGlobal: (alimentoCatalogo['id_usuario'] as num?)?.toInt() == 0,
       );
     }).toList();
 
@@ -452,9 +459,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     try {
       for (var ing in _ingredients) {
         if (ing.idAlimento <= 0) {
-          final response = Map<String, dynamic>.from(
-            await const MethodChannel('com.example.bocado/recetas')
-                .invokeMethod('addAlimento', {'nombre': ing.name, 'id_usuario': widget.user.id}),
+          final response = await RecetaService.addAlimento(
+            ing.name,
+            widget.user.id,
+            idMedida: ing.idMedida,
+            precioBase: ing.priceBase,
           );
           ing.idAlimento = response['id'] as int;
         }
@@ -914,22 +923,12 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   }
 
   Widget _suggestionRow(Map<String, dynamic> s) {
+    final bool esGlobal = (s['id_usuario'] as num?)?.toInt() == 0;
     return GestureDetector(
       onTap: () {
-        double precioNum = 0.00;
-        if (s['sub'] != null) {
-          final String subString = s['sub'].toString();
-          if (subString.contains('•')) {
-            final partePrecio = subString.split('•').last.replaceAll(RegExp(r'[^\d.]'), '').trim();
-            precioNum = double.tryParse(partePrecio) ?? 0.00;
-          } else {
-            precioNum = double.tryParse(subString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.00;
-          }
-        } else if (s['precio'] != null) {
-          precioNum = double.tryParse(s['precio'].toString()) ?? 0.00;
-        }
-
-        final idDinamico = s['id_alimento'] ?? s['id'] ?? 0;
+        final int idAlimento = s['id_alimento'] is int
+            ? s['id_alimento'] as int
+            : (s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '') ?? 0);
         final String nombreOriginal = s['name']?.toString() ?? s['nombre']?.toString() ?? 'Ingrediente';
         final String nombreFormateado = nombreOriginal.isNotEmpty
             ? nombreOriginal[0].toUpperCase() + nombreOriginal.substring(1)
@@ -943,23 +942,37 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           return;
         }
 
-        setState(() {
-          _ingredients.add(
-            _Ingredient(
-                idAlimento: idDinamico,
-                name: nombreFormateado,
-                category: s['categoria'] ?? 'Añadido',
-                quantity: '0',
-                unit: s['unidad'] ?? 'gr',
-                priceBase: precioNum,
-                idMedida: 1
-            ),
-          );
+        final precioBaseExistente = s['precio_base'];
+        final idMedidaExistente = s['id_medida'];
+
+        if (precioBaseExistente != null && idMedidaExistente != null) {
+          final double precioBase = (precioBaseExistente as num).toDouble();
+          final int idMedida = (idMedidaExistente as num).toInt();
+          setState(() {
+            _ingredients.add(
+              _Ingredient(
+                  idAlimento: idAlimento,
+                  name: nombreFormateado,
+                  category: s['categoria'] ?? 'Añadido',
+                  quantity: '0',
+                  unit: unitForMedida(idMedida),
+                  priceBase: precioBase,
+                  idMedida: idMedida,
+                  idUsuario: widget.user.id,
+                  esGlobal: esGlobal,
+              ),
+            );
+            _ingSearchCtrl.clear();
+            _suggestions.clear();
+          });
+          FocusScope.of(context).unfocus();
+          _snack('Añadido: $nombreFormateado');
+        } else {
           _ingSearchCtrl.clear();
           _suggestions.clear();
-        });
-        FocusScope.of(context).unfocus();
-        _snack('Añadido: $nombreFormateado');
+          FocusScope.of(context).unfocus();
+          _showAdvancedIngredientDialog(nombreFormateado, idAlimentoExistente: idAlimento);
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
@@ -985,13 +998,24 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    s['name']?.toString() ?? s['nombre']?.toString() ?? '',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: _onSurface
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          s['name']?.toString() ?? s['nombre']?.toString() ?? '',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: _onSurface
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (esGlobal) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.star, color: Colors.amber, size: 12),
+                      ],
+                    ],
                   ),
                   Text(
                     s['sub']?.toString() ?? s['categoria']?.toString() ?? '',
@@ -1093,109 +1117,27 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Row(
                 children: [
                   Text(
-                    ing.idMedida == 3
-                        ? '(\$${ing.priceBase.toStringAsFixed(2)} x unid)'
-                        : '(\$${ing.priceBase.toStringAsFixed(2)} x 100${ing.unit})',
+                    (ing.idMedida == 1 || ing.idMedida == 3)
+                        ? '(\$${ing.priceBase.toStringAsFixed(2)} x 100${ing.unit})'
+                        : '(\$${ing.priceBase.toStringAsFixed(2)} x 1${ing.unit})',
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: subtextColor),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => _showIngredientDialog(ing: ing),
-                    child: Icon(Icons.settings, color: _primary, size: 18),
+                    onTap: () {
+                      if (ing.esGlobal) {
+                        _snack('Este es un ingrediente del sistema: su precio no se puede modificar.');
+                        return;
+                      }
+                      _showAdvancedIngredientDialog(ing.name, ingredienteExistente: ing);
+                    },
+                    child: Icon(Icons.settings, color: ing.esGlobal ? subtextColor : _primary, size: 18),
                   ),
                 ],
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  void _showIngredientDialog({_Ingredient? ing, String? newName}) {
-    final isEditing = ing != null;
-    final TextEditingController cantCtrl = TextEditingController(text: isEditing ? ing.quantity : '100');
-    final TextEditingController precioCtrl = TextEditingController(text: isEditing ? ((double.tryParse(ing.quantity) ?? 1) * (ing.priceBase / (ing.idMedida < 3 ? 100 : 1))).toStringAsFixed(2) : '');
-    int medida = isEditing ? ing.idMedida : 1;
-
-    String getSufijo(int medida) {
-      switch (medida) {
-        case 1: return 'gramos';
-        case 2: return 'mililitros';
-        case 3: return 'unidades';
-        default: return '';
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Editar: ${ing.name}' : 'Configurar: $newName'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButton<int>(
-                value: medida,
-                items: _medidaDropdownItems,
-                onChanged: (v) => setDialogState(() => medida = v!),
-              ),
-              TextField(
-                controller: cantCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Cantidad Comprada',
-                  suffixText: getSufijo(medida),
-                  suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                ),
-              ),
-              TextField(
-                controller: precioCtrl,
-                decoration: const InputDecoration(labelText: 'Precio Total Pagado \$'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
-            ElevatedButton(
-              onPressed: () {
-
-                setState(() {
-                  double cantComprada = double.tryParse(cantCtrl.text) ?? 0;
-                  double precioTotal = double.tryParse(precioCtrl.text) ?? 0;
-
-                  if (cantComprada <= 0) return;
-
-                  double nuevoPriceBase = (precioTotal / cantComprada);
-                  if (medida == 1 || medida == 2) nuevoPriceBase *= 100;
-
-                  if (isEditing) {
-                    ing.priceBase = nuevoPriceBase;
-                    ing.idMedida = medida;
-                    ing.unit = _unitForMedida(medida);
-                  } else {
-                    _ingredients.add(_Ingredient(
-                        idAlimento: DateTime.now().millisecondsSinceEpoch,
-                        name: newName!,
-                        category: 'Personalizado',
-                        quantity: cantCtrl.text,
-                        unit: _unitForMedida(medida),
-                        priceBase: nuevoPriceBase,
-                        idMedida: medida,
-                        idUsuario: widget.user.id
-                    ));
-                    _ingSearchCtrl.clear();
-                  }
-                });
-                Navigator.pop(context);
-                FocusManager.instance.primaryFocus?.unfocus();
-                _snack('Configuración guardada');
-              },
-              child: const Text('GUARDAR'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1244,56 +1186,110 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     );
   }
 
-  void _showAdvancedIngredientDialog(String name) {
+  void _showAdvancedIngredientDialog(String name, {int? idAlimentoExistente, _Ingredient? ingredienteExistente}) {
+    final bool isEditing = ingredienteExistente != null;
     final cantCompraCtrl = TextEditingController();
     final precioTotalCtrl = TextEditingController();
-    int medidaSeleccionada = 1;
+    int medidaSeleccionada = isEditing ? ingredienteExistente!.idMedida : 1;
+
+    String getSufijo(int medida) {
+      switch (medida) {
+        case 1: return 'Gramos';
+        case 2: return 'Kilogramos';
+        case 3: return 'Mililitros';
+        case 4: return 'Litros';
+        default: return 'Unidades';
+      }
+    }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Configurar: $name'),
-          content: Column(
+          title: Text(isEditing ? 'Editar precio: $name' : 'Configurar: $name'),
+          content: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                isEditing
+                    ? 'Vas a actualizar la medida y el precio de este ingrediente para todas tus recetas.'
+                    : 'Esta configuración se guarda una única vez para este ingrediente y se va a reutilizar en todas tus recetas. Para cambiarla más adelante, usá el botón de ajustes.',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
               DropdownButton<int>(
                 value: medidaSeleccionada,
                 items: _medidaDropdownItems,
                 onChanged: (v) => setDialogState(() => medidaSeleccionada = v!),
               ),
-              TextField(controller: cantCompraCtrl, decoration: const InputDecoration(labelText: 'Cantidad comprada'), keyboardType: TextInputType.number),
+              TextField(
+                controller: cantCompraCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Cantidad comprada',
+                  suffixText: getSufijo(medidaSeleccionada),
+                  suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+              ),
               TextField(controller: precioTotalCtrl, decoration: const InputDecoration(labelText: 'Precio pagado \$'), keyboardType: TextInputType.number),
             ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 double cant = double.tryParse(cantCompraCtrl.text) ?? 0;
                 double total = double.tryParse(precioTotalCtrl.text) ?? 0;
                 if (cant <= 0) return;
 
                 double precioBaseCalculado = (total / cant);
-                if (medidaSeleccionada == 1 || medidaSeleccionada == 2) {
+                if (medidaSeleccionada == 1 || medidaSeleccionada == 3) {
                   precioBaseCalculado *= 100;
                 }
 
+                final int idAlimentoParaPersistir =
+                    isEditing ? ingredienteExistente!.idAlimento : (idAlimentoExistente ?? -1);
+
+                if (idAlimentoParaPersistir > 0) {
+                  try {
+                    final bool guardado = await RecetaService.actualizarPrecioAlimento(
+                      idAlimento: idAlimentoParaPersistir,
+                      idUsuario: widget.user.id,
+                      idMedida: medidaSeleccionada,
+                      precioBase: precioBaseCalculado,
+                    );
+                    if (!guardado) {
+                      _snack('⚠️ No se pudo guardar este precio en tu catálogo (es un ingrediente definido por Bocado). Se va a usar solo en esta receta.');
+                    }
+                  } catch (e) {
+                    _snack('No se pudo guardar el precio del ingrediente: $e');
+                    return;
+                  }
+                }
+
                 setState(() {
-                  _ingredients.add(_Ingredient(
-                    idAlimento: -1,
-                    name: name,
-                    category: 'Personalizado',
-                    quantity: '100',
-                    unit: _unitForMedida(medidaSeleccionada),
-                    priceBase: precioBaseCalculado,
-                    idMedida: medidaSeleccionada,
-                    idUsuario: widget.user.id,
-                  ));
-                  _ingSearchCtrl.clear();
+                  if (isEditing) {
+                    ingredienteExistente!.priceBase = precioBaseCalculado;
+                    ingredienteExistente!.idMedida = medidaSeleccionada;
+                    ingredienteExistente!.unit = unitForMedida(medidaSeleccionada);
+                  } else {
+                    _ingredients.add(_Ingredient(
+                      idAlimento: idAlimentoExistente ?? -1,
+                      name: name,
+                      category: 'Personalizado',
+                      quantity: '100',
+                      unit: unitForMedida(medidaSeleccionada),
+                      priceBase: precioBaseCalculado,
+                      idMedida: medidaSeleccionada,
+                      idUsuario: widget.user.id,
+                    ));
+                    _ingSearchCtrl.clear();
+                  }
                   FocusScope.of(context).unfocus();
                 });
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text('GUARDAR'),
             ),
