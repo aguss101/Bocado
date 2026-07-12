@@ -144,7 +144,7 @@ class _FeedScreenState extends State<FeedScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary,
+                  color: c.primary,
                   borderRadius: BorderRadius.circular(BocadoRadius.sm),
                 ),
                 child: const Icon(
@@ -212,7 +212,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     padding: const EdgeInsets.only(right: 16),
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                      backgroundColor: c.primary.withValues(alpha: 0.2),
                       backgroundImage: bocadoImageProvider(
                           widget.user.fotoUrl ??
                               'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
@@ -459,17 +459,17 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.3)),
+                            color: c.primary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                              Icons.attach_money, color: AppTheme.primary,
+                          Icon(
+                              Icons.attach_money, color: c.primary,
                               size: 14),
                           Text(
                               '${widget.receta.precioPorcion.toStringAsFixed(
                                   2)} / porción',
-                              style: const TextStyle(color: AppTheme.primary,
+                              style: TextStyle(color: c.primary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold)
                           ),
@@ -483,7 +483,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.9),
+                          color: c.rating.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Row(
@@ -509,7 +509,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary,
+                          color: c.primary,
                           borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
                         child: Text(
@@ -603,7 +603,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                       _buildDivider(c.border),
                       _buildNutriCol(
                           'PROTEÍNAS', '${widget.receta.proteinasTotales}g',
-                          c.muted, valueColor: AppTheme.primary),
+                          c.muted, valueColor: c.primary),
                       _buildDivider(c.border),
                       _buildNutriCol(
                           'CARBOS', '${widget.receta.carbohidratosTotales}g',
@@ -625,7 +625,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                           icon: _isLiked ? Icons.favorite : Icons
                               .favorite_border,
                           label: '$_likesLocales',
-                          color: _isLiked ? AppTheme.primary : c.muted,
+                          color: _isLiked ? c.primary : c.muted,
                           onTap: _handleLike,
                         ),
                         const SizedBox(width: 20),
@@ -650,7 +650,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _isSaved ? AppTheme.primary : AppTheme.primary
+                          color: _isSaved ? c.primary : c.primary
                               .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(BocadoRadius.sm),
                         ),
@@ -658,7 +658,7 @@ class _FeedArticleCardState extends State<_FeedArticleCard> with RouteAware {
                           children: [
                             Icon(
                               _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                              color: _isSaved ? Colors.white : AppTheme.primary,
+                              color: _isSaved ? Colors.white : c.primary,
                               size: 16,
                             ),
                             const SizedBox(width: 4),

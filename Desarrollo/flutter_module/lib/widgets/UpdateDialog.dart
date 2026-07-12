@@ -21,10 +21,10 @@ Future<void> mostrarAvisoActualizacion(
           Container(
             padding: const EdgeInsets.all(BocadoSpacing.sm),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.15),
+              color: c.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(BocadoRadius.sm),
             ),
-            child: const Icon(Icons.system_update, color: AppTheme.primary),
+            child: Icon(Icons.system_update, color: c.primary),
           ),
           const SizedBox(width: BocadoSpacing.md),
           Expanded(
@@ -64,7 +64,7 @@ Future<void> mostrarAvisoActualizacion(
           icon: const Icon(Icons.download, size: 18),
           label: const Text('Actualizar'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primary,
+            backgroundColor: c.primary,
             foregroundColor: Colors.white,
             minimumSize: const Size(0, 44),
             padding: const EdgeInsets.symmetric(horizontal: BocadoSpacing.lg),

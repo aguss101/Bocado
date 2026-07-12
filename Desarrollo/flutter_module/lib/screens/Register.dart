@@ -147,8 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppTheme.primary,
+            colorScheme: ColorScheme.light(
+              primary: BocadoColors.of(context).primary,
             ),
           ),
           child: child!,
@@ -224,11 +224,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           text: TextSpan(
             text: '¿Ya tenés cuenta? ',
             style: TextStyle(fontSize: 12, color: secondary),
-            children: const [
+            children: [
               TextSpan(
                 text: 'Iniciá sesión',
                 style: TextStyle(
-                  color: AppTheme.primary,
+                  color: c.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -248,7 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+                  color: c.text,
                 ),
               ),
               const SizedBox(height: 6),
@@ -392,7 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Checkbox(
                       value: _acceptTerms,
                       onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-                      activeColor: AppTheme.primary,
+                      activeColor: c.primary,
                       side: BorderSide(color: outline),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -407,19 +407,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         text: TextSpan(
                           text: 'Acepto los ',
                           style: TextStyle(fontSize: 12, color: secondary),
-                          children: const [
+                          children: [
                             TextSpan(
                               text: 'Términos de Servicio',
                               style: TextStyle(
-                                color: AppTheme.primary,
+                                color: c.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            TextSpan(text: ' y la '),
+                            const TextSpan(text: ' y la '),
                             TextSpan(
                               text: 'Política de Privacidad',
                               style: TextStyle(
-                                color: AppTheme.primary,
+                                color: c.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

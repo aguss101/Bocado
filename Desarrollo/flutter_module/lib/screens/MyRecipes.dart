@@ -257,7 +257,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 color: surfaceColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _filtroSinResultados ? Colors.red : borderColor,
+                  color: _filtroSinResultados ? _c.error : borderColor,
                 ),
               ),
               child: TextField(
@@ -283,7 +283,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         actions: [
           Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: AppTheme.primary),
+              icon: Icon(Icons.menu, color: _c.primary),
               onPressed: () => Scaffold.of(context).openEndDrawer(),
             ),
           ),
@@ -291,7 +291,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         ],
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: _c.primary))
           : CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -313,18 +313,18 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                             labelStyle: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: marcarError ? Colors.red : textColor,
+                              color: marcarError ? _c.error : textColor,
                             ),
                             backgroundColor: marcarError
-                                ? Colors.red.withValues(alpha: 0.12)
+                                ? _c.error.withValues(alpha: 0.12)
                                 : borderColor,
-                            deleteIconColor: marcarError ? Colors.red : mutedColor,
+                            deleteIconColor: marcarError ? _c.error : mutedColor,
                             onDeleted: () => _removerEtiqueta(etiqueta),
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.compact,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             side: marcarError
-                                ? const BorderSide(color: Colors.red, width: 1)
+                                ? BorderSide(color: _c.error, width: 1)
                                 : BorderSide.none,
                           );
                         }).toList(),
@@ -379,7 +379,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           );
           if (mounted) _cargarRecetas();
         },
-        backgroundColor: AppTheme.primary,
+        backgroundColor: _c.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -432,7 +432,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sort, color: AppTheme.primary, size: 14),
+                Icon(Icons.sort, color: _c.primary, size: 14),
                 const SizedBox(width: 6),
                 Text(
                   _orden.label,
@@ -495,13 +495,13 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                         title: Text(
                           opcion.label,
                           style: TextStyle(
-                            color: seleccionado ? AppTheme.primary : textColor,
+                            color: seleccionado ? _c.primary : textColor,
                             fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
                             fontSize: 14,
                           ),
                         ),
                         trailing: seleccionado
-                            ? const Icon(Icons.check, color: AppTheme.primary, size: 18)
+                            ? Icon(Icons.check, color: _c.primary, size: 18)
                             : null,
                         onTap: () {
                           setState(() => _orden = opcion);
@@ -733,11 +733,11 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _c.primary),
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.star, color: AppTheme.primary, size: 9),
+            Icon(Icons.star, color: _c.rating, size: 9),
           ],
         ),
       ],
@@ -750,11 +750,11 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         required bool enabled,
         VoidCallback? onTap,
       }) {
-    final Color bg = selected ? AppTheme.primary.withValues(alpha: 0.15) : surfaceColor;
-    final Color border = selected ? AppTheme.primary : borderColor;
+    final Color bg = selected ? _c.primary.withValues(alpha: 0.15) : surfaceColor;
+    final Color border = selected ? _c.primary : borderColor;
     final Color fg = !enabled
         ? mutedColor.withValues(alpha: 0.4)
-        : (selected ? AppTheme.primary : mutedColor);
+        : (selected ? _c.primary : mutedColor);
 
     return Opacity(
       opacity: enabled ? 1 : 0.5,

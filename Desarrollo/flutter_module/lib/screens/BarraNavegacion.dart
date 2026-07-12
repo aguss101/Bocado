@@ -11,6 +11,7 @@ import 'MyRecipes.dart';
 import 'Profile.dart';
 import 'EditRecipe.dart';
 import 'PremiumStore.dart';
+import 'Colorblind.dart';
 
 
 class SharedDrawer extends StatelessWidget {
@@ -42,7 +43,7 @@ class SharedDrawer extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                    backgroundColor: c.primary.withValues(alpha: 0.2),
                     backgroundImage: bocadoImageProvider(
                         user.fotoUrl ?? 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
                     ),
@@ -95,7 +96,7 @@ class SharedDrawer extends StatelessWidget {
 
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: BocadoSpacing.sm, horizontal: BocadoSpacing.sm),
-                    decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(BocadoRadius.sm)),
+                    decoration: BoxDecoration(color: c.primary, borderRadius: BorderRadius.circular(BocadoRadius.sm)),
                     child: ListTile(
                       leading: const Icon(Icons.add_circle, color: Colors.white),
                       title: const Text('Crear Receta', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -159,12 +160,12 @@ class SharedDrawer extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(BocadoRadius.sm),
                   ),
-                  tileColor: AppTheme.primary.withValues(alpha: 0.12),
-                  leading: const Icon(Icons.system_update, color: AppTheme.primary),
-                  title: const Text(
+                  tileColor: c.primary.withValues(alpha: 0.12),
+                  leading: Icon(Icons.system_update, color: c.primary),
+                  title: Text(
                     'Actualizar app',
                     style: TextStyle(
-                      color: AppTheme.primary,
+                      color: c.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -176,14 +177,43 @@ class SharedDrawer extends StatelessWidget {
               ),
 
             Padding(
+              padding: const EdgeInsets.fromLTRB(
+                BocadoSpacing.lg,
+                BocadoSpacing.sm,
+                BocadoSpacing.lg,
+                0,
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(BocadoRadius.sm),
+                ),
+                tileColor: c.primary.withValues(alpha: 0.12),
+                leading: Icon(Icons.palette_outlined, color: c.primary),
+                title: Text(
+                  'Modo daltónico',
+                  style: TextStyle(
+                    color: c.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ColorblindSettingsScreen()),
+                  );
+                },
+              ),
+            ),
+
+            Padding(
               padding: const EdgeInsets.all(BocadoSpacing.lg),
               child: ListTile(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BocadoRadius.sm)),
-                tileColor: Colors.red.withValues(alpha: 0.08),
-                leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text(
+                tileColor: c.error.withValues(alpha: 0.08),
+                leading: Icon(Icons.logout, color: c.error),
+                title: Text(
                   'Cerrar sesión',
-                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: c.error, fontWeight: FontWeight.w600),
                 ),
                 onTap: () async {
                   await SessionService.clearSession();
@@ -207,11 +237,11 @@ class SharedDrawer extends StatelessWidget {
     required bool isActive, required VoidCallback onTap
   }) {
     final c = BocadoColors.of(context);
-    final color = isActive ? AppTheme.primary : c.muted;
+    final color = isActive ? c.primary : c.muted;
 
     return Container(
       decoration: isActive
-          ? BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(BocadoRadius.sm))
+          ? BoxDecoration(color: c.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(BocadoRadius.sm))
           : null,
       child: ListTile(
         leading: Icon(icon, color: color),

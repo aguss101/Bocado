@@ -182,9 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? AppTheme.onSurfaceDark
-                      : AppTheme.onSurfaceLight,
+                  color: c.text,
                 ),
               ),
               const SizedBox(height: 6),
@@ -217,12 +215,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       '¿Olvidaste tu contraseña?',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
+                        color: c.primary,
                       ),
                     ),
                   ),
@@ -257,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       value: _rememberMe,
                       onChanged: (v) =>
                           setState(() => _rememberMe = v ?? false),
-                      activeColor: AppTheme.primary,
+                      activeColor: c.primary,
                       side: BorderSide(color: outline),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -309,12 +307,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             RegisterScreen(themeNotifier: widget.themeNotifier),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Registrate gratis',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.primary,
+                        color: c.primary,
                       ),
                     ),
                   ),

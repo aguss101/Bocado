@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_module/models/UsuarioLogged.dart';
 import 'theme/App.dart';
 import 'theme/Notifier.dart';
+import 'theme/ColorblindNotifier.dart';
 import 'screens/LogIn.dart';
 import 'screens/Feed.dart';
 import 'screens/Profile.dart';
@@ -22,6 +23,8 @@ void main() async {
   String? initError;
   usuario_Logged? savedUser;
   DeepLinkTarget? deepLinkTarget;
+  final colorblindNotifier = ColorblindNotifier();
+  await colorblindNotifier.load();
 
   try {
     savedUser = await SessionService.loadSession();
@@ -42,14 +45,26 @@ void main() async {
     initError ??= 'SessionService.loadSession() falló: $e';
   }
 
-  runApp(BocadoApp(savedUser: savedUser, initError: initError, deepLinkTarget: deepLinkTarget));
+  runApp(BocadoApp(
+    savedUser: savedUser,
+    initError: initError,
+    deepLinkTarget: deepLinkTarget,
+    colorblindNotifier: colorblindNotifier,
+  ));
 }
 
 class BocadoApp extends StatefulWidget {
   final usuario_Logged? savedUser;
   final String? initError;
   final DeepLinkTarget? deepLinkTarget;
-  const BocadoApp({super.key, this.savedUser, this.initError, this.deepLinkTarget});
+  final ColorblindNotifier colorblindNotifier;
+  const BocadoApp({
+    super.key,
+    this.savedUser,
+    this.initError,
+    this.deepLinkTarget,
+    required this.colorblindNotifier,
+  });
 
   @override
   State<BocadoApp> createState() => _BocadoAppState();
@@ -103,6 +118,7 @@ class _BocadoAppState extends State<BocadoApp> {
   void dispose() {
     _deepLinkSub?.cancel();
     _themeNotifier.dispose();
+    widget.colorblindNotifier.dispose();
     super.dispose();
   }
 
@@ -131,30 +147,38 @@ class _BocadoAppState extends State<BocadoApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: _themeNotifier,
-      builder: (_, themeMode, __) {
-        return MaterialApp(
-          title: 'Bocado',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeMode,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          locale: const Locale('es'),
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('es'),
-            Locale('en'),
-          ],
-          navigatorKey: _navigatorKey,
-          navigatorObservers: [routeObserver, bocadoRouteTracker],
-          home: _resolveHome(),
-        );
-      },
+    return ColorblindScope(
+      notifier: widget.colorblindNotifier,
+      child: ValueListenableBuilder<ColorblindConfig>(
+        valueListenable: widget.colorblindNotifier,
+        builder: (_, cbConfig, __) {
+          return ValueListenableBuilder<ThemeMode>(
+            valueListenable: _themeNotifier,
+            builder: (_, themeMode, __) {
+              return MaterialApp(
+                title: 'Bocado',
+                debugShowCheckedModeBanner: false,
+                themeMode: themeMode,
+                theme: AppTheme.light(cbConfig),
+                darkTheme: AppTheme.dark(cbConfig),
+                locale: const Locale('es'),
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('es'),
+                  Locale('en'),
+                ],
+                navigatorKey: _navigatorKey,
+                navigatorObservers: [routeObserver, bocadoRouteTracker],
+                home: _resolveHome(),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

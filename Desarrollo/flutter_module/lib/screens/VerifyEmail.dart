@@ -199,7 +199,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+                  color: c.text,
                 ),
               ),
               const SizedBox(height: 8),
@@ -219,7 +219,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 maxLength: 6,
                 keyboardType: TextInputType.number,
                 inputStyle: TextStyle(
-                  color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+                  color: c.text,
                   fontSize: 18,
                   letterSpacing: 10,
                   fontWeight: FontWeight.w700,
@@ -236,12 +236,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       )
                     : GestureDetector(
                         onTap: _sending ? null : () => _enviar(isResend: true),
-                        child: const Text(
+                        child: Text(
                           'Reenviar',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.primary,
+                            color: c.primary,
                           ),
                         ),
                       ),

@@ -155,8 +155,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             TabBar(
-              indicatorColor: AppTheme.primary,
-              labelColor: AppTheme.primary,
+              indicatorColor: c.primary,
+              labelColor: c.primary,
               unselectedLabelColor: c.muted,
               tabs: const [
                 Tab(text: 'Recetas'),
@@ -272,7 +272,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
         return ListTile(
           leading: CircleAvatar(
-            backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+            backgroundColor: c.primary.withValues(alpha: 0.2),
             backgroundImage: bocadoImageProvider(
               fotoUrl.isNotEmpty
                   ? fotoUrl
@@ -349,7 +349,7 @@ class _ResultCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.9),
+                    color: c.rating.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(

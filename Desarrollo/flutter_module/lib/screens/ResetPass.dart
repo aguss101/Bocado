@@ -96,7 +96,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+                      color: c.text,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -132,12 +132,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.cancel_outlined, size: 14, color: Colors.red),
+                        Icon(Icons.cancel_outlined, size: 14, color: c.error),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             _passwordError!,
-                            style: const TextStyle(fontSize: 11, color: Colors.red),
+                            style: TextStyle(fontSize: 11, color: c.error),
                           ),
                         ),
                       ],
@@ -175,7 +175,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               ? Icons.check_circle_outline
                               : Icons.cancel_outlined,
                           size: 14,
-                          color: _passwordsMatch ? Colors.green : Colors.red,
+                          color: _passwordsMatch ? c.success : c.error,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -184,7 +184,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               : 'Las contraseñas no coinciden',
                           style: TextStyle(
                             fontSize: 11,
-                            color: _passwordsMatch ? Colors.green : Colors.red,
+                            color: _passwordsMatch ? c.success : c.error,
                           ),
                         ),
                       ],
@@ -207,17 +207,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.chevron_left,
                             size: 16,
-                            color: AppTheme.primary,
+                            color: c.primary,
                           ),
-                          const Text(
+                          Text(
                             'Volver al inicio de sesión',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.primary,
+                              color: c.primary,
                             ),
                           ),
                         ],
@@ -239,7 +239,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        AppTheme.primary.withValues(alpha: 0.6),
+                        c.primary.withValues(alpha: 0.6),
                         Colors.transparent,
                       ],
                     ),
@@ -248,7 +248,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 const SizedBox(height: 8),
                 Icon(
                   Icons.restaurant_menu,
-                  color: AppTheme.primary.withValues(alpha: 0.4),
+                  color: c.primary.withValues(alpha: 0.4),
                   size: 24,
                 ),
               ],

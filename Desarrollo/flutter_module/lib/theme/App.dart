@@ -1,5 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'ColorblindNotifier.dart';
+
+class ColorToken {
+  final Color base;
+  final Color protanopia;
+  final Color deuteranopia;
+  final Color tritanopia;
+
+  const ColorToken({
+    required this.base,
+    required this.protanopia,
+    required this.deuteranopia,
+    required this.tritanopia,
+  });
+
+  Color resolve(ColorblindConfig config) {
+    if (!config.enabled) return base;
+    return switch (config.profile) {
+      ColorblindProfile.protanopia => protanopia,
+      ColorblindProfile.deuteranopia => deuteranopia,
+      ColorblindProfile.tritanopia => tritanopia,
+    };
+  }
+}
+
+class BocadoPalette {
+  static const primary = ColorToken(
+    base: Color(0xFFD96E11),
+    protanopia: Color(0xFFE69F00),
+    deuteranopia: Color(0xFFE69F00),
+    tritanopia: Color(0xFFD96E11),
+  );
+  static const error = ColorToken(
+    base: Color(0xFFB91C1C),
+    protanopia: Color(0xFFD55E00),
+    deuteranopia: Color(0xFFD55E00),
+    tritanopia: Color(0xFFDC2626),
+  );
+  static const success = ColorToken(
+    base: Color(0xFF4CAF50),
+    protanopia: Color(0xFF009E73),
+    deuteranopia: Color(0xFF009E73),
+    tritanopia: Color(0xFF16A34A),
+  );
+  static const like = ColorToken(
+    base: Color(0xFFF44336),
+    protanopia: Color(0xFFCC79A7),
+    deuteranopia: Color(0xFFCC79A7),
+    tritanopia: Color(0xFFE53935),
+  );
+  static const rating = ColorToken(
+    base: Color(0xFFFFC107),
+    protanopia: Color(0xFFF0E442),
+    deuteranopia: Color(0xFFF0E442),
+    tritanopia: Color(0xFFFFB300),
+  );
+  static const premium = ColorToken(
+    base: Color(0xFFFFC107),
+    protanopia: Color(0xFF785EF0),
+    deuteranopia: Color(0xFF785EF0),
+    tritanopia: Color(0xFF785EF0),
+  );
+}
+
+Color cvdNeutral(Color base, ColorblindConfig config) {
+  if (!config.enabled) return base;
+  final hsl = HSLColor.fromColor(base);
+  final double deltaHue = switch (config.profile) {
+    ColorblindProfile.protanopia => 6.0,
+    ColorblindProfile.deuteranopia => 6.0,
+    ColorblindProfile.tritanopia => -6.0,
+  };
+  return hsl.withHue((hsl.hue + deltaHue) % 360.0).toColor();
+}
 
 class BocadoColors {
   final bool isDark;
@@ -10,6 +84,11 @@ class BocadoColors {
   final Color text;
   final Color muted;
   final Color primary;
+  final Color error;
+  final Color success;
+  final Color like;
+  final Color rating;
+  final Color premium;
 
   const BocadoColors._({
     required this.isDark,
@@ -20,20 +99,31 @@ class BocadoColors {
     required this.text,
     required this.muted,
     required this.primary,
+    required this.error,
+    required this.success,
+    required this.like,
+    required this.rating,
+    required this.premium,
   });
 
   factory BocadoColors.of(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cb = ColorblindScope.of(context).value;
     return BocadoColors._(
       isDark: isDark,
-      bg: isDark ? AppTheme.bgDark : AppTheme.surfaceContainerLight,
-      surface: isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight,
+      bg: cvdNeutral(isDark ? AppTheme.bgDark : AppTheme.surfaceContainerLight, cb),
+      surface: cvdNeutral(isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight, cb),
       surfaceContainer:
-          isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight,
-      border: isDark ? AppTheme.outlineDark : AppTheme.outlineLight,
-      text: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
-      muted: isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight,
-      primary: AppTheme.primary,
+          cvdNeutral(isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight, cb),
+      border: cvdNeutral(isDark ? AppTheme.outlineDark : AppTheme.outlineLight, cb),
+      text: cvdNeutral(isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight, cb),
+      muted: cvdNeutral(isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight, cb),
+      primary: BocadoPalette.primary.resolve(cb),
+      error: BocadoPalette.error.resolve(cb),
+      success: BocadoPalette.success.resolve(cb),
+      like: BocadoPalette.like.resolve(cb),
+      rating: BocadoPalette.rating.resolve(cb),
+      premium: BocadoPalette.premium.resolve(cb),
     );
   }
 }
@@ -81,39 +171,47 @@ class AppTheme {
     return GoogleFonts.montserratTextTheme(base);
   }
 
-  static ThemeData dark() {
+  static ThemeData dark(ColorblindConfig cb) {
+    final primaryC = BocadoPalette.primary.resolve(cb);
+    final bg = cvdNeutral(bgDark, cb);
+    final surface = cvdNeutral(surfaceDark, cb);
+    final surfaceContainer = cvdNeutral(surfaceContainerDark, cb);
+    final outline = cvdNeutral(outlineDark, cb);
+    final onSurface = cvdNeutral(onSurfaceDark, cb);
+    final secondary = cvdNeutral(secondaryDark, cb);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: bgDark,
-      colorScheme: const ColorScheme.dark(
-        primary: primary,
-        surface: surfaceDark,
-        onSurface: onSurfaceDark,
-        outline: outlineDark,
+      scaffoldBackgroundColor: bg,
+      colorScheme: ColorScheme.dark(
+        primary: primaryC,
+        surface: surface,
+        onSurface: onSurface,
+        outline: outline,
       ),
       textTheme: _textTheme(Brightness.dark),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceContainerDark,
+        fillColor: surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: outlineDark),
+          borderSide: BorderSide(color: outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: outlineDark),
+          borderSide: BorderSide(color: outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 1.5),
+          borderSide: BorderSide(color: primaryC, width: 1.5),
         ),
-        hintStyle: const TextStyle(color: secondaryDark, fontSize: 14),
+        hintStyle: TextStyle(color: secondary, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
+          backgroundColor: primaryC,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -128,39 +226,46 @@ class AppTheme {
     );
   }
 
-  static ThemeData light() {
+  static ThemeData light(ColorblindConfig cb) {
+    final primaryC = BocadoPalette.primary.resolve(cb);
+    final surface = cvdNeutral(surfaceLight, cb);
+    final surfaceContainer = cvdNeutral(surfaceContainerLight, cb);
+    final outline = cvdNeutral(outlineLight, cb);
+    final onSurface = cvdNeutral(onSurfaceLight, cb);
+    final secondary = cvdNeutral(secondaryLight, cb);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: surfaceContainerLight,
-      colorScheme: const ColorScheme.light(
-        primary: primary,
-        surface: surfaceLight,
-        onSurface: onSurfaceLight,
-        outline: outlineLight,
+      scaffoldBackgroundColor: surfaceContainer,
+      colorScheme: ColorScheme.light(
+        primary: primaryC,
+        surface: surface,
+        onSurface: onSurface,
+        outline: outline,
       ),
       textTheme: _textTheme(Brightness.light),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceContainerLight,
+        fillColor: surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: outlineLight),
+          borderSide: BorderSide(color: outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: outlineLight),
+          borderSide: BorderSide(color: outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 1.5),
+          borderSide: BorderSide(color: primaryC, width: 1.5),
         ),
-        hintStyle: const TextStyle(color: secondaryLight, fontSize: 14),
+        hintStyle: TextStyle(color: secondary, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
+          backgroundColor: primaryC,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

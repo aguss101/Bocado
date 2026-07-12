@@ -195,6 +195,7 @@ class RecipeDetailScreen extends StatefulWidget {
 }
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+  BocadoColors get _c => BocadoColors.of(context);
   bool _isFavorite = false;
   bool _likeEnCurso = false;
   bool _isSaved = false;
@@ -455,7 +456,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         return IconButton(
                           icon: Icon(
                             index < _calificacion ? Icons.star : Icons.star_border,
-                            color: Colors.amber,
+                            color: _c.rating,
                             size: 32,
                           ),
                           onPressed: () {
@@ -526,7 +527,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Error al publicar el comentario.'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: _c.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -627,25 +628,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
-        body: const Center(
-          child: CircularProgressIndicator(color: AppTheme.primary),
+        backgroundColor: c.bg,
+        body: Center(
+          child: CircularProgressIndicator(color: c.primary),
         ),
       );
     }
 
     if (_data == null) {
       return Scaffold(
-        backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
+        backgroundColor: c.bg,
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline,
                 size: 60,
-                color: Colors.redAccent,
+                color: c.error,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -676,7 +677,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: isDark ? AppTheme.bgDark : AppTheme.bgLight,
+            backgroundColor: c.bg,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               color: Colors.white,
@@ -738,21 +739,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             url: item.trim(),
                             errorWidget: Container(
                               color: c.surfaceContainer,
-                              child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                              child: Icon(Icons.restaurant_menu, size: 64, color: c.primary),
                             ),
                           ),
                         );
                       } else {
                         return Container(
                           color: c.surfaceContainer,
-                          child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                          child: Icon(Icons.restaurant_menu, size: 64, color: c.primary),
                         );
                       }
                     }).toList(),
                   )
                       : Container(
                     color: c.surfaceContainer,
-                    child: const Icon(Icons.restaurant_menu, size: 64, color: AppTheme.primary),
+                    child: Icon(Icons.restaurant_menu, size: 64, color: c.primary),
                   ),
 
                   const IgnorePointer(
@@ -783,7 +784,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.9),
+                                color: c.primary.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -801,7 +802,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.9),
+                                  color: c.rating.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -893,7 +894,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               ),
                               child: Icon(
                                 _isFavorite ? Icons.favorite : Icons.favorite_border,
-                                color: _isFavorite ? Colors.red : Colors.white,
+                                color: _isFavorite ? c.like : Colors.white,
                                 size: 24,
                               ),
                             ),
@@ -912,7 +913,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               ),
                               child: Icon(
                                 _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                                color: _isSaved ? AppTheme.primary : Colors.white,
+                                color: _isSaved ? c.primary : Colors.white,
                                 size: 24,
                               ),
                             ),
@@ -978,8 +979,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           return _QuickInfo(
                             icon: Icons.star,
                             label: promedio.toStringAsFixed(1),
-                            iconColor: Colors.amber,
-                            textColor: Colors.amber,
+                            iconColor: c.rating,
+                            textColor: c.rating,
                           );
                         },
                       ),
@@ -987,8 +988,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         _QuickInfo(
                           icon: Icons.attach_money,
                           label: '\$${_data!.precioPorcion!.toStringAsFixed(2)} / porción',
-                          iconColor: AppTheme.primary,
-                          textColor: AppTheme.primary,
+                          iconColor: c.primary,
+                          textColor: c.primary,
                           fontSize: 15,
                         ),
                     ],
@@ -1066,12 +1067,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             surface,
                             outline,
                           ),
-                          child: const Text(
+                          child: Text(
                             'VER TODOS',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.primary,
+                              color: c.primary,
                               letterSpacing: 1,
                             ),
                           ),
@@ -1160,9 +1161,10 @@ class _QuickInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return Row(
       children: [
-        Icon(icon, size: 18, color: iconColor ?? AppTheme.primary),
+        Icon(icon, size: 18, color: iconColor ?? c.primary),
         const SizedBox(width: 6),
         Text(
           label,
@@ -1190,6 +1192,7 @@ class _NutriCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1215,10 +1218,10 @@ class _NutriCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
+              color: c.primary,
             ),
           ),
           Text(
@@ -1244,34 +1247,35 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     final highlighted = item.resaltado;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: highlighted
-            ? AppTheme.primary.withValues(alpha: 0.1)
+            ? c.primary.withValues(alpha: 0.1)
             : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: highlighted
-              ? AppTheme.primary.withValues(alpha: 0.3)
+              ? c.primary.withValues(alpha: 0.3)
               : outline.withValues(alpha: 0.5),
         ),
       ),
       child: Row(
         children: [
           highlighted
-              ? const Icon(
+              ? Icon(
             Icons.check_circle,
-            color: AppTheme.primary,
+            color: c.primary,
             size: 16,
           )
               : Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
-              color: AppTheme.primary,
+            decoration: BoxDecoration(
+              color: c.primary,
               shape: BoxShape.circle,
             ),
           ),
@@ -1281,7 +1285,7 @@ class _IngredientRow extends StatelessWidget {
               item.nombre,
               style: TextStyle(
                 color: highlighted
-                    ? AppTheme.primary.withValues(alpha: 0.9)
+                    ? c.primary.withValues(alpha: 0.9)
                     : null,
                 fontWeight: highlighted ? FontWeight.w600 : FontWeight.normal,
               ),
@@ -1293,7 +1297,7 @@ class _IngredientRow extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: highlighted
-                  ? AppTheme.primary
+                  ? c.primary
                   : Theme.of(
                 context,
               ).colorScheme.onSurface.withValues(alpha: 0.5),
@@ -1320,6 +1324,7 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1335,7 +1340,7 @@ class _StepCard extends StatelessWidget {
                     color: surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: step.numeroPaso == 1 ? AppTheme.primary : outline,
+                      color: step.numeroPaso == 1 ? c.primary : outline,
                       width: 2,
                     ),
                   ),
@@ -1346,7 +1351,7 @@ class _StepCard extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color: step.numeroPaso == 1
-                            ? AppTheme.primary
+                            ? c.primary
                             : Theme.of(
                           context,
                         ).colorScheme.onSurface.withValues(alpha: 0.5),
@@ -1416,10 +1421,10 @@ class _StepCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.timer_outlined,
                               size: 16,
-                              color: AppTheme.primary,
+                              color: c.primary,
                             ),
                             const SizedBox(width: 6),
                             Column(
@@ -1472,9 +1477,9 @@ class _StepCard extends StatelessWidget {
                                   color: surface,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.image_outlined,
-                                  color: AppTheme.primary,
+                                  color: c.primary,
                                 ),
                               ),
                             ),
@@ -1510,6 +1515,7 @@ class _CommentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     final double valorCalificacion = comment.calificacion ?? 0.0;
     final int estrellasEnteras = valorCalificacion.floor();
 
@@ -1525,14 +1531,14 @@ class _CommentCard extends StatelessWidget {
             color: isReply
                 ? Colors.transparent
                 : (comment.resaltar
-                ? Colors.amber.withValues(alpha: 0.08)
+                ? c.rating.withValues(alpha: 0.08)
                 : surface.withValues(alpha: 0.4)),
             borderRadius: BorderRadius.circular(16),
             border: isReply
                 ? null
                 : Border.all(
               color: comment.resaltar
-                  ? Colors.amber
+                  ? c.rating
                   : outline.withValues(alpha: 0.3),
               width: comment.resaltar ? 1.5 : 1,
             ),
@@ -1575,8 +1581,8 @@ class _CommentCard extends StatelessWidget {
                               ),
                               if (comment.esPremium) ...[
                                 const SizedBox(width: 4),
-                                const Icon(Icons.star,
-                                    color: Colors.amber, size: 13),
+                                Icon(Icons.star,
+                                    color: c.premium, size: 13),
                               ],
                             ],
                           ),
@@ -1608,7 +1614,7 @@ class _CommentCard extends StatelessWidget {
                           return Icon(
                             icono,
                             size: 14,
-                            color: AppTheme.primary,
+                            color: c.rating,
                           );
                         }),
                       ),

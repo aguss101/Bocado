@@ -1,16 +1,20 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/App.dart';
 import '../theme/Notifier.dart';
 import '../services/Receta.dart';
+import '../screens/Colorblind.dart';
 
 void showBocadoSnack(BuildContext context, String message, {bool isError = false}) {
+  final c = BocadoColors.of(context);
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(message),
-      backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
+      backgroundColor: isError ? c.error : c.primary,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
@@ -40,7 +44,7 @@ Future<bool> mostrarDialogoEliminarReceta(
           child: const Text('Cancelar'),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+          style: TextButton.styleFrom(foregroundColor: BocadoColors.of(ctx).error),
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text('Eliminar'),
         ),
@@ -64,17 +68,22 @@ Future<bool> mostrarDialogoEliminarReceta(
 }
 
 Widget bocadoDeleteBadge({required VoidCallback onTap}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.65),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
-      ),
-      child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
-    ),
+  return Builder(
+    builder: (context) {
+      final c = BocadoColors.of(context);
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.65),
+            shape: BoxShape.circle,
+            border: Border.all(color: c.error.withValues(alpha: 0.5)),
+          ),
+          child: Icon(Icons.delete_outline, color: c.error, size: 18),
+        ),
+      );
+    },
   );
 }
 
@@ -98,6 +107,7 @@ class BocadoNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return CachedNetworkImage(
       imageUrl: url,
       fit: fit,
@@ -106,13 +116,13 @@ class BocadoNetworkImage extends StatelessWidget {
       memCacheWidth: memCacheWidth,
       fadeInDuration: const Duration(milliseconds: 200),
       placeholder: (_, __) =>
-          Container(color: AppTheme.primary.withValues(alpha: 0.06)),
+          Container(color: c.primary.withValues(alpha: 0.06)),
       errorWidget: (_, __, ___) =>
           errorWidget ??
           Container(
-            color: AppTheme.primary.withValues(alpha: 0.06),
-            child: const Icon(Icons.broken_image_outlined,
-                color: AppTheme.primary),
+            color: c.primary.withValues(alpha: 0.06),
+            child: Icon(Icons.broken_image_outlined,
+                color: c.primary),
           ),
     );
   }
@@ -199,12 +209,12 @@ Future<ImageSource?> showImageSourceSheet(BuildContext context) {
           ),
           const SizedBox(height: BocadoSpacing.sm),
           ListTile(
-            leading: const Icon(Icons.photo_camera_outlined, color: AppTheme.primary),
+            leading: Icon(Icons.photo_camera_outlined, color: c.primary),
             title: Text('Cámara', style: TextStyle(color: c.text)),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primary),
+            leading: Icon(Icons.photo_library_outlined, color: c.primary),
             title: Text('Galería', style: TextStyle(color: c.text)),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
@@ -225,19 +235,47 @@ class ThemeToggleButton extends StatelessWidget {
     this.tooltip = false,
   });
 
+  static const _longPressDuration = Duration(milliseconds: 1000);
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
-      builder: (_, mode, __) {
+      builder: (context, mode, __) {
         final esDark = mode == ThemeMode.dark;
-        return IconButton(
+        final c = BocadoColors.of(context);
+
+        Widget button = IconButton(
           icon: Icon(
             esDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            color: AppTheme.primary,
+            color: c.primary,
           ),
           onPressed: themeNotifier.toggle,
-          tooltip: tooltip ? (esDark ? 'Tema claro' : 'Tema oscuro') : null,
+          tooltip: null,
+        );
+
+        if (tooltip) {
+          button = Tooltip(
+            message: esDark ? 'Tema claro' : 'Tema oscuro',
+            triggerMode: TooltipTriggerMode.manual,
+            child: button,
+          );
+        }
+
+        return RawGestureDetector(
+          gestures: {
+            LongPressGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+              () => LongPressGestureRecognizer(duration: _longPressDuration),
+              (instance) => instance.onLongPress = () {
+                HapticFeedback.mediumImpact();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ColorblindSettingsScreen()),
+                );
+              },
+            ),
+          },
+          child: button,
         );
       },
     );
@@ -303,6 +341,7 @@ class BocadoAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     Widget contenido;
     if (fotoUrl != null) {
       contenido = BocadoNetworkImage(
@@ -318,7 +357,7 @@ class BocadoAvatar extends StatelessWidget {
           style: TextStyle(
             fontSize: initialFontSize ?? size * 0.4,
             fontWeight: FontWeight.w800,
-            color: AppTheme.primary,
+            color: c.primary,
           ),
         ),
       );
@@ -329,7 +368,7 @@ class BocadoAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        color: background ?? AppTheme.primary.withValues(alpha: 0.15),
+        color: background ?? c.primary.withValues(alpha: 0.15),
       ),
       clipBehavior: Clip.antiAlias,
       child: contenido,

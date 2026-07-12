@@ -72,7 +72,7 @@ class _CompleteGoogleProfileScreenState
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
+          colorScheme: ColorScheme.light(primary: BocadoColors.of(context).primary),
         ),
         child: child!,
       ),
@@ -167,18 +167,18 @@ class _CompleteGoogleProfileScreenState
       child: Center(
         child: AuthCard(
           child: _cargandoOpciones
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary),
+                    child: CircularProgressIndicator(color: c.primary),
                   ),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(
+                    Center(
                       child: Icon(Icons.verified_user_outlined,
-                          color: AppTheme.primary, size: 40),
+                          color: c.primary, size: 40),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -187,9 +187,7 @@ class _CompleteGoogleProfileScreenState
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
-                        color: isDark
-                            ? AppTheme.onSurfaceDark
-                            : AppTheme.onSurfaceLight,
+                        color: c.text,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -203,9 +201,9 @@ class _CompleteGoogleProfileScreenState
                     Text(
                       widget.perfil.correo,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.primary,
+                        color: c.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

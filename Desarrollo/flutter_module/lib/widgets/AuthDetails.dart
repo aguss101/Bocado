@@ -17,9 +17,10 @@ class AuthScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final secondary = c.muted;
+    final outline = c.border;
 
     return Scaffold(
       body: Column(
@@ -60,6 +61,7 @@ class _AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
@@ -74,7 +76,7 @@ class _AuthHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.primary,
+                color: c.primary,
                 letterSpacing: -0.5,
               ),
             ),
@@ -136,9 +138,10 @@ class AuthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
-    final outline = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
+    final c = BocadoColors.of(context);
+    final isDark = c.isDark;
+    final cardColor = c.surface;
+    final outline = c.border;
 
     return Container(
       width: double.infinity,
@@ -167,13 +170,13 @@ class AuthFieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final c = BocadoColors.of(context);
     return Text(
       text.toUpperCase(),
       style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight,
+        color: c.muted,
         letterSpacing: 1.5,
       ),
     );
@@ -206,10 +209,8 @@ class AuthTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark
-        ? AppTheme.secondaryDark.withValues(alpha: 0.7)
-        : AppTheme.secondaryLight.withValues(alpha: 0.7);
+    final c = BocadoColors.of(context);
+    final iconColor = c.muted.withValues(alpha: 0.7);
 
     return TextField(
       controller: controller,
@@ -219,7 +220,7 @@ class AuthTextField extends StatelessWidget {
       onChanged: onChanged,
       style: inputStyle ??
           TextStyle(
-            color: isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight,
+            color: c.text,
             fontSize: 14,
           ),
       decoration: InputDecoration(
@@ -279,21 +280,22 @@ class AuthErrorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = BocadoColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.1),
+        color: c.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: c.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+          Icon(Icons.error_outline, color: c.error, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+              style: TextStyle(color: c.error, fontSize: 13),
             ),
           ),
         ],
@@ -307,24 +309,25 @@ class AuthBrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final c = BocadoColors.of(context);
+    return Column(
       children: [
         Center(
-          child: Icon(Icons.restaurant_menu, color: AppTheme.primary, size: 40),
+          child: Icon(Icons.restaurant_menu, color: c.primary, size: 40),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Center(
           child: Text(
             'PLATAFORMA GOURMET',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: AppTheme.primary,
+              color: c.primary,
               letterSpacing: 2,
             ),
           ),
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: 24),
       ],
     );
   }
@@ -366,7 +369,7 @@ class AuthDropdown extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+          borderSide: BorderSide(color: c.primary, width: 2),
         ),
       ),
       items: items.map<DropdownMenuItem<int>>((it) {
@@ -383,9 +386,9 @@ class AuthDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
-    final textColor = isDark ? AppTheme.secondaryDark : AppTheme.secondaryLight;
+    final c = BocadoColors.of(context);
+    final color = c.border;
+    final textColor = c.muted;
 
     return Row(
       children: [
@@ -414,10 +417,10 @@ class GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final border = isDark ? AppTheme.outlineDark : AppTheme.outlineLight;
-    final bg = isDark ? AppTheme.surfaceContainerDark : AppTheme.surfaceContainerLight;
-    final textColor = isDark ? AppTheme.onSurfaceDark : AppTheme.onSurfaceLight;
+    final c = BocadoColors.of(context);
+    final border = c.border;
+    final bg = c.surfaceContainer;
+    final textColor = c.text;
 
     return GestureDetector(
       onTap: onTap,

@@ -118,9 +118,9 @@ class _FollowListDialogState extends State<_FollowListDialog>
             ),
             TabBar(
               controller: _tabController,
-              labelColor: AppTheme.primary,
+              labelColor: c.primary,
               unselectedLabelColor: c.muted,
-              indicatorColor: AppTheme.primary,
+              indicatorColor: c.primary,
               tabs: const [
                 Tab(text: 'Seguidores'),
                 Tab(text: 'Siguiendo'),
@@ -298,12 +298,12 @@ class _FollowTileState extends State<_FollowTile> {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+              backgroundColor: c.primary.withValues(alpha: 0.15),
               backgroundImage: (widget.fotoUrl != null && widget.fotoUrl!.isNotEmpty)
                   ? bocadoImageProvider(widget.fotoUrl!)
                   : null,
               child: (widget.fotoUrl == null || widget.fotoUrl!.isEmpty)
-                  ? Text(inicial, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 18))
+                  ? Text(inicial, style: TextStyle(color: c.primary, fontWeight: FontWeight.w800, fontSize: 18))
                   : null,
             ),
             const SizedBox(width: 14),
@@ -318,7 +318,7 @@ class _FollowTileState extends State<_FollowTile> {
             if (!widget.esUnoMismo)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _siguiendo ? Color.lerp(AppTheme.primary, Colors.black, 0.30) : AppTheme.primary,
+                  backgroundColor: _siguiendo ? Color.lerp(c.primary, Colors.black, 0.30) : c.primary,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(0, 32),
                   padding: const EdgeInsets.symmetric(horizontal: 14),

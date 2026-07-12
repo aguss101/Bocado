@@ -9,9 +9,6 @@ import '../theme/Notifier.dart';
 import '../theme/App.dart';
 import '../widgets/Common.dart';
 
-const _primary = AppTheme.primary;
-const _error = Color(0xFFB91C1C);
-
 const List<DropdownMenuItem<int>> _medidaDropdownItems = [
   DropdownMenuItem(value: 1, child: Text('Gramos')),
   DropdownMenuItem(value: 2, child: Text('Kilogramos')),
@@ -100,6 +97,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   Color get _onSurface => _c.text;
   Color get _onSurfaceVariant => _c.muted;
   Color get _inputBg => _c.surfaceContainer;
+  Color get _primary => _c.primary;
+  Color get _error => _c.error;
+  Color get _rating => _c.rating;
   bool get _esEdicion => widget.recetaExistente != null;
   static const MethodChannel _channel = MethodChannel('com.example.bocado/recetas');
   int _step = 1;
@@ -603,7 +603,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 );
                 if (ok && mounted) Navigator.pop(context);
               },
-              icon: const Icon(Icons.delete_outline, color: _error),
+              icon: Icon(Icons.delete_outline, color: _error),
             ),
 
     _pillButton(
@@ -818,7 +818,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         top: 4, right: 4,
                         child: GestureDetector(
                           onTap: () => setState(() => _listaFotos.removeAt(index)),
-                          child: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
+                          child: Icon(Icons.remove_circle, color: _error, size: 20),
                         ),
                       ),
                     ],
@@ -894,7 +894,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('LISTA DE INGREDIENTES', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2)),
+                    Text('LISTA DE INGREDIENTES', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _primary, letterSpacing: 2)),
                     Text('${_ingredients.length} ITEMS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: _onSurfaceVariant.withValues(alpha: 0.6), letterSpacing: 1.5)),
                   ],
                 ),
@@ -990,7 +990,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 color: _primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.restaurant_menu, color: _primary, size: 18),
+              child: Icon(Icons.restaurant_menu, color: _primary, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1013,7 +1013,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                       ),
                       if (esGlobal) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.star, color: Colors.amber, size: 12),
+                        Icon(Icons.star, color: _rating, size: 12),
                       ],
                     ],
                   ),
@@ -1168,7 +1168,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 children: [
                   Text(
                     '💡 Crear "$textEntered"',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _primary),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _primary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1179,7 +1179,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: _primary, size: 14),
+            Icon(Icons.arrow_forward_ios, color: _primary, size: 14),
           ],
         ),
       ),
@@ -1398,7 +1398,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: _error, size: 20),
+            icon: Icon(Icons.delete_outline, color: _error, size: 20),
             onPressed: () => setState(() => _pasos.removeAt(index)),
           ),
         ],

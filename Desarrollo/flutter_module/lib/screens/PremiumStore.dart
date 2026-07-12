@@ -131,9 +131,9 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
                     icon: const Icon(Icons.redeem, size: 18),
                     label: const Text("Canjear Código"),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
+                      foregroundColor: c.primary,
                       minimumSize: const Size(double.infinity, 52),
-                      side: const BorderSide(color: AppTheme.primary),
+                      side: BorderSide(color: c.primary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BocadoRadius.md)),
                     ),
                   ),
@@ -141,9 +141,9 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
                     const SizedBox(height: BocadoSpacing.sm),
                     TextButton(
                       onPressed: () => _cambiarEstadoPremium(false),
-                      child: const Text(
+                      child: Text(
                         "Cancelar suscripción",
-                        style: TextStyle(color: Colors.redAccent),
+                        style: TextStyle(color: c.error),
                       ),
                     ),
                   ],
@@ -164,7 +164,7 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
                   padding: const EdgeInsets.symmetric(vertical: BocadoSpacing.xs),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+                      Icon(Icons.check_circle, color: c.primary, size: 20),
                       const SizedBox(width: BocadoSpacing.md),
                       Expanded(
                         child: Text(b, style: TextStyle(color: c.text, fontSize: 14)),
@@ -183,16 +183,16 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: BocadoSpacing.lg, horizontal: BocadoSpacing.md),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primary.withValues(alpha: 0.12) : c.surfaceContainer,
+        color: isSelected ? c.primary.withValues(alpha: 0.12) : c.surfaceContainer,
         borderRadius: BorderRadius.circular(BocadoRadius.md),
-        border: Border.all(color: isSelected ? AppTheme.primary : c.border),
+        border: Border.all(color: isSelected ? c.primary : c.border),
       ),
       child: Column(
         children: [
           Text(
             title,
             style: TextStyle(
-              color: isSelected ? AppTheme.primary : c.text,
+              color: isSelected ? c.primary : c.text,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -230,7 +230,7 @@ class _PremiumStoreScreenState extends State<PremiumStoreScreen> {
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: c.primary,
               foregroundColor: Colors.white,
               minimumSize: const Size(0, 44),
               padding: const EdgeInsets.symmetric(horizontal: BocadoSpacing.lg),

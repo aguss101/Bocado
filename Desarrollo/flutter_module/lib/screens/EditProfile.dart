@@ -30,6 +30,7 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  BocadoColors get _c => BocadoColors.of(context);
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usuarioCtrl;
   late TextEditingController _correoCtrl;
@@ -178,7 +179,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.primary,
+        backgroundColor: isError ? _c.error : _c.primary,
       ),
     );
   }
@@ -243,13 +244,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final c = BocadoColors.of(context);
-    final bg = c.bg;
-    final surface = c.surface;
-    final border = c.border;
-    final text = c.text;
-    final muted = c.muted;
-    final inputBg = c.surfaceContainer;
+    final bg = _c.bg;
+    final surface = _c.surface;
+    final border = _c.border;
+    final text = _c.text;
+    final muted = _c.muted;
+    final inputBg = _c.surfaceContainer;
 
     return Scaffold(
       backgroundColor: bg,
@@ -262,7 +262,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: AppTheme.primary),
+          icon: Icon(Icons.arrow_back_ios_new, color: _c.primary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -275,7 +275,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
           Builder(
             builder: (ctx) => IconButton(
-              icon: const Icon(Icons.menu, color: AppTheme.primary),
+              icon: Icon(Icons.menu, color: _c.primary),
               onPressed: () => Scaffold.of(ctx).openEndDrawer(),
             ),
           ),
@@ -283,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ],
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: _c.primary))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -350,7 +350,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               height: 140,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: urlBannerMomentaneo != null ? null : AppTheme.primary.withValues(alpha: 0.06),
+                color: urlBannerMomentaneo != null ? null : _c.primary.withValues(alpha: 0.06),
                 image: urlBannerMomentaneo != null && urlBannerMomentaneo.isNotEmpty
                     ? DecorationImage(
                   image: bocadoImageProvider(urlBannerMomentaneo),
@@ -362,14 +362,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.panorama_outlined, color: AppTheme.primary, size: 18),
+                  Icon(Icons.panorama_outlined, color: _c.primary, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     'Añadir banner',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.primary,
+                      color: _c.primary,
                     ),
                   ),
                 ],
@@ -386,7 +386,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary,
+                    color: _c.primary,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: surface, width: 2),
                     boxShadow: [
@@ -438,12 +438,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppTheme.primary,
+                          color: _c.primary,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: surface, width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.4),
+                              color: _c.primary.withValues(alpha: 0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -472,7 +472,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 1,
-              color: AppTheme.primary),
+              color: _c.primary),
         ),
         const SizedBox(height: 16),
 
@@ -487,7 +487,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         if (_uploading) ...[
           const SizedBox(height: 16),
-          const LinearProgressIndicator(color: AppTheme.primary),
+          LinearProgressIndicator(color: _c.primary),
         ],
       ],
     );
@@ -617,7 +617,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
+                          backgroundColor: _c.primary,
                           foregroundColor: Colors.white,
                           minimumSize: const Size(0, 48),
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -680,10 +680,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _fieldLabel(String label) {
     return Text(
       label.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w800,
-          color: AppTheme.primary,
+          color: _c.primary,
           letterSpacing: 1),
     );
   }
@@ -713,7 +713,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+        borderSide: BorderSide(color: _c.primary, width: 1.5),
       ),
     );
   }
@@ -734,12 +734,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(Icons.verified_user_outlined,
-                  color: AppTheme.primary, size: 26),
+                  color: _c.primary, size: 26),
               const Spacer(),
               Switch(
                 value: _visibilidad,
                 onChanged: _actualizarVisibilidad,
-                activeColor: AppTheme.primary,
+                activeColor: _c.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],
@@ -780,7 +780,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppTheme.primary, size: 26),
+            Icon(icon, color: _c.primary, size: 26),
             const SizedBox(height: 10),
             Text(title,
                 style: TextStyle(

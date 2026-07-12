@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../utils/IdCodec.dart';
 import '../theme/Notifier.dart';
 import '../theme/App.dart';
+import '../theme/ColorblindNotifier.dart';
 import '../widgets/Common.dart';
 import 'BarraNavegacion.dart';
 import 'EditProfile.dart';
@@ -36,6 +37,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin, RouteAware {
+  BocadoColors get _c => BocadoColors.of(context);
   late TabController _tabController;
   late usuario_Logged _user;
   late bool _isMiPerfil;
@@ -276,13 +278,12 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final c = BocadoColors.of(context);
-    final isDark = c.isDark;
-    final bg = c.bg;
-    final surface = c.surface;
-    final border = c.border;
-    final text = c.text;
-    final muted = c.muted;
+    final isDark = _c.isDark;
+    final bg = _c.bg;
+    final surface = _c.surface;
+    final border = _c.border;
+    final text = _c.text;
+    final muted = _c.muted;
 
     return Scaffold(
       backgroundColor: bg,
@@ -303,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ThemeToggleButton(themeNotifier: widget.themeNotifier),
           Builder(
             builder: (ctx) => IconButton(
-              icon: const Icon(Icons.menu, color: AppTheme.primary),
+              icon: Icon(Icons.menu, color: _c.primary),
               onPressed: () => Scaffold.of(ctx).openEndDrawer(),
             ),
           ),
@@ -331,9 +332,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             delegate: _StickyTabBarDelegate(
               TabBar(
                 controller: _tabController,
-                indicatorColor: AppTheme.primary,
+                indicatorColor: _c.primary,
                 indicatorWeight: 2,
-                labelColor: AppTheme.primary,
+                labelColor: _c.primary,
                 unselectedLabelColor: muted,
                 labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 isScrollable: false,
@@ -378,14 +379,15 @@ class _ProfileScreenState extends State<ProfileScreen>
               : _user.bannerReady != null
               ? Image.memory(_user.bannerReady!, fit: BoxFit.cover)
               : Container(
-            color: isDark
-                ? const Color(0xFF1A1108)
-                : const Color(0xFFF5E0C8),
+            color: cvdNeutral(
+              isDark ? const Color(0xFF1A1108) : const Color(0xFFF5E0C8),
+              ColorblindScope.of(context).value,
+            ),
             child: Center(
               child: Icon(
                 Icons.restaurant_menu,
                 size: 48,
-                color: AppTheme.primary.withValues(alpha: 0.3),
+                color: _c.primary.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -435,7 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     _isMiPerfil
                         ? ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: _c.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -469,8 +471,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         : ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isFollowing
-                            ? Color.lerp(AppTheme.primary, Colors.black, 0.30)
-                            : AppTheme.primary,
+                            ? Color.lerp(_c.primary, Colors.black, 0.30)
+                            : _c.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -543,9 +545,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               if (_user.id_Cuenta == 2) ...[
                 const SizedBox(width: 6),
-                const Icon(
+                Icon(
                   Icons.star,
-                  color: Colors.amber,
+                  color: BocadoColors.of(context).premium,
                   size: 20,
                 ),
               ],
@@ -670,7 +672,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Bio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primary, letterSpacing: 1)),
+          Text('Bio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _c.primary, letterSpacing: 1)),
           const SizedBox(height: 8),
           Text(
             bioText,
@@ -862,10 +864,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
+                color: _c.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add, color: AppTheme.primary, size: 28),
+              child: Icon(Icons.add, color: _c.primary, size: 28),
             ),
             const SizedBox(height: 10),
             Text(
@@ -894,6 +896,7 @@ Widget _recipeCard({
   required usuario_Logged user,
   VoidCallback? onEliminada,
 }) {
+  final c = BocadoColors.of(context);
   final stringEtiqueta = receta.etiquetas.isNotEmpty
       ? receta.etiquetas.first
       : 'Receta';
@@ -941,11 +944,11 @@ Widget _recipeCard({
                   ),
                 )
                     : Container(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  color: c.primary.withValues(alpha: 0.08),
                   child: Icon(
                     Icons.restaurant,
                     size: 40,
-                    color: AppTheme.primary.withValues(alpha: 0.3),
+                    color: c.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 Positioned(
@@ -1009,10 +1012,10 @@ Widget _recipeCard({
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.star,
                           size: 12,
-                          color: AppTheme.primary,
+                          color: c.rating,
                         ),
                         const SizedBox(width: 2),
                         Text(
