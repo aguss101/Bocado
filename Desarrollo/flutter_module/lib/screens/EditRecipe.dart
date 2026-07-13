@@ -945,16 +945,16 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         final precioBaseExistente = s['precio_base'];
         final idMedidaExistente = s['id_medida'];
 
-        if (precioBaseExistente != null && idMedidaExistente != null) {
-          final double precioBase = (precioBaseExistente as num).toDouble();
-          final int idMedida = (idMedidaExistente as num).toInt();
+        if (esGlobal || (precioBaseExistente != null && idMedidaExistente != null)) {
+          final double precioBase = precioBaseExistente != null ? (precioBaseExistente as num).toDouble() : 0.0;
+          final int idMedida = idMedidaExistente != null ? (idMedidaExistente as num).toInt() : 1;
           setState(() {
             _ingredients.add(
               _Ingredient(
                   idAlimento: idAlimento,
                   name: nombreFormateado,
                   category: s['categoria'] ?? 'Añadido',
-                  quantity: '0',
+                  quantity: esGlobal ? '100' : '0',
                   unit: unitForMedida(idMedida),
                   priceBase: precioBase,
                   idMedida: idMedida,
@@ -1039,7 +1039,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     final textColor = _onSurface;
     final subtextColor = _onSurfaceVariant.withValues(alpha: 0.5);
     final double currentSubtotal = ing.subtotal;
-    final bool isInvalid = currentSubtotal <=0;
+    final double currentQuantity = double.tryParse(ing.quantity) ?? 0.0;
+    final bool isInvalid = ing.esGlobal ? (currentQuantity <= 0) : (currentSubtotal <= 0);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
