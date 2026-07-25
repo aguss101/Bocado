@@ -5,7 +5,7 @@
 <h1 align="center">Bocado</h1>
 
 <p align="center">
-  Red social de recetas: un espacio para aprender a cocinar, compartir conocimiento, ahorrar en las compras y comer más sano..
+  Red social de recetas: un espacio para aprender a cocinar, compartir conocimiento, ahorrar en las compras y comer más sano.
 </p>
 
 <p align="center">
