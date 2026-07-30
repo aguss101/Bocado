@@ -144,8 +144,4 @@ También se incluyen la consigna del trabajo práctico ([`Consigna.pdf`](Consign
 
 ## Equipo
 
-Proyecto desarrollado por el **Equipo 8** como TESIS para la finalizacion de la Tecnicatura Universitaria en Programación.
-
-## Licencia
-
-Este proyecto no cuenta con una licencia pública definida. Todos los derechos reservados por sus autores.
+Proyecto desarrollado por el **Equipo 8 (Facundo Cuello, Franco Gabriel Fernandez y Agustin Baied)** como TESIS para la finalizacion de la Tecnicatura Universitaria en Programación.
