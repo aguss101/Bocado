@@ -144,4 +144,4 @@ También se incluyen la consigna del trabajo práctico ([`Consigna.pdf`](Consign
 
 ## Equipo
 
-Proyecto desarrollado por el **Equipo 8 (Facundo Cuello, Franco Gabriel Fernandez y Agustin Baied)** como TESIS para la finalizacion de la Tecnicatura Universitaria en Programación.
+Proyecto desarrollado por **Facundo Cuello, Franco Gabriel Fernandez y Agustin Baied** como TESIS para la finalizacion de la Tecnicatura Universitaria en Programación.
